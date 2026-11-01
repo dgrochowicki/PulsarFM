@@ -68,7 +68,7 @@ Pełny opis syntezy i instrumentów: `docs/DZWIEK.md` (aktualizować przy zmiana
 
 ## Style graficzne
 
-Przełącznik u góry: **Bauhaus** (domyślny; płaskie koła i łuki), **Oscyloskop** (jedna świecąca linia; Słońce to kształt fali dźwięku z `Tone.Waveform`), **Partytura** (pięciolinia od Słońca do Ziemi, grane nuty), **Kosmos** (dosłowny, mniejsze Słońce). Autor: Słońce i Ziemia w wersji dosłownej były „zbyt dosłowne”; szuka abstrakcji, z której nadal wiadomo, o co chodzi. Kierunek graficzny **niezdecydowany**.
+Przełącznik u góry: **Bauhaus** (domyślny; płaskie koła i łuki), **Oscyloskop** (jedna świecąca linia; Słońce to kształt fali dźwięku z `Tone.Waveform`), **Partytura** (pięciolinia od Słońca do Ziemi, grane nuty), **Kosmos** (dosłowny, mniejsze Słońce). Autor: Słońce i Ziemia w wersji dosłownej były „zbyt dosłowne”; szuka abstrakcji, z której nadal wiadomo, o co chodzi. Kierunek graficzny **niezdecydowany**; obecne style autor uznał za „dość łopatologiczne”. Nowe propozycje (grzbiety impulsów, słoje, cymatyka, linie pola, pole koloru) z opisem i rekomendacją: `docs/WIZUALIZACJE.md`.
 
 Wybór pulsara: mapa całego nieba (rzut Hammera–Aitoffa, RA 12h w środku, rośnie w lewo, Droga Mleczna z konwersji b = 0). Każdy pulsar miga w swoim prawdziwym rytmie; szybkie mają drgający pierścień. **Autor nie chce listy, tylko wybór z grafiki.**
 
@@ -95,7 +95,7 @@ Zasada: każde nowe źródło danych dostaje **jedną wyraźną rolę**, żeby n
 
 **Później / do rozważenia**
 - [ ] Porównanie z Lyria RealTime (Google, Gemini API): model AI sterowany opisem gatunku + `bpm`, `density`, `brightness`. Możliwa hybryda: Lyria gra tło w gatunku pulsara, a pulsar i rozbłyski zostają w Tone.js. Wymaga klucza API i małego serwera.
-- [ ] Wybór kierunku graficznego.
+- [ ] Wybór kierunku graficznego: najpierw szybkie szkice kierunków 1 (grzbiety impulsów) i 2 (słoje) z `docs/WIZUALIZACJE.md` jako dodatkowe style w przełączniku, do porównania przez autora na telefonie. Autor jeszcze nie wybrał.
 
 ## Test dymny
 

@@ -8,4 +8,6 @@ Uruchomienie: otwórz `index.html` przez serwer HTTP (np. `python3 -m http.serve
 
 Jak powstaje dźwięk (synteza, instrumenty w każdym gatunku, co zmieniają dane): [docs/DZWIEK.md](docs/DZWIEK.md).
 
+Kierunki wizualizacji do wyboru: [docs/WIZUALIZACJE.md](docs/WIZUALIZACJE.md).
+
 Szczegóły projektu, mapowanie danych i plan: [CLAUDE.md](CLAUDE.md).
