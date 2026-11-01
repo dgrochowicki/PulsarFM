@@ -6,4 +6,6 @@ Muzyka generatywna i wizualizacja grane na żywo z danych o pogodzie kosmicznej 
 
 Uruchomienie: otwórz `index.html` przez serwer HTTP (np. `python3 -m http.server`) albo przez GitHub Pages. Kliknij „Posłuchaj”.
 
+Jak powstaje dźwięk (synteza, instrumenty w każdym gatunku, co zmieniają dane): [docs/DZWIEK.md](docs/DZWIEK.md).
+
 Szczegóły projektu, mapowanie danych i plan: [CLAUDE.md](CLAUDE.md).

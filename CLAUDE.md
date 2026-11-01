@@ -64,7 +64,7 @@ Wolny pulsar (okres ≥ 0,2 s) ustala **tempo** (błysk = uderzenie, BPM sprowad
 
 Okresy i położenia są z pamięci modelu (literatura/ATNF). **Do zweryfikowania z katalogiem** przy etapie 2.
 
-Muzyka to reguły, nie model AI: każdy gatunek w `GENRES` ma `make(B)` zwracające `{ nodes, tun, step(t, s, bar), pulse?(t) }`. Melodie to klasa `Motif` (fraza, która się powtarza i co kilka taktów mutuje), żeby było słychać melodię, a nie losowe nuty.
+Pełny opis syntezy i instrumentów: `docs/DZWIEK.md` (aktualizować przy zmianach w `GENRES`). Muzyka to reguły, nie model AI: każdy gatunek w `GENRES` ma `make(B)` zwracające `{ nodes, tun, step(t, s, bar), pulse?(t) }`. Melodie to klasa `Motif` (fraza, która się powtarza i co kilka taktów mutuje), żeby było słychać melodię, a nie losowe nuty.
 
 ## Style graficzne
 
