@@ -51,6 +51,8 @@ Decyzje autora: **żadnych dzwonków przy rozbłysku** (ma być jak w zwiastunie
 
 Wolny pulsar (okres ≥ 0,2 s) ustala **tempo** (błysk = uderzenie, BPM sprowadzane do 60–120 przez mnożenie/dzielenie przez 2). Szybki pulsar **gra sam siebie** ciągiem impulsów o prawdziwej częstotliwości i ustala **tonację**: cały utwór transponowany do najbliższej nuty i dostrojony w centach (`musicFor()`).
 
+Automatyczny wybór pulsara używa geolokalizacji i czasu UTC, aby co minutę wybrać najwyżej położony nad horyzontem pulsar z katalogu. Gdy geolokalizacja jest niedostępna lub odmówiona, używa Szczecina; ręczny wybór z mapy wyłącza tryb automatyczny.
+
 | Pulsar | Okres | Gatunek | Uwagi |
 |---|---|---|---|
 | PSR J2144−3933 | 8,51 s | Drone | gong co 8,5 s |
@@ -78,7 +80,7 @@ Zasada: każde nowe źródło danych dostaje **jedną wyraźną rolę**, żeby n
 
 **Etap 1**
 - [ ] GitHub Pages działa, sprawdzić na żywo NOAA (CORS) i SDO.
-- [ ] **Pulsar nad tobą**: z lokalizacji (geolokalizacja, fallback Szczecin) i czasu wybrać pulsar najwyżej nad horyzontem; muzyka zmienia się w ciągu nocy. Ręczny wybór z mapy zostaje (np. przełącznik „auto”).
+- [x] **Pulsar nad tobą**: z lokalizacji (geolokalizacja, fallback Szczecin) i czasu wybrać pulsar najwyżej nad horyzontem; muzyka zmienia się w ciągu nocy. Ręczny wybór z mapy zostaje i wyłącza tryb „auto”.
 
 **Etap 2**
 - [ ] Kilkaset pulsarów z katalogu ATNF na mapie; gatunek automatycznie wg okresu, 8 obecnych jako wyróżnione z ręcznymi gatunkami.

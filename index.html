@@ -74,7 +74,11 @@
   .sheet-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; max-width: 900px; width: 100%; margin: 0 auto; }
   .sheet-head b { font-size: 19px; }
   .sheet-head .sub { color: var(--dim); font-size: 13px; margin-top: 3px; }
+  .sheet-actions { display: flex; gap: 8px; flex: 0 0 auto; }
   .sheet-head button { border: 0; background: var(--accent); color: #241703; font-weight: 700; border-radius: 18px; height: 36px; padding: 0 16px; cursor: pointer; }
+  .sheet-head button.auto-toggle { background: rgba(255,255,255,0.12); color: var(--text); }
+  .sheet-head button.auto-toggle.on { background: var(--accent); color: #241703; }
+  .auto-status { max-width: 900px; width: 100%; margin: 8px auto 0; color: var(--dim); font-size: 12px; }
   .skywrap { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
   #sky { width: 100%; max-width: 900px; touch-action: manipulation; cursor: pointer; }
   .card { max-width: 900px; width: 100%; margin: 0 auto; background: rgba(255,255,255,0.05); border: 1px solid var(--line); border-radius: 18px; padding: 14px 16px; }
@@ -142,8 +146,12 @@
       <b>Wybierz pulsar</b>
       <div class="sub">Mapa całego nieba. Każdy pulsar miga w swoim prawdziwym rytmie. Wolne nadają tempo, szybkie są tak szybkie, że stają się dźwiękiem i nadają tonację.</div>
     </div>
-    <button id="sheetClose">Gotowe</button>
+    <div class="sheet-actions">
+      <button class="auto-toggle" id="autoPulsar" type="button" aria-pressed="false">Auto: nie</button>
+      <button id="sheetClose">Gotowe</button>
+    </div>
   </div>
+  <div class="auto-status" id="autoStatus" aria-live="polite">Automatyczny wybór wyłączony.</div>
   <div class="skywrap"><canvas id="sky"></canvas></div>
   <div class="card" id="card"></div>
 </div>
@@ -1189,6 +1197,26 @@ const STYLES = { bauhaus: drawBauhaus, scope: drawScope, score: drawScore, space
 const sky = $("sky"), sctx = sky.getContext("2d");
 let sheetOpen = false, SW = 0, SH = 0, hoverId = null;
 const RAD = Math.PI / 180;
+const DEFAULT_LOCATION = { lat: 53.4285, lon: 14.5528 };
+let autoPulsar = false, autoLocation = null, autoLocationNote = "", locationRequest = 0;
+function pulsarAltitude(p, location, date = new Date()) {
+  const jd = date.getTime() / 86400000 + 2440587.5;
+  const days = jd - 2451545;
+  const gmst = ((18.697374558 + 24.06570982441908 * days) % 24 + 24) % 24;
+  const lst = (gmst + location.lon / 15 + 24) % 24;
+  const hourAngle = (lst - p.ra) * 15 * RAD;
+  const lat = location.lat * RAD, dec = p.dec * RAD;
+  const sinAlt = Math.sin(lat) * Math.sin(dec) + Math.cos(lat) * Math.cos(dec) * Math.cos(hourAngle);
+  return Math.asin(clamp(sinAlt, -1, 1)) / RAD;
+}
+function highestPulsarAboveHorizon(location, date = new Date()) {
+  let best = null, bestAltitude = 0;
+  for (const p of PULSARS) {
+    const altitude = pulsarAltitude(p, location, date);
+    if (altitude > bestAltitude) { best = { pulsar: p, altitude }; bestAltitude = altitude; }
+  }
+  return best;
+}
 function aitoff(raH, dec) {
   let lam = (12 - raH) * 15 * RAD;
   lam = Math.atan2(Math.sin(lam), Math.cos(lam));
@@ -1282,22 +1310,83 @@ function renderCard() {
   $("psrLine").textContent = GENRES[psr.genre].label + " · " + i.line.charAt(0).toLowerCase() + i.line.slice(1);
 }
 
-function selectPulsar(p) {
+function selectPulsar(p, manual = false) {
+  if (manual && autoPulsar) disableAutoPulsar();
   psr = p;
   renderCard();
   applyPulsarAudio();
 }
-
+function refreshAutoPulsar() {
+  if (!autoPulsar || !autoLocation) return;
+  const best = highestPulsarAboveHorizon(autoLocation);
+  if (!best) {
+    $("autoStatus").textContent = `${autoLocationNote} Żaden z pulsarów nie jest teraz nad horyzontem; zachowuję wybór.`;
+    return;
+  }
+  if (best.pulsar !== psr) selectPulsar(best.pulsar);
+  $("autoStatus").textContent = `${autoLocationNote} Najwyżej nad horyzontem: ${best.pulsar.short} (${fmtNum(best.altitude, 0)}°).`;
+}
+function updateAutoButton() {
+  const button = $("autoPulsar");
+  button.classList.toggle("on", autoPulsar);
+  button.setAttribute("aria-pressed", String(autoPulsar));
+  button.textContent = autoPulsar ? "Auto: tak" : "Auto: nie";
+}
+function disableAutoPulsar() {
+  autoPulsar = false;
+  locationRequest++;
+  autoLocation = null;
+  autoLocationNote = "";
+  updateAutoButton();
+  $("autoStatus").textContent = "Automatyczny wybór wyłączony.";
+}
+function enableAutoPulsar() {
+  autoPulsar = true;
+  autoLocation = DEFAULT_LOCATION;
+  autoLocationNote = "Używam Szczecina jako lokalizacji zastępczej.";
+  updateAutoButton();
+  refreshAutoPulsar();
+  const request = ++locationRequest;
+  if (!navigator.geolocation) {
+    autoLocationNote = "Geolokalizacja jest niedostępna. Używam Szczecina.";
+    refreshAutoPulsar();
+    return;
+  }
+  $("autoStatus").textContent = "Pytam o lokalizację; tymczasowo używam Szczecina.";
+  navigator.geolocation.getCurrentPosition((position) => {
+    if (!autoPulsar || request !== locationRequest) return;
+    const { latitude, longitude } = position.coords;
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
+      autoLocationNote = "Otrzymana lokalizacja jest nieprawidłowa; używam Szczecina.";
+    } else {
+      autoLocation = { lat: latitude, lon: longitude };
+      autoLocationNote = "Używam Twojej lokalizacji.";
+    }
+    refreshAutoPulsar();
+  }, (error) => {
+    if (!autoPulsar || request !== locationRequest) return;
+    const reason = error.code === error.PERMISSION_DENIED
+      ? "Brak zgody na lokalizację."
+      : error.code === error.TIMEOUT
+        ? "Przekroczono czas oczekiwania na lokalizację."
+        : "Lokalizacja jest niedostępna.";
+    autoLocation = DEFAULT_LOCATION;
+    autoLocationNote = `${reason} Używam Szczecina.`;
+    refreshAutoPulsar();
+  }, { enableHighAccuracy: false, maximumAge: 600000, timeout: 10000 });
+}
 sky.addEventListener("click", (e) => {
   const r = sky.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
   let best = null, bd = 40;
   for (const p of PULSARS) { const q = aitoff(p.ra, p.dec), d = Math.hypot(q.x - x, q.y - y); if (d < bd) { bd = d; best = p; } }
-  if (best) selectPulsar(best);
+  if (best) selectPulsar(best, true);
 });
 function openSheet() { sheetOpen = true; $("sheet").classList.add("open"); sizeSky(); renderCard(); }
 function closeSheet() { sheetOpen = false; $("sheet").classList.remove("open"); }
 $("psrBtn").onclick = openSheet;
 $("sheetClose").onclick = closeSheet;
+$("autoPulsar").onclick = () => autoPulsar ? disableAutoPulsar() : enableAutoPulsar();
+setInterval(refreshAutoPulsar, 60000);
 
 // ---------- Interfejs ----------
 function fmt(v, d = 0) { return Number.isFinite(v) ? v.toFixed(d).replace(".", ",").replace("-", "−") : "–"; }

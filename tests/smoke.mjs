@@ -29,6 +29,28 @@ page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
 await page.goto("http://localhost:4174/");
 await page.waitForTimeout(6000);
 console.log("status:", await page.textContent("#status"));
+await page.click("#psrBtn");
+await page.evaluate(() => Object.defineProperty(navigator, "geolocation", {
+  configurable: true,
+  value: { getCurrentPosition(success, error) { error({ code: 1, PERMISSION_DENIED: 1 }); } },
+}));
+await page.click("#autoPulsar");
+const autoSelection = await page.evaluate(() => ({
+  enabled: document.querySelector("#autoPulsar").getAttribute("aria-pressed") === "true",
+  fallback: document.querySelector("#autoStatus").textContent.includes("Używam Szczecina."),
+  selected: psr === highestPulsarAboveHorizon(DEFAULT_LOCATION)?.pulsar,
+}));
+if (!autoSelection.enabled || !autoSelection.fallback || !autoSelection.selected) {
+  throw new Error("Automatyczny wybór pulsara nie działa z lokalizacją zastępczą.");
+}
+await page.evaluate(() => {
+  const p = PULSARS.find((item) => item !== psr);
+  const point = aitoff(p.ra, p.dec), rect = sky.getBoundingClientRect();
+  sky.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: rect.left + point.x, clientY: rect.top + point.y }));
+});
+const manualSelection = await page.evaluate(() => document.querySelector("#autoPulsar").getAttribute("aria-pressed") === "false");
+if (!manualSelection) throw new Error("Ręczny wybór pulsara nie wyłącza trybu automatycznego.");
+await page.click("#sheetClose");
 await page.click("#play");
 
 const rms = () => page.evaluate(async () => {
