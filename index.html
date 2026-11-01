@@ -204,13 +204,12 @@ function bpmFor(p) {
   const m = musicFor(p), def = GENRES[p.genre];
   return m.kind === "tempo" ? (def.tempoBpm ? def.tempoBpm(p.P) : m.bpm) : def.bpm || 72;
 }
-const fmtNum = (v, d) => v.toFixed(d).replace(".", ",").replace("-", "−");
 function psrLine(p) {
   const m = musicFor(p);
-  const per = p.P >= 1 ? fmtNum(p.P, 2) + " s" : p.P >= 0.01 ? fmtNum(p.P * 1000, 1) + " ms" : fmtNum(p.P * 1000, 2) + " ms";
-  if (m.kind === "tempo") return { per, role: "Rytm", val: Math.round(60 / p.P) + " / min", line: `Rytm ${fmtNum(60 / p.P, 0)} błysków na minutę` };
+  const per = p.P >= 1 ? fmt(p.P, 2) + " s" : p.P >= 0.01 ? fmt(p.P * 1000, 1) + " ms" : fmt(p.P * 1000, 2) + " ms";
+  if (m.kind === "tempo") return { per, role: "Rytm", val: Math.round(60 / p.P) + " / min", line: `Rytm ${fmt(60 / p.P, 0)} błysków na minutę` };
   const c = Math.round(m.cents);
-  return { per, role: "Tonacja", val: `${m.note}`, line: `Tonacja ${m.note}, ${fmtNum(m.f, 1)} Hz (${c >= 0 ? "+" : "−"}${Math.abs(c)} centów)` };
+  return { per, role: "Tonacja", val: `${m.note}`, line: `Tonacja ${m.note}, ${fmt(m.f, 1)} Hz (${c >= 0 ? "+" : "−"}${Math.abs(c)} centów)` };
 }
 let psr = PULSARS[0];
 
@@ -226,7 +225,7 @@ const $ = (id) => document.getElementById(id);
 
 const target = { wind: 420, dens: 4, bz: 0, kp: 2, xray: null };
 const cur = { ...target };
-let mode = "live", liveOK = false, lastLive = null, replayIdx = 0, xrayMaxClass = 0;
+let mode = "live", liveOK = false, lastLive = null, replayIdx = 0, xrayTag = null, modeRequest = 0;
 
 function xrayClass(flux) {
   if (!(flux > 0)) return { letter: "–", level: 0 };
@@ -235,6 +234,16 @@ function xrayClass(flux) {
   for (const k of classes) if (flux >= k[1]) c = k;
   const n = flux / c[1];
   return { letter: c[0] + (n >= 10 ? Math.round(n) : n.toFixed(1)), level: classes.indexOf(c) };
+}
+
+// Nowy rozbłysk: ostatni odczyt ma klasę od C wzwyż i wyższą niż wszystko z poprzednich 3 godzin.
+// Okno, a nie maksimum z całej sesji, żeby po jednym M radio nie czekało na X; tło klasy C nie uderza.
+const FLARE_WINDOW_MS = 3 * 3600 * 1000;
+function newFlareLevel(rows) {
+  const last = rows[rows.length - 1], level = xrayClass(last.flux).level;
+  const from = Date.parse(last.time_tag) - FLARE_WINDOW_MS;
+  const before = rows.slice(0, -1).filter((r) => Date.parse(r.time_tag) >= from);
+  return level >= 2 && before.every((r) => xrayClass(r.flux).level < level) ? level : 0;
 }
 
 async function getJSON(url) {
@@ -263,7 +272,10 @@ async function fetchLive() {
     if (kp.status === "fulfilled") { const last = kp.value[kp.value.length - 1]; out.kp = Number(last.Kp ?? last[1]); }
     if (xr.status === "fulfilled") {
       const long = xr.value.filter((r) => r.energy === "0.1-0.8nm" && r.flux > 0);
-      if (long.length) out.xray = Number(long[long.length - 1].flux);
+      if (long.length) {
+        const last = long[long.length - 1];
+        out.xray = Number(last.flux); out.xrayTag = last.time_tag; out.flareLevel = newFlareLevel(long);
+      }
     }
     liveOK = true; lastLive = out;
     return out;
@@ -274,10 +286,10 @@ function applyLive(d) {
   target.wind = d.wind; target.dens = d.dens; target.bz = d.bz;
   if (Number.isFinite(d.kp)) target.kp = d.kp;
   if (d.xray) {
-    const c = xrayClass(d.xray);
     target.xray = d.xray;
-    if (xrayMaxClass && c.level >= 2 && c.level > xrayMaxClass) triggerFlare(c.level);
-    xrayMaxClass = Math.max(xrayMaxClass || c.level, c.level);
+    // Nie przy pierwszym odczycie i nie dwa razy z tego samego wiersza.
+    if (xrayTag && d.xrayTag !== xrayTag && d.flareLevel) triggerFlare(d.flareLevel);
+    xrayTag = d.xrayTag;
   }
 }
 
@@ -285,7 +297,8 @@ function setStatus() {
   const s = $("status");
   const hh = (d) => d.toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" });
   if (mode === "live" && liveOK && lastLive) s.textContent = `Na żywo · NOAA, sonda w L1 · pomiar ${hh(lastLive.time)}`;
-  else if (mode === "live") s.innerHTML = `<span class="err">Brak dostępu do NOAA w tym podglądzie.</span> Gram zapis z 18.10.2026.`;
+  else if (mode === "live" && lastLive) s.innerHTML = `<span class="err">Brak nowych danych NOAA.</span> Trzymam pomiar z ${hh(lastLive.time)}.`;
+  else if (mode === "live") s.innerHTML = `<span class="err">Brak dostępu do NOAA.</span> Gram zapis z 18.10.2026.`;
   else if (mode === "replay") s.textContent = "Zapis z 18.10.2026, 3 godziny w 3 minuty";
   else if (mode === "storm") s.textContent = "Symulacja burzy geomagnetycznej (dane umowne)";
   else s.textContent = "Sterowanie ręczne";
@@ -293,12 +306,14 @@ function setStatus() {
 
 let liveTimer = null;
 async function enterMode(m) {
+  const request = ++modeRequest;
   mode = m;
   document.querySelectorAll("#modes button").forEach((b) => b.classList.toggle("on", b.dataset.mode === m));
   clearInterval(liveTimer);
   if (m === "live") {
     const d = await fetchLive();
-    if (d) applyLive(d); else replayIdx = SNAP.wind.length - 1;
+    if (request !== modeRequest || mode !== m) return; // w czasie pobierania wybrano coś innego
+    if (d || lastLive) applyLive(d || lastLive); else replayIdx = SNAP.wind.length - 1;
     liveTimer = setInterval(async () => { const d = await fetchLive(); if (d && mode === "live") applyLive(d); setStatus(); }, 60000);
   }
   if (m === "storm") {
@@ -309,7 +324,7 @@ async function enterMode(m) {
 }
 
 setInterval(() => {
-  if (mode === "replay" || (mode === "live" && !liveOK)) {
+  if (mode === "replay" || (mode === "live" && !lastLive)) {
     if (mode === "replay") replayIdx = (replayIdx + 1) % SNAP.wind.length;
     const i = replayIdx, j = Math.round((i / SNAP.wind.length) * (SNAP.bz.length - 1));
     target.wind = SNAP.wind[i]; target.dens = SNAP.dens[i]; target.bz = SNAP.bz[j]; target.kp = SNAP.kp;
@@ -536,14 +551,16 @@ const GENRES = {
       const pad = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fmsquare" }, envelope: { attack: 2, decay: 1, sustain: 0.6, release: 4 } }), -32).connect(pf);
       const motif = new Motif(16, [7, 14], 0.3);
       let clicks = rhythm(16, 0.35, [0, 6]), subs = rhythm(16, 0.12, [0]);
+      let clickEnd = 0;
       return {
         nodes: [crush, click, blip, sub, pf, pad], tun: [blip, sub, pad],
         step(t, s, bar) {
           crush.distortion = map(E.bright(), 0, 1, 0.5, 0.95);
-          if (clicks[s]) {
-            // Czasem zacięcie: ten sam trzask powtórzony w trzydziestodwójkach.
-            const n = chance(0.15 + E.busy() * 0.3) ? 4 : 1;
-            for (let i = 0; i < n; i++) click.triggerAttackRelease("64n", t + i * Tone.Time("32n").toSeconds(), 0.9 - i * 0.15);
+          if (clicks[s] && t > clickEnd) {
+            // Czasem zacięcie: ten sam trzask powtórzony w trzydziestodwójkach. Następne kroki czekają, aż się skończy.
+            const n = chance(0.15 + E.busy() * 0.3) ? 4 : 1, gap = Tone.Time("32n").toSeconds();
+            for (let i = 0; i < n; i++) click.triggerAttackRelease("64n", t + i * gap, 0.9 - i * 0.15);
+            clickEnd = t + (n - 1) * gap;
           }
           if (subs[s]) sub.triggerAttackRelease(E.n(0, -3), "8n", t, 0.9);
           const d = motif.at(s);
@@ -725,17 +742,19 @@ function applyPulsarAudio() {
   vis.fast = M.kind === "tone";
   if (!A) return;
   const def = GENRES[psr.genre];
-  // Stary gatunek wybrzmiewa i znika, nowy startuje od początku taktu.
+  // Stary gatunek płynnie cichnie na własnych szynach, nowy startuje od początku taktu.
   if (G) {
-    const old = G.inst;
+    const { inst: old, bus: oldBus } = G;
     old.nodes.forEach((n) => n.releaseAll && n.releaseAll());
-    setTimeout(() => old.nodes.forEach((n) => { try { n.dispose(); } catch (e) {} }), 4000);
+    Object.values(oldBus).forEach((g) => g.gain.rampTo(0, 3));
+    setTimeout(() => [...old.nodes, ...Object.values(oldBus)].forEach((n) => { try { n.dispose(); } catch (e) {} }), 4000);
   }
   E.root = 62 + M.tr;
   // Tempo przed make(): opóźnienia w nutach („8n.”) przeliczają się przy tworzeniu.
   Tone.Transport.bpm.value = bpmFor(psr);
   A.delay.delayTime.rampTo(Tone.Time("8n.").toSeconds(), 0.2);
-  G = { ...def, inst: def.make({ lim: A.lim, rev: A.rev, delay: A.delay }) };
+  const bus = { lim: new Tone.Gain().connect(A.lim), rev: new Tone.Gain().connect(A.rev), delay: new Tone.Gain().connect(A.delay) };
+  G = { ...def, bus, inst: def.make(bus) };
   G.inst.tun.forEach((n) => { if (n.set) n.set({ detune: M.cents }); else if (n.detune) n.detune.value = M.cents; });
   schedulePulse();
   if (M.kind === "tempo") {
@@ -829,6 +848,14 @@ const vis = {
   flare(level) { this.flareT = 1; this.flareLevel = level; },
 };
 
+// Dane wygładzane poza requestAnimationFrame: w ukrytej karcie klatek nie ma, a muzyka gra dalej.
+let lastDataT = performance.now();
+function stepData() {
+  const now = performance.now(), k = 1 - Math.exp(-((now - lastDataT) / 1000) * 1.2);
+  lastDataT = now;
+  for (const key of ["wind", "dens", "bz", "kp"]) cur[key] = lerp(cur[key], target[key], k);
+}
+
 const pressure = () => 1.6726e-6 * cur.dens * cur.wind * cur.wind;
 const standoff = () => clamp(10 * Math.pow(pressure() / 2, -1 / 6), 5, 14);
 const auroraLevel = () => clamp((cur.kp - 2) / 6 + Math.max(0, -cur.bz) / 25, 0, 1);
@@ -878,8 +905,7 @@ let lastT = performance.now();
 function frame(t) {
   const dt = Math.min(0.05, (t - lastT) / 1000);
   lastT = t;
-  const k = 1 - Math.exp(-dt * 1.2);
-  for (const key of ["wind", "dens", "bz", "kp"]) cur[key] = lerp(cur[key], target[key], k);
+  stepData();
   vis.hue = lerp(vis.hue, vis.hueTarget, 1 - Math.exp(-dt * 0.6));
   vis.beatT *= Math.exp(-dt * 7);
   vis.pulseT *= Math.exp(-dt * 6);
@@ -1212,7 +1238,7 @@ const STYLES = { bauhaus: drawBauhaus, scope: drawScope, score: drawScore, space
 // ---------- Mapa pulsarów ----------
 // Rzut Hammera–Aitoffa całego nieba. Rektascensja rośnie w lewo, jak na mapach nieba; środek mapy to 12h.
 const sky = $("sky"), sctx = sky.getContext("2d");
-let sheetOpen = false, SW = 0, SH = 0, hoverId = null;
+let sheetOpen = false, SW = 0, SH = 0;
 const RAD = Math.PI / 180;
 const DEFAULT_LOCATION = { lat: 53.4285, lon: 14.5528 };
 let autoPulsar = false, autoLocation = null, autoLocationNote = "", locationRequest = 0;
@@ -1321,7 +1347,7 @@ function drawSky(time) {
 function renderCard() {
   const i = psrLine(psr), m = musicFor(psr);
   $("card").innerHTML = `<div class="name">${psr.name}</div>
-    <div class="facts"><div><b>${GENRES[psr.genre].label}</b>gatunek</div><div><b>${i.per}</b>okres obrotu</div><div><b>${i.val}</b>${m.kind === "tempo" ? "błysków na minutę" : fmtNum(m.f, 1) + " Hz, nadaje tonację"}</div></div>
+    <div class="facts"><div><b>${GENRES[psr.genre].label}</b>gatunek</div><div><b>${i.per}</b>okres obrotu</div><div><b>${i.val}</b>${m.kind === "tempo" ? "błysków na minutę" : fmt(m.f, 1) + " Hz, nadaje tonację"}</div></div>
     <div class="desc">${psr.desc}</div>`;
   $("psrName").textContent = psr.name;
   $("psrLine").textContent = GENRES[psr.genre].label + " · " + i.line.charAt(0).toLowerCase() + i.line.slice(1);
@@ -1341,7 +1367,7 @@ function refreshAutoPulsar() {
     return;
   }
   if (best.pulsar !== psr) selectPulsar(best.pulsar);
-  $("autoStatus").textContent = `${autoLocationNote} Najwyżej nad horyzontem: ${best.pulsar.short} (${fmtNum(best.altitude, 0)}°).`;
+  $("autoStatus").textContent = `${autoLocationNote} Najwyżej nad horyzontem: ${best.pulsar.short} (${fmt(best.altitude, 0)}°).`;
 }
 function updateAutoButton() {
   const button = $("autoPulsar");
@@ -1408,11 +1434,12 @@ setInterval(refreshAutoPulsar, 60000);
 // ---------- Interfejs ----------
 function fmt(v, d = 0) { return Number.isFinite(v) ? v.toFixed(d).replace(".", ",").replace("-", "−") : "–"; }
 setInterval(() => {
+  stepData();
   $("vWind").textContent = fmt(cur.wind);
   $("vDens").textContent = fmt(cur.dens, 1);
   $("vBz").textContent = fmt(cur.bz, 1);
   $("vKp").textContent = fmt(cur.kp, 1);
-  $("vX").textContent = target.xray ? xrayClass(target.xray).letter : mode === "storm" ? "X2.1" : "–";
+  $("vX").textContent = mode === "storm" ? "X2.1" : mode === "live" && target.xray ? xrayClass(target.xray).letter : "–";
   $("psrDot").style.opacity = 0.35 + 0.65 * vis.pulseT;
   updateAudioParams();
 }, 100);
@@ -1431,6 +1458,10 @@ $("play").onclick = async () => {
     $("status").innerHTML = `<span class="err">${e.message}</span>`;
   }
 };
+// iOS przerywa dźwięk (telefon, blokada) i sam go nie wznawia. Wznowienie po powrocie lub po dotknięciu ekranu.
+function resumeAudio() { if (playing && Tone.context.state !== "running") Tone.context.resume(); }
+document.addEventListener("visibilitychange", () => { if (!document.hidden) resumeAudio(); });
+addEventListener("pointerdown", resumeAudio);
 document.querySelectorAll("#modes button").forEach((b) => (b.onclick = () => enterMode(b.dataset.mode)));
 document.querySelectorAll("#styles button").forEach((b) => (b.onclick = () => {
   vis.style = b.dataset.style; vis.clear = true;

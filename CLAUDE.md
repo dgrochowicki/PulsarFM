@@ -30,7 +30,7 @@ Osobny projekt od Aurora Now (`dgrochowicki/Aurora`, prognoza zorzy). Ten sam au
 | Rozbłyski | `.../json/goes/primary/xrays-6-hour.json` | pasmo `0.1-0.8nm`, klasa A/B/C/M/X z `flux` |
 | Zdjęcie Słońca | `sdo.gsfc.nasa.gov/assets/img/latest/latest_512_0171.jpg` | tylko styl „Kosmos” |
 
-Odświeżanie co 60 s. Rozbłysk dźwiękowo tylko przy nowym, silniejszym niż dotąd (od klasy C), nie przy pierwszym odczycie.
+Odświeżanie co 60 s. Rozbłysk dźwiękowo tylko przy nowym (od klasy C): klasa wyższa niż wszystko z poprzednich 3 godzin, nie przy pierwszym odczycie. Przy chwilowej awarii sieci aplikacja trzyma ostatni pomiar; zapis z 18.10 gra tylko, gdy nigdy nie było danych na żywo.
 
 ## Mapowanie danych
 
@@ -79,7 +79,7 @@ Wybór pulsara: mapa całego nieba (rzut Hammera–Aitoffa, RA 12h w środku, ro
 Zasada: każde nowe źródło danych dostaje **jedną wyraźną rolę**, żeby nie zrobił się szum.
 
 **Etap 1**
-- [ ] GitHub Pages działa, sprawdzić na żywo NOAA (CORS) i SDO.
+- [x] GitHub Pages działa, sprawdzone na żywo 1.11.2026: NOAA (CORS) i SDO.
 - [x] **Pulsar nad tobą**: z lokalizacji (geolokalizacja, fallback Szczecin) i czasu wybrać pulsar najwyżej nad horyzontem; muzyka zmienia się w ciągu nocy. Ręczny wybór z mapy zostaje i wyłącza tryb „auto”.
 
 **Etap 2**
@@ -106,4 +106,4 @@ npm i -D playwright && npx playwright install chromium
 node tests/smoke.mjs
 ```
 
-Sprawdza: brak błędów strony, start dźwięku, wszystkie gatunki grają (RMS > 0), screenshoty stylów w `tests/out/`.
+Sprawdza: brak błędów strony, start dźwięku, wszystkie gatunki grają (RMS > 0), rytm po zmianie stacji i po Stop/Play, ciszę po Stop, echo i strojenie, rozbłyski, awarię sieci, wznowienie dźwięku, dane bez klatek animacji; screenshoty stylów w `tests/out/`.

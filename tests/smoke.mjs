@@ -106,6 +106,65 @@ check(Math.abs(tune.drone - tune.root) < 0.01, `bas z Bz w tonacji: ${tune.drone
 const geminga = await page.evaluate(() => bpmFor(PULSARS.find((p) => p.id === "Geminga")));
 check(Math.abs(geminga - 126.5) < 0.5, `tempo Gemingi: ${geminga.toFixed(1)} BPM`);
 
+const flares = await page.evaluate(() => {
+  const rows = (...fluxes) => fluxes.map(([flux, h], i) => ({ flux, time_tag: new Date(Date.UTC(2026, 10, 1, 12) + (h ?? i / 60) * 3600000).toISOString() }));
+  const B = 3e-7, C = 2e-6, M = 2e-5, A1 = 5e-8;
+  const seen = [], original = triggerFlare;
+  window.triggerFlare = (level) => seen.push(level);
+  xrayTag = null;
+  const feed = { wind: 400, dens: 4, bz: 1, kp: 2, xray: C, flareLevel: 2 };
+  applyLive({ ...feed, xrayTag: "t0" });
+  applyLive({ ...feed, xrayTag: "t1" });
+  applyLive({ ...feed, xrayTag: "t1" });
+  window.triggerFlare = original;
+  return {
+    rise: newFlareLevel(rows([B], [C])), fromA: newFlareLevel(rows([A1], [C])), background: newFlareLevel(rows([C], [C])),
+    secondMSoon: newFlareLevel(rows([M, 0], [B, 1], [M, 2])), secondMLater: newFlareLevel(rows([M, 0], [B, 2], [M, 4])),
+    applied: seen,
+  };
+});
+check(JSON.stringify(flares) === JSON.stringify({ rise: 2, fromA: 2, background: 0, secondMSoon: 0, secondMLater: 3, applied: [2] }), `rozbłyski: ${JSON.stringify(flares)}`);
+
+const offline = await page.evaluate(async () => {
+  const realFetch = window.fetch, saved = { ...target };
+  lastLive ??= { wind: 450, dens: 3, bz: 1, kp: 2, time: new Date() };
+  target.wind = lastLive.wind;
+  window.fetch = () => Promise.reject(new Error("brak sieci"));
+  await enterMode("live");
+  await new Promise((r) => setTimeout(r, 1500));
+  const result = { kept: target.wind === lastLive.wind, status: document.querySelector("#status").textContent };
+  window.fetch = realFetch; Object.assign(target, saved);
+  return result;
+});
+check(offline.kept && offline.status.includes("Brak nowych danych"), `awaria sieci: ${offline.status}`);
+
+const race = await page.evaluate(async () => {
+  enterMode("live");
+  await enterMode("storm");
+  await new Promise((r) => setTimeout(r, 3000));
+  return { mode, wind: target.wind };
+});
+check(race.mode === "storm" && race.wind === 780, `Burza w czasie pobierania: ${JSON.stringify(race)}`);
+
+const resumed = await page.evaluate(async () => {
+  await Tone.context.rawContext.suspend();
+  dispatchEvent(new Event("pointerdown"));
+  await new Promise((r) => setTimeout(r, 300));
+  return Tone.context.state;
+});
+check(resumed === "running", `wznowienie dźwięku: ${resumed}`);
+
+// Glitch z zacięciem na każdym kroku: powtórzone trzaski nie mogą wchodzić na następny krok.
+const glitchErrors = errors.length;
+await page.evaluate(() => {
+  window.realRandom = Math.random;
+  Math.random = () => 0.01;
+  selectPulsar(PULSARS.find((p) => p.id === "Vela"));
+});
+await page.waitForTimeout(3000);
+await page.evaluate(() => { Math.random = window.realRandom; });
+check(errors.length === glitchErrors, "zacięcia w Glitchu bez błędów");
+
 // Po Stop ma być cisza, także przy mocnym Bz i po wybraniu gatunku z ciągłymi oscylatorami.
 await page.click("#play");
 await page.evaluate(() => { mode = "manual"; target.bz = cur.bz = -15; selectPulsar(PULSARS.find((p) => p.id === "J2144")); });
@@ -119,6 +178,16 @@ for (const st of ["bauhaus", "scope", "score", "space"]) {
   await page.waitForTimeout(2500);
   await page.screenshot({ path: join(out, `${st}.png`) });
 }
+
+// Dane mają płynąć do muzyki także bez klatek, czyli w ukrytej karcie.
+const hidden = await page.evaluate(async () => {
+  window.requestAnimationFrame = () => 0;
+  await new Promise((r) => setTimeout(r, 200));
+  cur.wind = 300; target.wind = 800; mode = "manual";
+  await new Promise((r) => setTimeout(r, 2000));
+  return cur.wind;
+});
+check(hidden > 500, `dane bez klatek animacji: wiatr ${Math.round(hidden)} km/s`);
 
 console.log(errors.length ? "Błędy:\n" + errors.join("\n") : "Bez błędów strony.");
 await browser.close();
