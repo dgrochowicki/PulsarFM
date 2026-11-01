@@ -1,4 +1,4 @@
-// Test dymny: strona bez błędów, dźwięk startuje, każdy gatunek gra, screenshoty stylów.
+// Test dymny: strona bez błędów, dźwięk startuje, każdy gatunek gra, rytm i Stop działają, screenshoty stylów.
 // Uruchomienie: node tests/smoke.mjs (wymaga: npm i -D playwright && npx playwright install chromium)
 import pw from "playwright";
 const { chromium } = pw;
@@ -68,6 +68,51 @@ for (const id of ["B0329", "B1919", "J2144", "Geminga", "Vela", "Crab", "J0437",
   console.log(`${id.padEnd(8)} ${label.padEnd(16)} RMS ${r.toFixed(4)}`);
   if (!(r > 0.003)) failed = true;
 }
+
+// Pierwszy impuls po akcji; po ~45 s grania opóźnienie z przeliczania czasu byłoby już wyraźne.
+const firstPulseAfter = (action) => page.evaluate(async (action) => {
+  window.pulseTimes = [];
+  const t0 = performance.now();
+  new Function(action)();
+  while (!window.pulseTimes.length && performance.now() - t0 < 5000) await new Promise((r) => setTimeout(r, 20));
+  return (performance.now() - t0) / 1000;
+}, action);
+const check = (ok, text) => { console.log(`${ok ? "ok  " : "BŁĄD"} ${text}`); if (!ok) failed = true; };
+
+await page.evaluate(() => {
+  const original = onPulse;
+  window.onPulse = (t) => { window.pulseTimes?.push(t); original(t); };
+  selectPulsar(PULSARS.find((p) => p.id === "B0329"));
+});
+await page.waitForTimeout(500);
+const afterSwitch = await firstPulseAfter(`selectPulsar(PULSARS.find((p) => p.id === "Geminga"))`);
+check(afterSwitch < 1, `impuls po zmianie stacji: ${afterSwitch.toFixed(2)} s`);
+
+await page.click("#play");
+await page.waitForTimeout(500);
+const afterRestart = await firstPulseAfter(`document.querySelector("#play").click()`);
+check(afterRestart < 1, `impuls po Stop i Play: ${afterRestart.toFixed(2)} s`);
+
+const timing = await page.evaluate(async () => {
+  selectPulsar(PULSARS.find((p) => p.id === "B0329"));
+  selectPulsar(PULSARS.find((p) => p.id === "Crab"));
+  await new Promise((r) => setTimeout(r, 500));
+  return { eighth: Tone.Time("8n.").toSeconds(), shared: A.delay.delayTime.value, dub: G.inst.nodes[0].delayTime.value };
+});
+check(Math.abs(timing.shared - timing.eighth) < 0.01 && Math.abs(timing.dub - timing.eighth) < 0.01, `echo w tempie: ${timing.shared.toFixed(3)} i ${timing.dub.toFixed(3)} s, ma być ${timing.eighth.toFixed(3)} s`);
+
+const tune = await page.evaluate(() => ({ drone: A.drone.frequency.value, root: Tone.Frequency(E.m(0, -3), "midi").toFrequency() }));
+check(Math.abs(tune.drone - tune.root) < 0.01, `bas z Bz w tonacji: ${tune.drone.toFixed(2)} Hz`);
+const geminga = await page.evaluate(() => bpmFor(PULSARS.find((p) => p.id === "Geminga")));
+check(Math.abs(geminga - 126.5) < 0.5, `tempo Gemingi: ${geminga.toFixed(1)} BPM`);
+
+// Po Stop ma być cisza, także przy mocnym Bz i po wybraniu gatunku z ciągłymi oscylatorami.
+await page.click("#play");
+await page.evaluate(() => { mode = "manual"; target.bz = cur.bz = -15; selectPulsar(PULSARS.find((p) => p.id === "J2144")); });
+await page.waitForTimeout(6000);
+const silence = await rms();
+check(silence < 0.001, `cisza po Stop: RMS ${silence.toFixed(5)}`);
+await page.click("#play");
 
 for (const st of ["bauhaus", "scope", "score", "space"]) {
   await page.click(`[data-style=${st}]`);

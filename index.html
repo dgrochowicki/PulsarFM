@@ -199,6 +199,11 @@ function musicFor(p) {
   const name = NOTE_NAMES[((root % 12) + 12) % 12];
   return { kind: "tone", bpm: 72, tr, cents: (midi - root) * 100, f, note: (NOTE_PL[name] || name) + (f < 30 ? "" : Math.floor(root / 12) - 1) };
 }
+// Tempo, w którym naprawdę gra gatunek pulsara.
+function bpmFor(p) {
+  const m = musicFor(p), def = GENRES[p.genre];
+  return m.kind === "tempo" ? (def.tempoBpm ? def.tempoBpm(p.P) : m.bpm) : def.bpm || 72;
+}
 const fmtNum = (v, d) => v.toFixed(d).replace(".", ",").replace("-", "−");
 function psrLine(p) {
   const m = musicFor(p);
@@ -652,15 +657,17 @@ const GENRES = {
 
 async function initAudio() {
   await Tone.start();
-  const lim = new Tone.Limiter(-2).toDestination();
+  // Stop wycisza wyjście, bo część warstw (drony, bas z Bz) gra niezależnie od transportu.
+  const master = new Tone.Volume(0).toDestination();
+  const lim = new Tone.Limiter(-2).connect(master);
   const wave = new Tone.Waveform(512);
-  lim.connect(wave);
+  master.connect(wave);
   const rev = new Tone.Reverb({ decay: 9, preDelay: 0.05, wet: 0.5 });
   await rev.generate();
   rev.connect(lim);
   const delay = new Tone.FeedbackDelay({ delayTime: "8n.", feedback: 0.38, wet: 0.35 }).connect(rev);
 
-  // Warstwy wspólne dla wszystkich gatunków: bas przy Bz na południe, poświata przy wysokim Kp, dzwony rozbłysku, sam pulsar.
+  // Warstwy wspólne dla wszystkich gatunków: bas przy Bz na południe, poświata przy wysokim Kp, sam pulsar.
   const droneVol = new Tone.Volume(-70).connect(lim);
   const droneFilter = new Tone.Filter(160, "lowpass").connect(droneVol);
   const drone = new Tone.FatOscillator("D1", "sawtooth", 14).connect(droneFilter).start();
@@ -678,12 +685,11 @@ async function initAudio() {
   const braamVol = new Tone.Volume(-16);
   braamF.chain(braamDist, braamVol, lim); braamVol.connect(rev);
   const braam = new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fatsawtooth", count: 5, spread: 28 }, envelope: { attack: 0.06, decay: 2.5, sustain: 0.55, release: 4 } }).connect(braamF);
-  const bell = { set() {} };
   const swellEnv = new Tone.AmplitudeEnvelope({ attack: 2, decay: 1, sustain: 0.3, release: 5 }).connect(rev);
   const swellFilter = new Tone.AutoFilter(0.15, 300, 4).connect(swellEnv).start();
   vol(new Tone.Noise("pink"), -14).connect(swellFilter).start();
 
-  A = { lim, wave, rev, delay, droneVol, drone, starVol, star, shimmer, bell, boom, braam, braamF, swellEnv };
+  A = { master, lim, wave, rev, delay, droneVol, drone, starVol, star, shimmer, boom, braam, braamF, swellEnv };
   Tone.Transport.scheduleRepeat(onStep, "16n");
   applyPulsarAudio();
 }
@@ -705,6 +711,15 @@ function onPulse(time) {
   Tone.Draw.schedule(() => vis.pulse(), time);
 }
 
+// Impulsy startują na następnej szesnastce, razem z pierwszym krokiem nowego gatunku.
+function schedulePulse() {
+  if (pulseId != null) { Tone.Transport.clear(pulseId); pulseId = null; }
+  if (M.kind !== "tempo") return;
+  const step = Tone.Transport.PPQ / 4;
+  const start = playing ? Math.ceil(Tone.Transport.ticks / step) * step : 0;
+  pulseId = Tone.Transport.scheduleRepeat(onPulse, psr.P, `${start}i`);
+}
+
 function applyPulsarAudio() {
   M = musicFor(psr);
   vis.fast = M.kind === "tone";
@@ -717,19 +732,20 @@ function applyPulsarAudio() {
     setTimeout(() => old.nodes.forEach((n) => { try { n.dispose(); } catch (e) {} }), 4000);
   }
   E.root = 62 + M.tr;
+  // Tempo przed make(): opóźnienia w nutach („8n.”) przeliczają się przy tworzeniu.
+  Tone.Transport.bpm.value = bpmFor(psr);
+  A.delay.delayTime.rampTo(Tone.Time("8n.").toSeconds(), 0.2);
   G = { ...def, inst: def.make({ lim: A.lim, rev: A.rev, delay: A.delay }) };
   G.inst.tun.forEach((n) => { if (n.set) n.set({ detune: M.cents }); else if (n.detune) n.detune.value = M.cents; });
-  Tone.Transport.bpm.value = M.kind === "tempo" ? (def.tempoBpm ? def.tempoBpm(psr.P) : M.bpm) : def.bpm || 72;
-  if (pulseId != null) { Tone.Transport.clear(pulseId); pulseId = null; }
+  schedulePulse();
   if (M.kind === "tempo") {
-    pulseId = Tone.Transport.scheduleRepeat(onPulse, psr.P, Tone.Transport.seconds > 0 ? Tone.Transport.seconds + 0.05 : 0);
     A.starVol.volume.rampTo(-80, 0.5);
   } else {
     A.star.frequency.value = M.f;
     if (playing) A.starVol.volume.rampTo(M.f < 20 ? -28 : M.f < 100 ? -33 : M.f < 400 ? -32 : -40, 1.5);
   }
   A.shimmer.set({ detune: M.cents }); A.braam.set({ detune: M.cents }); A.boom.detune.value = M.cents;
-  A.drone.frequency.value = Tone.Frequency(E.m(0, -3)).toFrequency();
+  A.drone.frequency.value = Tone.Frequency(E.m(0, -3), "midi").toFrequency();
   A.drone.detune.value = M.cents;
   stepCount = 0;
 }
@@ -765,6 +781,7 @@ function stopAudio() {
   if (G) G.inst.nodes.forEach((n) => n.releaseAll && n.releaseAll());
   A.shimmer.releaseAll();
   A.starVol.volume.rampTo(-80, 0.3);
+  A.master.volume.rampTo(-80, 0.3);
 }
 
 // ---------- Obraz: wspólne ----------
@@ -1118,7 +1135,7 @@ function drawScore(L, dt, time) {
     ctx.fillText(vis.flareLevel >= 4 ? "fff" : vis.flareLevel >= 3 ? "ff" : "f", left + (1 - vis.flareT) * 120, midY + gap * 5.2);
   }
   ctx.fillStyle = "rgba(239,230,210,0.5)"; ctx.font = "italic 13px Georgia, serif"; ctx.textAlign = "left";
-  ctx.fillText(`${psr.name} · ${GENRES[psr.genre].label} · ${M.kind === "tempo" ? "♩ = " + Math.round(M.bpm) : "w tonacji " + M.note}`, left - 30, midY - gap * 4.2);
+  ctx.fillText(`${psr.name} · ${GENRES[psr.genre].label} · ${M.kind === "tempo" ? "♩ = " + Math.round(bpmFor(psr)) : "w tonacji " + M.note}`, left - 30, midY - gap * 4.2);
 }
 
 // ---------- Styl: Kosmos ----------
@@ -1405,7 +1422,7 @@ $("play").onclick = async () => {
     if (!window.Tone) throw new Error("Nie wczytała się biblioteka dźwięku (Tone.js).");
     if (!A) await initAudio();
     if (!playing) {
-      stepCount = 0; Tone.Transport.start("+0.1"); playing = true;
+      stepCount = 0; schedulePulse(); A.master.volume.rampTo(0, 0.1); Tone.Transport.start("+0.1"); playing = true;
       if (M.kind === "tone") A.starVol.volume.rampTo(M.f < 20 ? -28 : M.f < 100 ? -33 : M.f < 400 ? -32 : -40, 1.5);
     } else { stopAudio(); playing = false; }
     $("play").textContent = playing ? "■ Stop" : "▶ Posłuchaj";
