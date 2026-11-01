@@ -179,6 +179,24 @@ for (const st of ["bauhaus", "scope", "score", "space"]) {
   await page.screenshot({ path: join(out, `${st}.png`) });
 }
 
+// Otwarta mapa nie rysuje sceny pod spodem, a jej tło powstaje tylko raz.
+const mapCost = await page.evaluate(async () => {
+  let scene = 0, bases = 0;
+  const style = STYLES[vis.style], base = renderSkyBase;
+  STYLES[vis.style] = (...args) => { scene++; style(...args); };
+  window.renderSkyBase = (...args) => { bases++; base(...args); };
+  document.querySelector("#psrBtn").click();
+  await new Promise((r) => setTimeout(r, 1000));
+  document.querySelector("#sheetClose").click();
+  STYLES[vis.style] = style; window.renderSkyBase = base;
+  return { scene, bases };
+});
+check(mapCost.scene === 0 && mapCost.bases === 1, `koszt mapy: ${JSON.stringify(mapCost)}`);
+await page.click("#psrBtn");
+await page.waitForTimeout(600);
+await page.screenshot({ path: join(out, "map.png") });
+await page.click("#sheetClose");
+
 // Dane mają płynąć do muzyki także bez klatek, czyli w ukrytej karcie.
 const hidden = await page.evaluate(async () => {
   window.requestAnimationFrame = () => 0;

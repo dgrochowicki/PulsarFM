@@ -6,7 +6,7 @@
 <title>Pulsar FM</title>
 <style>
   :root {
-    --panel: rgba(14, 16, 24, 0.74);
+    --panel: rgba(14, 16, 24, 0.92);
     --line: rgba(255, 255, 255, 0.09);
     --text: #eef0f6;
     --dim: rgba(238, 240, 246, 0.55);
@@ -21,13 +21,13 @@
   .top h1 { margin: 0; font-size: 20px; font-weight: 650; letter-spacing: 0.2px; }
   .top .status { color: var(--dim); font-size: 12.5px; margin-top: 3px; max-width: 80vw; }
   .styles { display: inline-flex; gap: 4px; margin-top: 10px; pointer-events: auto; background: rgba(255,255,255,0.06);
-    border-radius: 12px; padding: 3px; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+    border-radius: 12px; padding: 3px; }
   .styles button { border: 0; background: none; color: var(--dim); font-size: 12.5px; font-weight: 600; padding: 6px 10px; border-radius: 9px; cursor: pointer; }
   .styles button.on { background: rgba(255,255,255,0.14); color: var(--text); }
 
   .panel { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom) + 12px);
     width: min(560px, calc(100% - 20px)); background: var(--panel); border: 1px solid var(--line);
-    border-radius: 22px; padding: 14px; -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+    border-radius: 22px; padding: 14px;
     transition: transform .35s ease, opacity .35s ease; }
   .panel.hidden { transform: translate(-50%, calc(100% + 30px)); opacity: 0; pointer-events: none; }
 
@@ -67,7 +67,7 @@
   .err { color: #ff9b8a; }
 
   /* Mapa pulsarów */
-  .sheet { position: fixed; inset: 0; background: rgba(4, 5, 10, 0.94); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  .sheet { position: fixed; inset: 0; background: #04050a;
     display: flex; flex-direction: column; padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px);
     opacity: 0; pointer-events: none; transition: opacity .3s ease; }
   .sheet.open { opacity: 1; pointer-events: auto; }
@@ -901,8 +901,11 @@ function stepParticles(L, dt) {
   if (particles.length > 2500) particles.splice(0, particles.length - 2500);
 }
 
+// 30 klatek wystarcza do tych animacji, a zużywa o połowę mniej procesora.
+const FRAME_MS = 1000 / 30;
 let lastT = performance.now();
 function frame(t) {
+  if (t - lastT < FRAME_MS - 2) { requestAnimationFrame(frame); return; }
   const dt = Math.min(0.05, (t - lastT) / 1000);
   lastT = t;
   stepData();
@@ -924,10 +927,13 @@ function frame(t) {
   vis.bars = vis.bars.filter((b) => b.x < W - 94);
   vis.chordNotes = vis.chordNotes.filter((c) => c.x < W - 94);
   vis.notes = vis.notes.filter((n) => n.x < W - 94);
-  const L = layout();
-  if (vis.style !== "score") stepParticles(L, dt);
-  STYLES[vis.style](L, dt, t / 1000);
+  // Mapa zakrywa scenę, więc nie ma po co jej rysować.
   if (sheetOpen) drawSky(t / 1000);
+  else {
+    const L = layout();
+    if (vis.style !== "score") stepParticles(L, dt);
+    STYLES[vis.style](L, dt, t / 1000);
+  }
   requestAnimationFrame(frame);
 }
 
@@ -1238,7 +1244,7 @@ const STYLES = { bauhaus: drawBauhaus, scope: drawScope, score: drawScore, space
 // ---------- Mapa pulsarów ----------
 // Rzut Hammera–Aitoffa całego nieba. Rektascensja rośnie w lewo, jak na mapach nieba; środek mapy to 12h.
 const sky = $("sky"), sctx = sky.getContext("2d");
-let sheetOpen = false, SW = 0, SH = 0;
+let sheetOpen = false, SW = 0, SH = 0, skyBase = null;
 const RAD = Math.PI / 180;
 const DEFAULT_LOCATION = { lat: 53.4285, lon: 14.5528 };
 let autoPulsar = false, autoLocation = null, autoLocationNote = "", locationRequest = 0;
@@ -1290,10 +1296,15 @@ function sizeSky() {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   sky.width = SW * dpr; sky.height = SH * dpr; sky.style.width = SW + "px"; sky.style.height = SH + "px";
   sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  renderSkyBase(dpr);
 }
 
-function drawSky(time) {
-  sctx.clearRect(0, 0, SW, SH);
+// Tło mapy się nie zmienia: rysowane raz, przy zmianie rozmiaru.
+function renderSkyBase(dpr) {
+  skyBase = document.createElement("canvas");
+  skyBase.width = sky.width; skyBase.height = sky.height;
+  const sctx = skyBase.getContext("2d");
+  sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   // Kontur i siatka.
   sctx.save();
   sctx.beginPath(); sctx.ellipse(SW / 2, SH / 2, SW / 2 - 8, SH / 2 - 8, 0, 0, 6.283);
@@ -1315,6 +1326,11 @@ function drawSky(time) {
   const gc = aitoff(17.761, -29.0);
   sctx.fillStyle = "rgba(238,240,246,0.35)"; sctx.font = "10.5px -apple-system, sans-serif"; sctx.textAlign = "center";
   if (SW >= 560) sctx.fillText("środek Galaktyki", gc.x, gc.y + 30);
+}
+
+function drawSky(time) {
+  sctx.clearRect(0, 0, SW, SH);
+  sctx.drawImage(skyBase, 0, 0, SW, SH);
 
   // Pulsary: miganie w prawdziwym rytmie; szybkie drgają, bo oko nie nadąża.
   for (const p of PULSARS) {
