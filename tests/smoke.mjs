@@ -14,9 +14,11 @@ mkdirSync(out, { recursive: true });
 
 const server = createServer(async (req, res) => {
   try {
-    const path = join(root, req.url === "/" ? "index.html" : decodeURIComponent(req.url.split("?")[0]));
+    const url = decodeURIComponent(req.url.split("?")[0]);
+    const path = join(root, url === "/" ? "index.html" : url);
+    const body = await readFile(path);
     res.writeHead(200, { "content-type": path.endsWith(".html") ? "text/html; charset=utf-8" : "application/octet-stream" });
-    res.end(await readFile(path));
+    res.end(body);
   } catch { res.writeHead(404); res.end(); }
 }).listen(4174);
 
@@ -173,11 +175,31 @@ const silence = await rms();
 check(silence < 0.001, `cisza po Stop: RMS ${silence.toFixed(5)}`);
 await page.click("#play");
 
-for (const st of ["ridges", "rings", "cymatics", "field", "color", "bauhaus", "scope", "score", "space"]) {
+for (const st of ["ridges", "waves", "cymatics", "field", "color", "bauhaus", "scope", "score", "space"]) {
   await page.click(`[data-style=${st}]`);
   await page.waitForTimeout(2500);
   await page.screenshot({ path: join(out, `${st}.png`) });
 }
+
+// Fale: nowe rodzą się przy Słońcu, a rozbłysk biegnie szybciej od zwykłych.
+const waves = await page.evaluate(() => {
+  const before = WAVES.list.length;
+  WAVES.nextAt = 0; WAVES.flare = 0; emitWave();
+  const calm = WAVES.list[WAVES.list.length - 1];
+  WAVES.nextAt = 0; WAVES.flare = 3; emitWave();
+  const fast = WAVES.list[WAVES.list.length - 1];
+  return { before, added: WAVES.list.length - before, faster: fast.speed > calm.speed * 2, flare: fast.flare };
+});
+check(waves.before > 0 && waves.added === 2 && waves.faster && waves.flare === 3, `fale: ${JSON.stringify(waves)}`);
+
+// Słuchacz niczego nie wywołuje sam; narzędzia są tylko pod ?dev.
+const listener = await page.evaluate(() => ["[data-mode=storm]", "#flare", "#toggleSliders"].map((q) => getComputedStyle(document.querySelector(q)).display === "none" || !!document.querySelector(q).closest(".dev-only") && getComputedStyle(document.querySelector(q).closest(".dev-only")).display === "none"));
+check(listener.every(Boolean), `bez Burzy, rozbłysku i suwaków: ${listener}`);
+const devPage = await browser.newPage();
+await devPage.goto("http://localhost:4174/?dev");
+const devTools = await devPage.isVisible("[data-mode=storm]") && await devPage.isVisible("#flare");
+await devPage.close();
+check(devTools, "narzędzia widoczne pod ?dev");
 
 // Otwarta mapa nie rysuje sceny pod spodem, a jej tło powstaje tylko raz.
 const mapCost = await page.evaluate(async () => {

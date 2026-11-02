@@ -16,7 +16,7 @@ Osobny projekt od Aurora Now (`dgrochowicki/Aurora`, prognoza zorzy). Ten sam au
 - Dźwięk: **Tone.js 14.8.49** z jsDelivr (`Tone.Transport`, `Tone.Draw`; nie przechodzić na v15 bez potrzeby, tam zmieniło się API).
 - Obraz: Canvas 2D, własne rysowanie, bez bibliotek.
 - Hosting: GitHub Pages z gałęzi `main` (plik `.nojekyll` jest w repo).
-- Podgląd jako artefakt w Claude blokuje sieć, lokalizację i czujniki. Dlatego aplikacja ma wbudowany zapis prawdziwych pomiarów NOAA z 18.10.2026 (`const SNAP` w `index.html`) i tryb „Burza” z danymi umownymi. **Prawdziwe testy z siecią robić lokalnie lub na GitHub Pages.**
+- Podgląd jako artefakt w Claude blokuje sieć, lokalizację i czujniki. Dlatego aplikacja ma wbudowany zapis prawdziwych pomiarów NOAA z 18.10.2026 (`const SNAP` w `index.html`) i tryb „Burza” z danymi umownymi (tylko pod `?dev`). **Prawdziwe testy z siecią robić lokalnie lub na GitHub Pages.**
 - iPhone: przy włączonym przełączniku wyciszenia Safari wycisza Web Audio.
 - Test dymny: `tests/smoke.mjs` (Playwright), opis niżej.
 
@@ -70,9 +70,13 @@ Pełny opis syntezy i instrumentów: `docs/DZWIEK.md` (aktualizować przy zmiana
 
 ## Style graficzne
 
-Przełącznik u góry ma najpierw szkice nowych kierunków z `docs/WIZUALIZACJE.md`: **Grzbiety** (domyślny), **Słoje**, **Cymatyka**, **Linie pola**, **Kolor** (kod w sekcjach „Kierunek 1–5” w `index.html`). Potem stare style: **Bauhaus** (płaskie koła i łuki), **Oscyloskop** (jedna świecąca linia; Słońce to kształt fali dźwięku z `Tone.Waveform`), **Partytura** (pięciolinia od Słońca do Ziemi, grane nuty), **Kosmos** (dosłowny, mniejsze Słońce). Autor: Słońce i Ziemia w wersji dosłownej były „zbyt dosłowne”; szuka abstrakcji, z której nadal wiadomo, o co chodzi. Kierunek graficzny **niezdecydowany**; obecne style autor uznał za „dość łopatologiczne”. Nowe propozycje (grzbiety impulsów, słoje, cymatyka, linie pola, pole koloru) z opisem i rekomendacją: `docs/WIZUALIZACJE.md`.
+Przełącznik u góry ma najpierw szkice nowych kierunków z `docs/WIZUALIZACJE.md`: **Grzbiety** (domyślny), **Fale** (dawne Słoje: Słońce w środku, fale we wszystkie strony; pomysł autora), **Cymatyka**, **Linie pola**, **Kolor** (kod w sekcjach „Kierunek 1–5” w `index.html`). Potem stare style: **Bauhaus** (płaskie koła i łuki), **Oscyloskop** (jedna świecąca linia; Słońce to kształt fali dźwięku z `Tone.Waveform`), **Partytura** (pięciolinia od Słońca do Ziemi, grane nuty), **Kosmos** (dosłowny, mniejsze Słońce). Autor: Słońce i Ziemia w wersji dosłownej były „zbyt dosłowne”; szuka abstrakcji, z której nadal wiadomo, o co chodzi. Kierunek graficzny **niezdecydowany**; obecne style autor uznał za „dość łopatologiczne”. Nowe propozycje (grzbiety impulsów, słoje, cymatyka, linie pola, pole koloru) z opisem i rekomendacją: `docs/WIZUALIZACJE.md`.
 
 Wybór pulsara: mapa całego nieba (rzut Hammera–Aitoffa, RA 12h w środku, rośnie w lewo, Droga Mleczna z konwersji b = 0). Każdy pulsar miga w swoim prawdziwym rytmie; szybkie mają drgający pierścień. **Autor nie chce listy, tylko wybór z grafiki.**
+
+## Tylko prawdziwe dane
+
+Decyzja autora (2.11.2026): słuchacz niczego nie wywołuje sam. Są tylko tryby „Na żywo” i „Zapis 3 h”. Przycisk Burza, „Wywołaj rozbłysk” i suwaki działają wyłącznie pod adresem z `?dev`, do dopracowywania obrazu.
 
 ## Plan (zatwierdzony przez autora 1.11.2026)
 

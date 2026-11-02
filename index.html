@@ -68,6 +68,7 @@
   .sliders output { text-align: right; color: var(--text); font-variant-numeric: tabular-nums; }
   input[type=range] { width: 100%; accent-color: var(--accent); }
   .err { color: #ff9b8a; }
+  body:not(.dev) .dev-only { display: none !important; }
 
   /* Mapa pulsarów */
   .sheet { position: fixed; inset: 0; background: #04050a;
@@ -100,7 +101,7 @@
   <div class="status" id="status">Ładuję dane…</div>
   <div class="styles" id="styles">
     <button data-style="ridges" class="on">Grzbiety</button>
-    <button data-style="rings">Słoje</button>
+    <button data-style="waves">Fale</button>
     <button data-style="cymatics">Cymatyka</button>
     <button data-style="field">Linie pola</button>
     <button data-style="color">Kolor</button>
@@ -119,7 +120,7 @@
     <div class="seg" id="modes">
       <button data-mode="live" class="on">Na żywo</button>
       <button data-mode="replay">Zapis 3 h</button>
-      <button data-mode="storm">Burza</button>
+      <button data-mode="storm" class="dev-only">Burza</button>
     </div>
   </div>
 
@@ -137,12 +138,12 @@
     <div class="stat"><div class="v" id="vX">–</div><div class="k">Rozbłysk</div><div class="r">uderzenie</div></div>
   </div>
 
-  <div class="more">
+  <div class="more dev-only">
     <button class="ghost" id="flare">Wywołaj rozbłysk</button>
     <button class="ghost" id="toggleSliders">Steruj ręcznie</button>
   </div>
 
-  <div class="sliders" id="sliders">
+  <div class="sliders dev-only" id="sliders">
     <label>Wiatr <input type="range" id="sWind" min="280" max="900" step="5"><output id="oWind"></output></label>
     <label>Gęstość <input type="range" id="sDens" min="0.5" max="30" step="0.5"><output id="oDens"></output></label>
     <label>Bz <input type="range" id="sBz" min="-25" max="15" step="0.5"><output id="oBz"></output></label>
@@ -256,7 +257,7 @@ function newFlareLevel(rows) {
   return level >= 2 && before.every((r) => xrayClass(r.flux).level < level) ? level : 0;
 }
 
-// Ostatnie 3 godziny z NOAA po 3 minuty: od nich zaczynają się słoje.
+// Ostatnie 3 godziny z NOAA po 3 minuty: z nich powstają pierwsze fale.
 function liveHistory(windRows, magRows, xrayRows, kp) {
   const minute = (r) => r.time_tag.slice(0, 16);
   const bz = new Map(magRows.filter((r) => r.active && r.bz_gsm != null).map((r) => [minute(r), Number(r.bz_gsm)]));
@@ -301,9 +302,9 @@ async function fetchLive() {
       }
     }
     liveOK = true; lastLive = out;
-    if (!RINGS.list.length) {
+    if (!WAVES.seeded) {
       const long = xr.status === "fulfilled" ? xr.value.filter((r) => r.energy === "0.1-0.8nm" && r.flux > 0) : [];
-      seedRings(liveHistory(wind.value, mag.value, long, out.kp));
+      seedWaves(liveHistory(wind.value, mag.value, long, out.kp));
     }
     return out;
   } catch (e) { liveOK = false; return null; }
@@ -340,7 +341,7 @@ async function enterMode(m) {
   if (m === "live") {
     const d = await fetchLive();
     if (request !== modeRequest || mode !== m) return; // w czasie pobierania wybrano coś innego
-    if (d || lastLive) applyLive(d || lastLive); else { replayIdx = SNAP.wind.length - 1; seedRings(snapHistory()); }
+    if (d || lastLive) applyLive(d || lastLive); else { replayIdx = SNAP.wind.length - 1; seedWaves(snapHistory()); }
     liveTimer = setInterval(async () => { const d = await fetchLive(); if (d && mode === "live") applyLive(d); setStatus(); }, 60000);
   }
   if (m === "storm") {
@@ -874,7 +875,7 @@ const vis = {
     if (this.notes.length > 120) this.notes.shift();
   },
   chord(m, chord) { this.chordPc = ((Tone.Frequency(chord[0]).toMidi() % 12) + 12) % 12; this.hueTarget = m === "dark" ? 300 : 220; this.chordNotes.push({ midis: chord.map((n) => Tone.Frequency(n).toMidi()), x: 0 }); },
-  flare(level) { this.flareT = 1; this.flareLevel = level; RIDGE.flare = Math.max(RIDGE.flare, level); RINGS.flare = Math.max(RINGS.flare, level); CY.kick = 0.03; },
+  flare(level) { this.flareT = 1; this.flareLevel = level; RIDGE.flare = Math.max(RIDGE.flare, level); WAVES.flare = Math.max(WAVES.flare, level); CY.kick = 0.03; },
 };
 
 // Dane wygładzane poza requestAnimationFrame: w ukrytej karcie klatek nie ma, a muzyka gra dalej.
@@ -1366,75 +1367,72 @@ function drawRidges(L, dt, time) {
   strokeRidge(ctx, { v: RIDGE.live, color: southward(), blur: E.bright() }, x0, w, front, amp, 0.75 + vis.pulseT * 0.25);
 }
 
-// ---------- Kierunek 2: Słoje ----------
-// Każdy takt dorysowuje pierścień. Środek to początek zapisu, brzeg to teraz; rozbłysk zostaje na zawsze.
-const RING_MAX = 160;
-const RINGS = { list: [], flare: 0, nextAt: 0, c: null, key: "", dirty: true };
-function addRing(r) {
-  RINGS.list.push(r); RINGS.dirty = true;
-  if (RINGS.list.length <= RING_MAX) return;
-  // Brak miejsca: sąsiednie słoje łączą się w jeden, rozbłyski zostają.
-  const merged = [];
-  for (let i = 0; i < RINGS.list.length; i += 2) {
-    const a = RINGS.list[i], b = RINGS.list[i + 1] || a;
-    merged.push({ wind: (a.wind + b.wind) / 2, dens: (a.dens + b.dens) / 2, bz: (a.bz + b.bz) / 2, kp: (a.kp + b.kp) / 2, flare: Math.max(a.flare, b.flare) });
-  }
-  RINGS.list = merged;
+// ---------- Kierunek 2: Fale ----------
+// Słońce w środku, fale rozchodzą się we wszystkie strony. Każdy takt rodzi jedną i dostaje dane z tej chwili;
+// prędkość fali to prędkość wiatru, więc szybki strumień dogania wolniejszy. Rozbłysk biegnie szybciej od reszty.
+const WAVE_CROSSING = 75; // sekundy na dojście do brzegu przy 450 km/s
+const WAVES = { list: [], seeded: false, flare: 0, nextAt: 0 };
+const waveSpeed = (wind) => wind / 450 / WAVE_CROSSING; // części drogi do brzegu na sekundę
+function seedWaves(history) {
+  if (WAVES.seeded) return;
+  WAVES.seeded = true;
+  // Na start ostatnie godziny pomiarów już w drodze: najstarsze przy brzegu, najnowsze przy Słońcu.
+  const now = performance.now() / 1000;
+  WAVES.list.unshift(...history.map((h, i) => {
+    const speed = waveSpeed(h.wind);
+    return { ...h, speed, born: now - (1 - i / history.length) / speed };
+  }));
 }
-function seedRings(history) { if (!RINGS.list.length) history.forEach(addRing); }
 function snapHistory() {
   const out = [];
   for (let i = 0; i < SNAP.wind.length; i += 3) out.push({ wind: SNAP.wind[i], dens: SNAP.dens[i], bz: SNAP.bz[Math.round(i / SNAP.wind.length * (SNAP.bz.length - 1))], kp: SNAP.kp, flare: 0 });
   return out;
 }
-// Poza klatkami animacji, żeby zapis nocy szedł także w ukrytej karcie.
-function recordRing() {
-  if (!playing || !G) return;
+// Poza klatkami animacji, żeby fale szły też w ukrytej karcie.
+function emitWave() {
   const now = performance.now() / 1000;
-  if (now < RINGS.nextAt) return;
-  RINGS.nextAt = now + (G.barSteps || 16) / 4 * 60 / bpmFor(psr);
-  addRing({ wind: cur.wind, dens: cur.dens, bz: cur.bz, kp: cur.kp, flare: RINGS.flare });
-  RINGS.flare = 0;
+  if (now < WAVES.nextAt) return;
+  const def = GENRES[psr.genre];
+  WAVES.nextAt = now + (def.barSteps || 16) / 4 * 60 / bpmFor(psr);
+  const flare = WAVES.flare;
+  WAVES.list.push({ wind: cur.wind, dens: cur.dens, bz: cur.bz, kp: cur.kp, flare, speed: waveSpeed(cur.wind) * (flare ? 3 : 1), born: now });
+  WAVES.flare = 0;
 }
-const ringWobble = (a, r) => 0.5 * Math.sin(3 * a + 1.1 + r * 0.006) + 0.3 * Math.sin(5 * a + 2.7 - r * 0.011) + 0.2 * Math.sin(9 * a + 0.4 + r * 0.02);
-function ringColor(ring, alpha) {
-  const so = clamp(-ring.bz / 15, 0, 1), glow = map(ring.kp, 3, 8, 0, 1), light = map(ring.wind, 300, 800, 0.5, 1);
-  const base = BONE.map((v, i) => lerp(v, [95, 211, 141][i], glow * 0.7) * light);
-  return mix(base, ROSE, so, alpha);
+function waveColor(w, alpha) {
+  const so = clamp(-w.bz / 15, 0, 1), glow = map(w.kp, 3, 8, 0, 1), light = map(w.wind, 300, 800, 0.55, 1);
+  return mix(BONE.map((v, i) => lerp(v, [95, 211, 141][i], glow * 0.7) * light), ROSE, so, alpha);
 }
-function drawRings(L, dt, time) {
+// Wspólny, wolno zmieniający się kształt: sąsiednie fale są podobne, jak fronty jednego strumienia.
+const waveShape = (a, born) => 0.5 * Math.sin(3 * a + 1.1 + born * 0.03) + 0.3 * Math.sin(5 * a + 2.7 - born * 0.05) + 0.2 * Math.sin(9 * a + 0.4 + born * 0.08);
+function drawWaves(L, dt, time) {
   ctx.fillStyle = INK; ctx.fillRect(0, 0, W, H);
-  const S = stage(), R = Math.min(S.w, S.h) / 2 * 0.94, n = RINGS.list.length, dr = Math.min(12, R / Math.max(n + 1, 1));
-  const key = `${R}:${DPR}`;
-  if (RINGS.dirty || key !== RINGS.key) {
-    const { c, g } = offscreen(RINGS.c, R * 2 + 8, R * 2 + 8);
-    RINGS.c = c; RINGS.key = key; RINGS.dirty = false;
-    g.translate(R + 4, R + 4);
-    RINGS.list.forEach((ring, i) => {
-      const r = (i + 1) * dr, wobble = 0.01 + 0.07 * map(ring.wind, 300, 800, 0, 1);
-      g.beginPath();
-      for (let k = 0; k <= 96; k++) {
-        const a = k / 96 * 6.2832, rr = r * (1 + wobble * ringWobble(a, r));
-        k ? g.lineTo(Math.cos(a) * rr, Math.sin(a) * rr) : g.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
-      }
-      g.closePath();
-      if (ring.flare) { g.strokeStyle = "#fff2c4"; g.lineWidth = Math.max(2.2, dr * 1.1); }
-      else { g.strokeStyle = ringColor(ring, 0.9); g.lineWidth = Math.max(0.6, dr * map(ring.dens, 1, 15, 0.22, 0.95)); }
-      g.stroke();
-    });
+  const S = stage(), now = performance.now() / 1000, sunR = Math.min(S.w, S.h) * 0.055;
+  const reach = Math.hypot(Math.max(S.cx, W - S.cx), Math.max(S.cy, H - S.cy));
+  WAVES.list = WAVES.list.filter((w) => (now - w.born) * w.speed < 1);
+  ctx.lineJoin = "round";
+  for (const w of WAVES.list) {
+    const t = (now - w.born) * w.speed, r = sunR + t * (reach - sunR), wobble = 0.012 + 0.075 * map(w.wind, 300, 800, 0, 1);
+    ctx.beginPath();
+    for (let k = 0; k <= 72; k++) {
+      const a = k / 72 * 6.2832, rr = r * (1 + wobble * t * waveShape(a, w.born));
+      k ? ctx.lineTo(S.cx + Math.cos(a) * rr, S.cy + Math.sin(a) * rr) : ctx.moveTo(S.cx + Math.cos(a) * rr, S.cy + Math.sin(a) * rr);
+    }
+    ctx.closePath();
+    const fade = Math.pow(1 - t, 0.7);
+    if (w.flare) { ctx.strokeStyle = `rgba(255,242,196,${fade})`; ctx.lineWidth = 2 + w.flare * 1.4; }
+    else { ctx.strokeStyle = waveColor(w, 0.9 * fade); ctx.lineWidth = map(w.dens, 1, 15, 0.8, 7); }
+    ctx.stroke();
   }
-  ctx.drawImage(RINGS.c, S.cx - R - 4, S.cy - R - 4, R * 2 + 8, R * 2 + 8);
-  // Słój, który właśnie rośnie, drga falą dźwięku; serce błyska z pulsarem.
-  const wave = A && playing ? A.wave.getValue() : null, r = (n + 1) * dr, wobble = 0.01 + 0.07 * E.bright();
+  // Słońce: brzeg drga falą dźwięku, błyska z pulsarem i przy rozbłysku.
+  const sound = A && playing ? A.wave.getValue() : null;
   ctx.beginPath();
   for (let k = 0; k <= 96; k++) {
-    const a = k / 96 * 6.2832, w = wave ? wave[Math.floor(k / 96 * (wave.length - 1))] : 0;
-    const rr = r * (1 + wobble * ringWobble(a, r)) + w * 22;
+    const a = k / 96 * 6.2832, v = sound ? sound[Math.floor(k / 96 * (sound.length - 1))] : 0;
+    const rr = sunR * (1 + vis.pulseT * 0.06 + vis.flareT * 0.5) + v * sunR * 0.9;
     k ? ctx.lineTo(S.cx + Math.cos(a) * rr, S.cy + Math.sin(a) * rr) : ctx.moveTo(S.cx + Math.cos(a) * rr, S.cy + Math.sin(a) * rr);
   }
-  ctx.strokeStyle = ringColor({ bz: cur.bz, kp: cur.kp, wind: cur.wind }, 0.95); ctx.lineWidth = 1.5; ctx.stroke();
-  ctx.fillStyle = mix(BONE, BONE, 0, 0.35 + vis.pulseT * 0.65);
-  ctx.beginPath(); ctx.arc(S.cx, S.cy, 2 + vis.pulseT * 3 + vis.flareT * 8, 0, 6.2832); ctx.fill();
+  ctx.closePath();
+  ctx.fillStyle = waveColor({ bz: cur.bz, kp: 0, wind: 800 }, 1); ctx.fill();
 }
 
 // ---------- Kierunek 3: Cymatyka ----------
@@ -1558,12 +1556,12 @@ function drawColor(L, dt, time) {
 
 const STYLE_NOTES = {
   ridges: "Jedna linia na obrót pulsara: kształt dźwięku w tej chwili. Kolor: Bz, drżenie: wiatr, wysoka góra: rozbłysk.",
-  rings: "Środek to ostatnie godziny, brzeg to teraz. Grubość: gęstość wiatru, kolor: Bz i Kp, jasny słój: rozbłysk.",
+  waves: "Fale ze Słońca we wszystkie strony. Prędkość i kształt: wiatr, grubość: gęstość, kolor: Bz i Kp, jasna i szybka fala: rozbłysk.",
   cymatics: "Piasek układa się w figurę aktualnego akordu. Ilość: gęstość wiatru, drgania: prędkość, kolor: Bz.",
   field: "Linie pola Ziemi bez Ziemi. Wiatr je ściska i wyciąga, przy Bz na południe pękają z błyskiem.",
   color: "Górne pole: zorza, dolne: wiatr i Bz. Granica przesuwa się z ciśnieniem wiatru, całość oddycha z pulsarem.",
 };
-const STYLES = { ridges: drawRidges, rings: drawRings, cymatics: drawCymatics, field: drawField, color: drawColor, bauhaus: drawBauhaus, scope: drawScope, score: drawScore, space: drawSpace };
+const STYLES = { ridges: drawRidges, waves: drawWaves, cymatics: drawCymatics, field: drawField, color: drawColor, bauhaus: drawBauhaus, scope: drawScope, score: drawScore, space: drawSpace };
 
 // ---------- Mapa pulsarów ----------
 // Rzut Hammera–Aitoffa całego nieba. Rektascensja rośnie w lewo, jak na mapach nieba; środek mapy to 12h.
@@ -1775,7 +1773,7 @@ setInterval(refreshAutoPulsar, 60000);
 function fmt(v, d = 0) { return Number.isFinite(v) ? v.toFixed(d).replace(".", ",").replace("-", "−") : "–"; }
 setInterval(() => {
   stepData();
-  recordRing();
+  emitWave();
   $("vWind").textContent = fmt(cur.wind);
   $("vDens").textContent = fmt(cur.dens, 1);
   $("vBz").textContent = fmt(cur.bz, 1);
@@ -1832,6 +1830,8 @@ for (const [id, key, out, d] of SL) {
 }
 
 addEventListener("resize", resize);
+// Słuchacz dostaje tylko prawdziwe dane. Burza, rozbłysk i suwaki zostają pod ?dev, do dopracowywania obrazu.
+document.body.classList.toggle("dev", new URLSearchParams(location.search).has("dev"));
 resize();
 $("styleNote").textContent = STYLE_NOTES[vis.style];
 renderCard();

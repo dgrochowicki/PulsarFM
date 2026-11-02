@@ -10,6 +10,7 @@ Szkice wszystkich pięciu kierunków są już stylami w przełączniku, do poró
 
 - **Linie pola:** najsłabsze, wizualnie mało atrakcyjne i nie wiadomo, o co chodzi. Autorowi podoba się jednak sam ruch (cząstki płynące wzdłuż linii), warto go użyć gdzie indziej.
 - **Kolor:** kolory fajne, ale jako tło zbyt płaskie.
+- **Fale (dawne Słoje):** pomysł autora: pierścienie to promieniowanie Słońca rozchodzące się we wszystkie strony, a nie w jednym kierunku jak w Bauhausie. Obraz fal idących ze Słońca. Zapis całej nocy jako plakat wymaga teraz osobnego zapisu, bo fale opuszczają ekran.
 - Szkice wypuszczone na GitHub Pages do dalszego dopracowania; kierunek jeszcze nie wybrany.
 
 ## 1. Grzbiety impulsów (faworyt)
