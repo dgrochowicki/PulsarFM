@@ -4,14 +4,14 @@
 
 Obecne style (Bauhaus, Oscyloskop, Partytura, Kosmos) autor uznał za „dość łopatologiczne”: wciąż opowiadają historię „Słońce, wiatr, Ziemia”. Szukamy obrazu, który broni się sam jako grafika, a dane nadal coś w nim znaczą.
 
-Szkice wszystkich pięciu kierunków są już stylami w przełączniku, do porównania przy prawdziwej muzyce. Następny krok: autor wybiera jeden, reszta stylów znika, a wybrany dostaje dopracowanie.
+Szkice kierunków (poza usuniętymi Liniami pola) są już stylami w przełączniku, do porównania przy prawdziwej muzyce. Następny krok: autor wybiera jeden, reszta stylów znika, a wybrany dostaje dopracowanie.
 
 ## Ocena autora szkiców (2.11.2026)
 
-- **Linie pola:** najsłabsze, wizualnie mało atrakcyjne i nie wiadomo, o co chodzi. Autorowi podoba się jednak sam ruch (cząstki płynące wzdłuż linii), warto go użyć gdzie indziej.
+- **Linie pola:** najsłabsze, wizualnie mało atrakcyjne i nie wiadomo, o co chodzi. Autorowi podoba się jednak sam ruch (cząstki płynące wzdłuż linii), warto go użyć gdzie indziej. Styl usunięty z aplikacji.
 - **Kolor:** kolory fajne, ale jako tło zbyt płaskie.
 - **Fale (dawne Słoje):** pomysł autora: pierścienie to promieniowanie Słońca rozchodzące się we wszystkie strony, a nie w jednym kierunku jak w Bauhausie. Obraz fal idących ze Słońca. Zapis całej nocy jako plakat wymaga teraz osobnego zapisu, bo fale opuszczają ekran.
-- Szkice wypuszczone na GitHub Pages do dalszego dopracowania; kierunek jeszcze nie wybrany.
+- Po obejrzeniu Fal autor: „to jeszcze nie to”, sam jeszcze nie wie, co dalej. Szkice wypuszczone na GitHub Pages do dalszego dopracowania; kierunek jeszcze nie wybrany.
 
 ## 1. Grzbiety impulsów (faworyt)
 
@@ -47,7 +47,7 @@ Szkice wszystkich pięciu kierunków są już stylami w przełączniku, do poró
 
 **Dlaczego:** dosłownie „dźwięk, który widać”, prawdziwe zjawisko fizyczne, w pełni abstrakcyjne. Technicznie: wzór z sumy fal stojących `cos(nπx)cos(mπy) − cos(mπx)cos(nπy)`, cząstki zsuwają się do linii węzłowych.
 
-## 4. Linie pola magnetycznego
+## 4. Linie pola magnetycznego (usunięte)
 
 **Co widać:** bez planety i bez Słońca, tylko linie pola magnetycznego Ziemi (dipol) jako płynące krzywe. Wiatr je ściska od strony dziennej i wyciąga w ogon. Przy Bz na południe linie pękają i łączą się na nowo z błyskiem (rekoneksja, która wywołuje zorzę). Bas lekko nimi drga.
 
