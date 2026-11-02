@@ -28,7 +28,6 @@ Osobny projekt od Aurora Now (`dgrochowicki/Aurora`, prognoza zorzy). Ten sam au
 | Bz | `.../json/rtsw/rtsw_mag_1m.json` | jak wyżej |
 | Kp | `.../products/noaa-planetary-k-index.json` | ostatni wiersz |
 | Rozbłyski | `.../json/goes/primary/xrays-6-hour.json` | pasmo `0.1-0.8nm`, klasa A/B/C/M/X z `flux` |
-| Zdjęcie Słońca | `sdo.gsfc.nasa.gov/assets/img/latest/latest_512_0171.jpg` | tylko styl „Kosmos” |
 
 Odświeżanie co 60 s. Rozbłysk dźwiękowo tylko przy nowym (od klasy C): klasa wyższa niż wszystko z poprzednich 3 godzin, nie przy pierwszym odczycie. Przy chwilowej awarii sieci aplikacja trzyma ostatni pomiar; zapis z 18.10 gra tylko, gdy nigdy nie było danych na żywo.
 
@@ -38,10 +37,10 @@ Wspólne dla wszystkich gatunków (obiekt `E` w kodzie, wartości 0–1):
 
 | Dane | Dźwięk | Obraz |
 |---|---|---|
-| Prędkość wiatru | jasność brzmienia (filtry), wysokość motywów | prędkość cząstek/kresek/fal, korona Słońca |
+| Prędkość wiatru | jasność brzmienia (filtry), wysokość motywów; w Ambiencie ostatnie 16 minut wyznacza wysokości melodii (`windDegrees`) | prędkość cząstek/kresek/fal, korona Słońca |
 | Gęstość wiatru | ile się dzieje (gęstość motywów, dodatkowe warstwy) | liczba cząstek/kresek/fal |
 | Prędkość × gęstość | – | odległość magnetopauzy (Chapman–Ferraro, kształt Shue) |
-| Bz < −2 nT | mroczna skala; wspólny niski bas rośnie z −Bz; w techno brzmienie acid | kolor (różowy/bursztynowy), drżenie pięciolinii |
+| Bz < −2 nT | mroczna skala; wspólny niski bas rośnie z −Bz; w techno brzmienie acid | kolor (różowy/bursztynowy) |
 | Kp | wysoka poświata (shimmer) | zorza |
 | Rozbłysk (C/M/X) | **trailerowe uderzenie**: C = niskie „buuum” z opadającą wysokością; M = + przesterowany akord „braam” z otwierającym się filtrem; X = pełny braam z tercją + szum | koła/drganie Słońca/znak f–fff |
 
@@ -70,7 +69,7 @@ Pełny opis syntezy i instrumentów: `docs/DZWIEK.md` (aktualizować przy zmiana
 
 ## Style graficzne
 
-Przełącznik u góry ma najpierw szkice nowych kierunków z `docs/WIZUALIZACJE.md`: **Grzbiety** (domyślny), **Fale** (dawne Słoje: Słońce w środku, fale we wszystkie strony; pomysł autora), **Cymatyka**, **Kolor** (kod w sekcjach „Kierunek” w `index.html`, numeracja jak w `docs/WIZUALIZACJE.md`). Potem stare style: **Bauhaus** (płaskie koła i łuki), **Oscyloskop** (jedna świecąca linia; Słońce to kształt fali dźwięku z `Tone.Waveform`), **Partytura** (pięciolinia od Słońca do Ziemi, grane nuty), **Kosmos** (dosłowny, mniejsze Słońce). Autor: Słońce i Ziemia w wersji dosłownej były „zbyt dosłowne”; szuka abstrakcji, z której nadal wiadomo, o co chodzi. Kierunek graficzny **niezdecydowany**; obecne style autor uznał za „dość łopatologiczne”. Nowe propozycje z opisem i rekomendacją: `docs/WIZUALIZACJE.md`. Linie pola usunięte na prośbę autora (2.11.2026).
+Przełącznik u góry ma najpierw szkice nowych kierunków z `docs/WIZUALIZACJE.md`: **Grzbiety** (domyślny), **Fale** (dawne Słoje: Słońce w środku, fale we wszystkie strony; pomysł autora), **Cymatyka**, **Kolor** (kod w sekcjach „Kierunek” w `index.html`, numeracja jak w `docs/WIZUALIZACJE.md`). Potem stare style: **Bauhaus** (płaskie koła i łuki), **Oscyloskop** (jedna świecąca linia; Słońce to kształt fali dźwięku z `Tone.Waveform`). Autor: Słońce i Ziemia w wersji dosłownej były „zbyt dosłowne”; szuka abstrakcji, z której nadal wiadomo, o co chodzi. Kierunek graficzny **niezdecydowany**; obecne style autor uznał za „dość łopatologiczne”. Nowe propozycje z opisem i rekomendacją: `docs/WIZUALIZACJE.md`. Linie pola, Partytura i Kosmos usunięte na prośbę autora (2.11.2026).
 
 Wybór pulsara: mapa całego nieba (rzut Hammera–Aitoffa, RA 12h w środku, rośnie w lewo, Droga Mleczna z konwersji b = 0). Każdy pulsar miga w swoim prawdziwym rytmie; szybkie mają drgający pierścień. **Autor nie chce listy, tylko wybór z grafiki.**
 
@@ -98,6 +97,13 @@ Zasada: każde nowe źródło danych dostaje **jedną wyraźną rolę**, żeby n
 - [ ] Przelot ISS (CelesTrak + satellite.js) → krótki motyw melodyczny, gdy stacja jest nad słuchaczem.
 - [ ] Fale grawitacyjne: publiczne alerty LIGO/Virgo/KAGRA (GraceDB/GCN; przebieg IR1 startuje ok. listopada 2026) → rzadkie wielkie wydarzenie.
 - [ ] Ruch telefonu (DeviceOrientation, na iOS wymaga zgody) → filtr i przestrzeń.
+
+**Muzyka najpierw (decyzja autora, 2.11.2026)**
+Na razie muzyka ważniejsza od obrazu. Autorowi podoba się brzmienie gatunków z aplikacji: nie budować nowych od zera, tylko podmieniać w nich źródło nut.
+- [x] Ambient: wiatr pisze wysokości melodii, głębszy i dłuższy bit.
+- [ ] Warianty pada w Ambiencie do porównania (obecny brzmi generycznie): nagrania plazmy z kosmosu, barwa liczona z danych.
+- [ ] Przenieść melodię z wiatru na Techno i kolejne gatunki.
+- [ ] Pomysły: strojenie zamiast przełączania pulsarów, bez odlotu z Ziemi; nazwa „wiatr dotrze za N minut”; docelowo stream.
 
 **Później / do rozważenia**
 - [ ] Porównanie z Lyria RealTime (Google, Gemini API): model AI sterowany opisem gatunku + `bpm`, `density`, `brightness`. Możliwa hybryda: Lyria gra tło w gatunku pulsara, a pulsar i rozbłyski zostają w Tone.js. Wymaga klucza API i małego serwera.

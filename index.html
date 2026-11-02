@@ -107,8 +107,6 @@
     <span class="sep"></span>
     <button data-style="bauhaus">Bauhaus</button>
     <button data-style="scope">Oscyloskop</button>
-    <button data-style="score">Partytura</button>
-    <button data-style="space">Kosmos</button>
   </div>
   <div class="note" id="styleNote"></div>
 </div>
@@ -235,7 +233,7 @@ const $ = (id) => document.getElementById(id);
 
 const target = { wind: 420, dens: 4, bz: 0, kp: 2, xray: null };
 const cur = { ...target };
-let mode = "live", liveOK = false, lastLive = null, replayIdx = 0, xrayTag = null, modeRequest = 0;
+let windTail = [], mode = "live", liveOK = false, lastLive = null, replayIdx = 0, xrayTag = null, modeRequest = 0;
 
 function xrayClass(flux) {
   if (!(flux > 0)) return { letter: "–", level: 0 };
@@ -301,6 +299,8 @@ async function fetchLive() {
       }
     }
     liveOK = true; lastLive = out;
+    const tail = wind.value.filter((r) => r.active && r.proton_speed != null).slice(0, 16).reverse().map((r) => Number(r.proton_speed));
+    if (tail.length === 16) windTail = tail;
     if (!WAVES.seeded) {
       const long = xr.status === "fulfilled" ? xr.value.filter((r) => r.energy === "0.1-0.8nm" && r.flux > 0) : [];
       seedWaves(liveHistory(wind.value, mag.value, long, out.kp));
@@ -395,6 +395,16 @@ class Motif {
   at(i) { return this.steps[i % this.len]; }
 }
 const rhythm = (len, fill, must = []) => Array.from({ length: len }, (_, i) => must.includes(i) || chance(fill));
+
+// Wysokości melodii z ostatnich 16 minut wiatru: każdy pomiar to jeden krok taktu. Rytm zostaje z motywu.
+function windDegrees(lo, hi) {
+  let w = null;
+  if (mode === "live" && windTail.length === 16) w = windTail;
+  else if (mode === "replay" || (mode === "live" && !lastLive)) w = Array.from({ length: 16 }, (_, i) => SNAP.wind[(replayIdx - 15 + i + SNAP.wind.length) % SNAP.wind.length]);
+  if (!w) return null;
+  const min = Math.min(...w), max = Math.max(...w), range = Math.max(max - min, 6), mid = (min + max) / 2;
+  return w.map((v) => clamp(Math.round(lo + ((v - mid) / range + 0.5) * (hi - lo)), lo, hi));
+}
 
 let A = null, G = null, playing = false, mood = "bright", stepCount = 0, pulseId = null;
 let M = musicFor(psr);
@@ -495,7 +505,7 @@ const GENRES = {
       const pf = new Tone.Filter(900, "lowpass", -24).connect(B.rev);
       const pad = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fatsawtooth", count: 3, spread: 22 }, envelope: { attack: 2.5, decay: 1, sustain: 0.75, release: 5 } }), -25).connect(pf);
       const arp = vol(new Tone.FMSynth({ harmonicity: 3, modulationIndex: 5, envelope: { attack: 0.004, decay: 0.5, sustain: 0, release: 1.4 }, modulationEnvelope: { attack: 0.004, decay: 0.25, sustain: 0, release: 0.4 } }), -19).connect(B.delay);
-      const kick = vol(new Tone.MembraneSynth({ pitchDecay: 0.025, octaves: 3, envelope: { attack: 0.001, decay: 0.22, sustain: 0, release: 0.1 } }), -15).connect(B.lim);
+      const kick = vol(new Tone.MembraneSynth({ pitchDecay: 0.09, octaves: 1.6, envelope: { attack: 0.012, decay: 0.95, sustain: 0, release: 0.6 } }), -10).connect(B.lim);
       const bass = vol(new Tone.MonoSynth({ oscillator: { type: "sine" }, envelope: { attack: 0.6, decay: 0.5, sustain: 0.8, release: 2 } }), -16).connect(B.lim);
       const prog = [0, 5, 3, 4];
       const motif = new Motif(16, [4, 12], 0.45);
@@ -514,11 +524,12 @@ const GENRES = {
           if (s === 0 && bar % 16 === 15) motif.gen(0.3 + E.busy() * 0.5);
           const d = motif.at(s);
           if (d != null && chance(0.5 + E.busy() * 0.5)) {
-            const n = E.n(d + (E.bright() > 0.6 ? 7 : 0), 0);
+            const wind = windDegrees(4, 12);
+            const n = E.n((wind ? wind[s] : d) + (E.bright() > 0.6 ? 7 : 0), 0);
             arp.triggerAttackRelease(n, "16n", t, 0.35 + Math.random() * 0.45); E.note(n, t);
           }
         },
-        pulse(t) { kick.triggerAttackRelease(E.n(0, -3), "16n", t, 0.8); },
+        pulse(t) { kick.triggerAttackRelease(E.n(0, -3), "4n", t, 0.8); },
       };
     },
   },
@@ -838,10 +849,6 @@ const ctx = canvas.getContext("2d");
 let W = 0, H = 0, DPR = 1;
 const stars = [];
 let particles = [];
-const sdo = new Image();
-let sdoOK = false;
-sdo.onload = () => (sdoOK = true);
-sdo.src = "https://sdo.gsfc.nasa.gov/assets/img/latest/latest_512_0171.jpg";
 
 function resize() {
   DPR = Math.min(window.devicePixelRatio || 1, 2);
@@ -865,15 +872,12 @@ function layout() {
 
 const vis = {
   style: "ridges", pulses: 0, chordPc: null, beatT: 0, pulseT: 0, flareT: 0, flareLevel: 0, hue: 220, hueTarget: 220, fast: false, clear: true,
-  notes: [], bars: [], chordNotes: [],
-  beat() { this.beatT = 1; if (this.fast) this.bars.push({ x: 0, kind: "beat" }); },
-  pulse() { this.pulses++; this.pulseT = 1; this.bars.push({ x: 0, kind: "pulse" }); },
+  beat() { this.beatT = 1; },
+  pulse() { this.pulses++; this.pulseT = 1; },
   note(n) {
     const s = stars[Math.floor(Math.random() * stars.length)]; if (s) s.f = 1;
-    this.notes.push({ midi: Tone.Frequency(n).toMidi(), x: 0, life: 1 });
-    if (this.notes.length > 120) this.notes.shift();
   },
-  chord(m, chord) { this.chordPc = ((Tone.Frequency(chord[0]).toMidi() % 12) + 12) % 12; this.hueTarget = m === "dark" ? 300 : 220; this.chordNotes.push({ midis: chord.map((n) => Tone.Frequency(n).toMidi()), x: 0 }); },
+  chord(m, chord) { this.chordPc = ((Tone.Frequency(chord[0]).toMidi() % 12) + 12) % 12; this.hueTarget = m === "dark" ? 300 : 220; },
   flare(level) { this.flareT = 1; this.flareLevel = level; RIDGE.flare = Math.max(RIDGE.flare, level); WAVES.flare = Math.max(WAVES.flare, level); CY.kick = 0.03; },
 };
 
@@ -948,19 +952,11 @@ function frame(t) {
     if (ph < vis._lastPh) vis.pulse();
     vis._lastPh = ph;
   }
-  // Nuty i kreski taktowe płyną zawsze, żeby po zmianie stylu nie zbiły się w jednym miejscu.
-  const sp = ((W - 94) / 9) * (cur.wind / 400);
-  for (const b of vis.bars) b.x += sp * dt;
-  for (const c of vis.chordNotes) c.x += sp * dt;
-  for (const n of vis.notes) n.x += sp * 1.15 * dt;
-  vis.bars = vis.bars.filter((b) => b.x < W - 94);
-  vis.chordNotes = vis.chordNotes.filter((c) => c.x < W - 94);
-  vis.notes = vis.notes.filter((n) => n.x < W - 94);
   // Mapa zakrywa scenę, więc nie ma po co jej rysować.
   if (sheetOpen) drawSky(t / 1000);
   else {
     const L = layout();
-    if (vis.style === "bauhaus" || vis.style === "space") stepParticles(L, dt);
+    if (vis.style === "bauhaus") stepParticles(L, dt);
     STYLES[vis.style](L, dt, t / 1000);
   }
   requestAnimationFrame(frame);
@@ -1126,146 +1122,6 @@ function drawScope(L, dt, time) {
   ctx.fillText(psr.short.split(" · ")[0], pw, 16);
   ctx.restore();
   ctx.shadowBlur = 0; ctx.globalAlpha = 1;
-}
-
-// ---------- Styl: Partytura ----------
-// Pięciolinia płynie od Słońca do Ziemi; to, co gra, pojawia się na niej jako nuty.
-function drawScore(L, dt, time) {
-  const so = southward();
-  ctx.fillStyle = `hsl(${lerp(40, 330, so)}, ${lerp(8, 12, so)}%, 8%)`;
-  ctx.fillRect(0, 0, W, H);
-  const ink = "rgba(239,230,210,0.9)", inkDim = "rgba(239,230,210,0.28)";
-  const midY = H > W ? H * 0.42 : H * 0.42;
-  const gap = Math.min(16, H * 0.022);
-  const left = 54, right = W - 40;
-
-  // Zorza: zielone pole nad pięciolinią.
-  const al = auroraLevel();
-  if (al > 0.04) {
-    const g = ctx.createLinearGradient(0, midY - gap * 12, 0, midY - gap * 3);
-    g.addColorStop(0, `rgba(95,211,141,${0.0})`); g.addColorStop(1, `rgba(95,211,141,${0.22 * al})`);
-    ctx.fillStyle = g; ctx.fillRect(left, midY - gap * 12, right - left, gap * 9);
-  }
-
-  // Pięciolinia drży, gdy Bz jest na południe.
-  ctx.strokeStyle = inkDim; ctx.lineWidth = 1;
-  for (let i = -2; i <= 2; i++) {
-    ctx.beginPath();
-    for (let x = left; x <= right; x += 8) {
-      const y = midY + i * gap + Math.sin(x * 0.03 + time * 3 + i) * so * 3;
-      x === left ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-  }
-
-  // Kreski taktowe z pulsara (albo z rytmu, gdy pulsar gra tonację).
-  for (const b of vis.bars) {
-    ctx.strokeStyle = b.kind === "pulse" ? ink : inkDim; ctx.lineWidth = b.kind === "pulse" ? 1.6 : 1;
-    ctx.beginPath(); ctx.moveTo(left + b.x, midY - gap * 2); ctx.lineTo(left + b.x, midY + gap * 2); ctx.stroke();
-  }
-
-  const yOf = (midi) => midY - (midi - 71) * (gap / 2) * 0.58;
-  // Akordy: puste całe nuty.
-  ctx.strokeStyle = ink; ctx.lineWidth = 1.4;
-  for (const c of vis.chordNotes) for (const m of c.midis) {
-    ctx.beginPath(); ctx.ellipse(left + c.x, yOf(m + 12), gap * 0.62, gap * 0.4, -0.3, 0, 6.283); ctx.stroke();
-  }
-  // Nuty z arpeggia: pełne główki z laseczką.
-  for (const n of vis.notes) {
-    const x = left + n.x, y = yOf(n.midi);
-    const fade = 1 - n.x / (right - left);
-    ctx.fillStyle = so > 0.3 ? `rgba(213,72,127,${0.4 + 0.6 * fade})` : `rgba(239,230,210,${0.4 + 0.6 * fade})`;
-    ctx.beginPath(); ctx.ellipse(x, y, gap * 0.45, gap * 0.32, -0.35, 0, 6.283); ctx.fill();
-    ctx.strokeStyle = ctx.fillStyle; ctx.beginPath(); ctx.moveTo(x + gap * 0.42, y); ctx.lineTo(x + gap * 0.42, y - gap * 2.6); ctx.stroke();
-  }
-
-  // Słońce jako klucz na początku, Ziemia na końcu.
-  ctx.fillStyle = BH.red;
-  ctx.beginPath(); ctx.arc(left - 22, midY, gap * 1.6 * (1 + vis.pulseT * 0.08), 0, 6.283); ctx.fill();
-  ctx.fillStyle = BH.blue;
-  ctx.beginPath(); ctx.arc(right + 14, midY, gap * 0.7, 0, 6.283); ctx.fill();
-  ctx.strokeStyle = BH.ochre; ctx.lineWidth = 3;
-  const st = map(standoff(), 5, 14, 0.8, 2.2) * gap;
-  ctx.beginPath(); ctx.arc(right + 14, midY, gap * 0.7 + st, Math.PI * 0.6, Math.PI * 1.4); ctx.stroke();
-
-  // Rozbłysk: znak dynamiki.
-  if (vis.flareT > 0.05) {
-    ctx.fillStyle = `rgba(239,230,210,${vis.flareT})`;
-    ctx.font = `italic 700 ${Math.round(gap * 2.4)}px Georgia, "Times New Roman", serif`;
-    ctx.textAlign = "left";
-    ctx.fillText(vis.flareLevel >= 4 ? "fff" : vis.flareLevel >= 3 ? "ff" : "f", left + (1 - vis.flareT) * 120, midY + gap * 5.2);
-  }
-  ctx.fillStyle = "rgba(239,230,210,0.5)"; ctx.font = "italic 13px Georgia, serif"; ctx.textAlign = "left";
-  ctx.fillText(`${psr.name} · ${GENRES[psr.genre].label} · ${M.kind === "tempo" ? "♩ = " + Math.round(bpmFor(psr)) : "w tonacji " + M.note}`, left - 30, midY - gap * 4.2);
-}
-
-// ---------- Styl: Kosmos ----------
-function drawSpace(L, dt, time) {
-  const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, `hsl(${vis.hue}, 45%, 7%)`); g.addColorStop(1, `hsl(${vis.hue + 20}, 35%, 3%)`);
-  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  const al = auroraLevel();
-  for (const s of stars) {
-    s.f *= Math.exp(-dt * 3);
-    const a = s.a * (0.75 + 0.25 * Math.sin(time * 1.3 + s.ph)) + s.f * 0.9;
-    ctx.fillStyle = `rgba(255,255,255,${clamp(a, 0, 1)})`;
-    ctx.beginPath(); ctx.arc(s.x, s.y, s.r + s.f * 1.6, 0, 6.283); ctx.fill();
-  }
-  if (al > 0.05) {
-    ctx.save(); ctx.globalCompositeOperation = "lighter";
-    for (let b = 0; b < 4; b++) {
-      const y0 = H * (0.02 + b * 0.025), hgt = H * (0.18 + 0.12 * al);
-      ctx.beginPath();
-      for (let x = 0; x <= W; x += 12) { const y = y0 + Math.sin(x * 0.006 + time * 0.25 + b) * 18; x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); }
-      ctx.lineTo(W, y0 + hgt); ctx.lineTo(0, y0 + hgt); ctx.closePath();
-      const cg = ctx.createLinearGradient(0, y0, 0, y0 + hgt);
-      cg.addColorStop(0.25, `rgba(80,255,170,${0.1 * al})`); cg.addColorStop(1, "rgba(80,255,170,0)");
-      ctx.fillStyle = cg; ctx.fill();
-    }
-    ctx.restore();
-  }
-  // Wiatr.
-  const so = southward();
-  ctx.save(); ctx.globalCompositeOperation = "lighter";
-  ctx.fillStyle = `rgba(${Math.round(lerp(140, 255, so))},${Math.round(lerp(190, 90, so))},${Math.round(lerp(255, 160, so))},0.75)`;
-  for (const p of particles) ctx.fillRect(p.x, p.y, 2, 2);
-  ctx.restore();
-  // Ziemia.
-  const { x: ex, y: ey } = L.earth, r = L.earthR, s = L.sun;
-  ctx.save(); ctx.translate(ex, ey); ctx.rotate(Math.atan2(s.y - ey, s.x - ex));
-  ctx.strokeStyle = `rgba(130,190,255,${0.25 + vis.beatT * 0.12})`; ctx.lineWidth = 1.5;
-  shuePath(r0px(L)); ctx.stroke();
-  const eg = ctx.createRadialGradient(r * 0.4, -r * 0.3, r * 0.1, 0, 0, r);
-  eg.addColorStop(0, "#9fd4ff"); eg.addColorStop(0.6, "#2b6cc4"); eg.addColorStop(1, "#0b1e45");
-  ctx.fillStyle = eg; ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.283); ctx.fill();
-  if (al > 0.02) {
-    ctx.globalCompositeOperation = "lighter";
-    for (const side of [-1, 1]) {
-      const ag = ctx.createRadialGradient(-r * 0.2, side * r * 0.9, 0, -r * 0.2, side * r * 0.9, r * (0.7 + al));
-      ag.addColorStop(0, `rgba(90,255,170,${0.7 * al})`); ag.addColorStop(1, "rgba(90,255,170,0)");
-      ctx.fillStyle = ag; ctx.beginPath(); ctx.arc(-r * 0.2, side * r * 0.9, r * (0.7 + al), 0, 6.283); ctx.fill();
-    }
-  }
-  ctx.restore();
-  // Słońce, mniejsze i bez promieni.
-  const R = L.sunR;
-  ctx.save(); ctx.globalCompositeOperation = "lighter";
-  const corona = R * map(cur.wind, 300, 800, 1.8, 2.8) * (1 + vis.flareT * 0.8);
-  const cg = ctx.createRadialGradient(s.x, s.y, R * 0.8, s.x, s.y, corona);
-  cg.addColorStop(0, "rgba(255,170,70,0.5)"); cg.addColorStop(1, "rgba(255,90,20,0)");
-  ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(s.x, s.y, corona, 0, 6.283); ctx.fill();
-  ctx.restore();
-  ctx.save(); ctx.beginPath(); ctx.arc(s.x, s.y, R, 0, 6.283); ctx.clip();
-  const dg = ctx.createRadialGradient(s.x - R * 0.2, s.y - R * 0.2, R * 0.1, s.x, s.y, R);
-  dg.addColorStop(0, "#fff3c4"); dg.addColorStop(0.55, "#ffb347"); dg.addColorStop(1, "#d9480f");
-  ctx.fillStyle = dg; ctx.fillRect(s.x - R, s.y - R, 2 * R, 2 * R);
-  if (sdoOK) { ctx.globalAlpha = 0.85; ctx.globalCompositeOperation = "luminosity"; ctx.drawImage(sdo, s.x - R * 1.075, s.y - R * 1.075, R * 2.15, R * 2.15); }
-  ctx.restore();
-  if (vis.flareT > 0.01) {
-    ctx.strokeStyle = `rgba(255,230,200,${0.5 * vis.flareT})`; ctx.lineWidth = 2 + 6 * vis.flareT;
-    ctx.beginPath(); ctx.arc(s.x, s.y, R * (1 + (1 - vis.flareT) * 6), 0, 6.283); ctx.stroke();
-  }
-  drawPulsarGeo(L, time, "#cfe0ff");
 }
 
 // ---------- Wspólne dla nowych kierunków (docs/WIZUALIZACJE.md) ----------
@@ -1487,7 +1343,7 @@ const STYLE_NOTES = {
   cymatics: "Piasek układa się w figurę aktualnego akordu. Ilość: gęstość wiatru, drgania: prędkość, kolor: Bz.",
   color: "Górne pole: zorza, dolne: wiatr i Bz. Granica przesuwa się z ciśnieniem wiatru, całość oddycha z pulsarem.",
 };
-const STYLES = { ridges: drawRidges, waves: drawWaves, cymatics: drawCymatics, color: drawColor, bauhaus: drawBauhaus, scope: drawScope, score: drawScore, space: drawSpace };
+const STYLES = { ridges: drawRidges, waves: drawWaves, cymatics: drawCymatics, color: drawColor, bauhaus: drawBauhaus, scope: drawScope };
 
 // ---------- Mapa pulsarów ----------
 // Rzut Hammera–Aitoffa całego nieba. Rektascensja rośnie w lewo, jak na mapach nieba; środek mapy to 12h.
@@ -1737,7 +1593,7 @@ $("flare").onclick = () => triggerFlare(mode === "storm" ? 4 : 3);
 $("toggleSliders").onclick = () => { $("sliders").classList.toggle("open"); syncSliders(); };
 canvas.addEventListener("click", (e) => {
   const L = layout();
-  if ((vis.style === "bauhaus" || vis.style === "scope" || vis.style === "space") && Math.hypot(e.clientX - L.pulsar.x, e.clientY - L.pulsar.y) < 40) return openSheet();
+  if ((vis.style === "bauhaus" || vis.style === "scope") && Math.hypot(e.clientX - L.pulsar.x, e.clientY - L.pulsar.y) < 40) return openSheet();
   $("panel").classList.toggle("hidden");
 });
 

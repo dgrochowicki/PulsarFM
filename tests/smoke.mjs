@@ -108,6 +108,19 @@ check(Math.abs(tune.drone - tune.root) < 0.01, `bas z Bz w tonacji: ${tune.drone
 const geminga = await page.evaluate(() => bpmFor(PULSARS.find((p) => p.id === "Geminga")));
 check(Math.abs(geminga - 126.5) < 0.5, `tempo Gemingi: ${geminga.toFixed(1)} BPM`);
 
+// Melodia Ambientu z ostatnich 16 minut wiatru. Prawie płaski wiatr nie może jej sztucznie rozciągać.
+const windMelody = await page.evaluate(() => {
+  const saved = [mode, windTail];
+  mode = "live";
+  windTail = Array.from({ length: 16 }, (_, i) => 400 + i);
+  const rising = windDegrees(4, 12);
+  windTail = Array(16).fill(400);
+  const flat = windDegrees(4, 12);
+  [mode, windTail] = saved;
+  return { rising, flat };
+});
+check(windMelody.rising[0] === 4 && windMelody.rising[15] === 12 && new Set(windMelody.flat).size === 1, `melodia z wiatru: ${windMelody.rising.join(" ")}`);
+
 const flares = await page.evaluate(() => {
   const rows = (...fluxes) => fluxes.map(([flux, h], i) => ({ flux, time_tag: new Date(Date.UTC(2026, 10, 1, 12) + (h ?? i / 60) * 3600000).toISOString() }));
   const B = 3e-7, C = 2e-6, M = 2e-5, A1 = 5e-8;
@@ -175,7 +188,7 @@ const silence = await rms();
 check(silence < 0.001, `cisza po Stop: RMS ${silence.toFixed(5)}`);
 await page.click("#play");
 
-for (const st of ["ridges", "waves", "cymatics", "color", "bauhaus", "scope", "score", "space"]) {
+for (const st of ["ridges", "waves", "cymatics", "color", "bauhaus", "scope"]) {
   await page.click(`[data-style=${st}]`);
   await page.waitForTimeout(2500);
   await page.screenshot({ path: join(out, `${st}.png`) });

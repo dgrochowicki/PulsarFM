@@ -2,7 +2,7 @@
 
 **Stan: 1.11.2026, propozycje do porównania. Autor jeszcze nie wybrał.**
 
-Obecne style (Bauhaus, Oscyloskop, Partytura, Kosmos) autor uznał za „dość łopatologiczne”: wciąż opowiadają historię „Słońce, wiatr, Ziemia”. Szukamy obrazu, który broni się sam jako grafika, a dane nadal coś w nim znaczą.
+Stare style (Bauhaus, Oscyloskop oraz usunięte już Partytura i Kosmos) autor uznał za „dość łopatologiczne”: wciąż opowiadają historię „Słońce, wiatr, Ziemia”. Szukamy obrazu, który broni się sam jako grafika, a dane nadal coś w nim znaczą.
 
 Szkice kierunków (poza usuniętymi Liniami pola) są już stylami w przełączniku, do porównania przy prawdziwej muzyce. Następny krok: autor wybiera jeden, reszta stylów znika, a wybrany dostaje dopracowanie.
 
