@@ -6,6 +6,12 @@ Obecne style (Bauhaus, Oscyloskop, Partytura, Kosmos) autor uznał za „dość 
 
 Szkice wszystkich pięciu kierunków są już stylami w przełączniku, do porównania przy prawdziwej muzyce. Następny krok: autor wybiera jeden, reszta stylów znika, a wybrany dostaje dopracowanie.
 
+## Ocena autora szkiców (2.11.2026)
+
+- **Linie pola:** najsłabsze, wizualnie mało atrakcyjne i nie wiadomo, o co chodzi. Autorowi podoba się jednak sam ruch (cząstki płynące wzdłuż linii), warto go użyć gdzie indziej.
+- **Kolor:** kolory fajne, ale jako tło zbyt płaskie.
+- Szkice wypuszczone na GitHub Pages do dalszego dopracowania; kierunek jeszcze nie wybrany.
+
 ## 1. Grzbiety impulsów (faworyt)
 
 **Co widać:** poziome linie ułożone jedna pod drugą. Każda linia to jeden takt (albo jeden obrót wolnego pulsara), a jej wybrzuszenia to kształt dźwięku w tym momencie (`Tone.Waveform` albo widmo z `Tone.FFT`). Nowe linie pojawiają się na dole, stare odpływają w górę i bledną. Linia z przodu zasłania te za nią.
