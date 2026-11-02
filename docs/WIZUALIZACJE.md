@@ -4,7 +4,7 @@
 
 Obecne style (Bauhaus, Oscyloskop, Partytura, Kosmos) autor uznał za „dość łopatologiczne”: wciąż opowiadają historię „Słońce, wiatr, Ziemia”. Szukamy obrazu, który broni się sam jako grafika, a dane nadal coś w nim znaczą.
 
-Następny krok: szybkie szkice kierunków 1 i 2 (i ewentualnie 3) jako dodatkowe style w przełączniku, żeby autor mógł je porównać na telefonie przy prawdziwej muzyce.
+Szkice wszystkich pięciu kierunków są już stylami w przełączniku, do porównania przy prawdziwej muzyce. Następny krok: autor wybiera jeden, reszta stylów znika, a wybrany dostaje dopracowanie.
 
 ## 1. Grzbiety impulsów (faworyt)
 

@@ -21,8 +21,11 @@
   .top h1 { margin: 0; font-size: 20px; font-weight: 650; letter-spacing: 0.2px; }
   .top .status { color: var(--dim); font-size: 12.5px; margin-top: 3px; max-width: 80vw; }
   .styles { display: inline-flex; gap: 4px; margin-top: 10px; pointer-events: auto; background: rgba(255,255,255,0.06);
-    border-radius: 12px; padding: 3px; }
-  .styles button { border: 0; background: none; color: var(--dim); font-size: 12.5px; font-weight: 600; padding: 6px 10px; border-radius: 9px; cursor: pointer; }
+    border-radius: 12px; padding: 3px; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+  .styles::-webkit-scrollbar { display: none; }
+  .styles .sep { flex: 0 0 1px; margin: 5px 3px; background: var(--line); }
+  .top .note { color: var(--dim); font-size: 12px; margin-top: 7px; max-width: 560px; }
+  .styles button { flex: 0 0 auto; border: 0; background: none; color: var(--dim); font-size: 12.5px; font-weight: 600; padding: 6px 10px; border-radius: 9px; cursor: pointer; }
   .styles button.on { background: rgba(255,255,255,0.14); color: var(--text); }
 
   .panel { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom) + 12px);
@@ -96,11 +99,18 @@
   <h1>Pulsar FM</h1>
   <div class="status" id="status">Ładuję dane…</div>
   <div class="styles" id="styles">
-    <button data-style="bauhaus" class="on">Bauhaus</button>
+    <button data-style="ridges" class="on">Grzbiety</button>
+    <button data-style="rings">Słoje</button>
+    <button data-style="cymatics">Cymatyka</button>
+    <button data-style="field">Linie pola</button>
+    <button data-style="color">Kolor</button>
+    <span class="sep"></span>
+    <button data-style="bauhaus">Bauhaus</button>
     <button data-style="scope">Oscyloskop</button>
     <button data-style="score">Partytura</button>
     <button data-style="space">Kosmos</button>
   </div>
+  <div class="note" id="styleNote"></div>
 </div>
 
 <div class="panel" id="panel">
@@ -246,6 +256,19 @@ function newFlareLevel(rows) {
   return level >= 2 && before.every((r) => xrayClass(r.flux).level < level) ? level : 0;
 }
 
+// Ostatnie 3 godziny z NOAA po 3 minuty: od nich zaczynają się słoje.
+function liveHistory(windRows, magRows, xrayRows, kp) {
+  const minute = (r) => r.time_tag.slice(0, 16);
+  const bz = new Map(magRows.filter((r) => r.active && r.bz_gsm != null).map((r) => [minute(r), Number(r.bz_gsm)]));
+  const xr = new Map(xrayRows.map((r) => [minute(r), xrayClass(r.flux).level]));
+  const rows = windRows.filter((r) => r.active && r.proton_speed != null).slice(0, 180).reverse(), out = [];
+  for (let i = 0; i + 3 <= rows.length; i += 3) {
+    const part = rows.slice(i, i + 3), peak = Math.max(...part.map((r) => xr.get(minute(r)) || 0));
+    out.push({ wind: Number(part[0].proton_speed), dens: Number(part[0].proton_density ?? 4), bz: bz.get(minute(part[0])) ?? 0, kp: kp ?? 2, flare: peak >= 3 ? peak : 0 });
+  }
+  return out;
+}
+
 async function getJSON(url) {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), 8000);
@@ -278,6 +301,10 @@ async function fetchLive() {
       }
     }
     liveOK = true; lastLive = out;
+    if (!RINGS.list.length) {
+      const long = xr.status === "fulfilled" ? xr.value.filter((r) => r.energy === "0.1-0.8nm" && r.flux > 0) : [];
+      seedRings(liveHistory(wind.value, mag.value, long, out.kp));
+    }
     return out;
   } catch (e) { liveOK = false; return null; }
 }
@@ -313,7 +340,7 @@ async function enterMode(m) {
   if (m === "live") {
     const d = await fetchLive();
     if (request !== modeRequest || mode !== m) return; // w czasie pobierania wybrano coś innego
-    if (d || lastLive) applyLive(d || lastLive); else replayIdx = SNAP.wind.length - 1;
+    if (d || lastLive) applyLive(d || lastLive); else { replayIdx = SNAP.wind.length - 1; seedRings(snapHistory()); }
     liveTimer = setInterval(async () => { const d = await fetchLive(); if (d && mode === "live") applyLive(d); setStatus(); }, 60000);
   }
   if (m === "storm") {
@@ -679,6 +706,8 @@ async function initAudio() {
   const lim = new Tone.Limiter(-2).connect(master);
   const wave = new Tone.Waveform(512);
   master.connect(wave);
+  const fft = new Tone.FFT(256);
+  master.connect(fft);
   const rev = new Tone.Reverb({ decay: 9, preDelay: 0.05, wet: 0.5 });
   await rev.generate();
   rev.connect(lim);
@@ -706,7 +735,7 @@ async function initAudio() {
   const swellFilter = new Tone.AutoFilter(0.15, 300, 4).connect(swellEnv).start();
   vol(new Tone.Noise("pink"), -14).connect(swellFilter).start();
 
-  A = { master, lim, wave, rev, delay, droneVol, drone, starVol, star, shimmer, boom, braam, braamF, swellEnv };
+  A = { master, lim, wave, fft, rev, delay, droneVol, drone, starVol, star, shimmer, boom, braam, braamF, swellEnv };
   Tone.Transport.scheduleRepeat(onStep, "16n");
   applyPulsarAudio();
 }
@@ -835,17 +864,17 @@ function layout() {
 }
 
 const vis = {
-  style: "bauhaus", beatT: 0, pulseT: 0, flareT: 0, flareLevel: 0, hue: 220, hueTarget: 220, fast: false, clear: true,
+  style: "ridges", pulses: 0, chordPc: null, beatT: 0, pulseT: 0, flareT: 0, flareLevel: 0, hue: 220, hueTarget: 220, fast: false, clear: true,
   notes: [], bars: [], chordNotes: [],
   beat() { this.beatT = 1; if (this.fast) this.bars.push({ x: 0, kind: "beat" }); },
-  pulse() { this.pulseT = 1; this.bars.push({ x: 0, kind: "pulse" }); },
+  pulse() { this.pulses++; this.pulseT = 1; this.bars.push({ x: 0, kind: "pulse" }); },
   note(n) {
     const s = stars[Math.floor(Math.random() * stars.length)]; if (s) s.f = 1;
     this.notes.push({ midi: Tone.Frequency(n).toMidi(), x: 0, life: 1 });
     if (this.notes.length > 120) this.notes.shift();
   },
-  chord(m, chord) { this.hueTarget = m === "dark" ? 300 : 220; this.chordNotes.push({ midis: chord.map((n) => Tone.Frequency(n).toMidi()), x: 0 }); },
-  flare(level) { this.flareT = 1; this.flareLevel = level; },
+  chord(m, chord) { this.chordPc = ((Tone.Frequency(chord[0]).toMidi() % 12) + 12) % 12; this.hueTarget = m === "dark" ? 300 : 220; this.chordNotes.push({ midis: chord.map((n) => Tone.Frequency(n).toMidi()), x: 0 }); },
+  flare(level) { this.flareT = 1; this.flareLevel = level; RIDGE.flare = Math.max(RIDGE.flare, level); RINGS.flare = Math.max(RINGS.flare, level); CY.kick = 0.03; },
 };
 
 // Dane wygładzane poza requestAnimationFrame: w ukrytej karcie klatek nie ma, a muzyka gra dalej.
@@ -931,7 +960,7 @@ function frame(t) {
   if (sheetOpen) drawSky(t / 1000);
   else {
     const L = layout();
-    if (vis.style !== "score") stepParticles(L, dt);
+    if (vis.style === "bauhaus" || vis.style === "space") stepParticles(L, dt);
     STYLES[vis.style](L, dt, t / 1000);
   }
   requestAnimationFrame(frame);
@@ -1239,7 +1268,302 @@ function drawSpace(L, dt, time) {
   drawPulsarGeo(L, time, "#cfe0ff");
 }
 
-const STYLES = { bauhaus: drawBauhaus, scope: drawScope, score: drawScore, space: drawSpace };
+// ---------- Wspólne dla nowych kierunków (docs/WIZUALIZACJE.md) ----------
+// Miejsce na obraz: między przełącznikiem stylów a panelem.
+function stage() {
+  const top = document.querySelector(".top").offsetHeight + 10;
+  const bottom = $("panel").classList.contains("hidden") ? H - 14 : H - $("panel").offsetHeight - 24;
+  const h = Math.max(80, bottom - top);
+  return { y: top, w: W, h, cx: W / 2, cy: top + h / 2 };
+}
+const BONE = [239, 230, 210], ROSE = [255, 88, 130], INK = "#0a0b12";
+const mix = (a, b, t, alpha = 1) => `rgba(${a.map((v, i) => Math.round(lerp(v, b[i], t))).join(",")},${alpha})`;
+function offscreen(old, w, h) {
+  const c = old || document.createElement("canvas");
+  c.width = w * DPR; c.height = h * DPR;
+  const g = c.getContext("2d");
+  g.setTransform(DPR, 0, 0, DPR, 0, 0);
+  return { c, g };
+}
+// Prawda raz na obrót wolnego pulsara albo raz na uderzenie szybkiego, nie częściej niż 5 razy na sekundę.
+function rotationDue(st, time) {
+  if (!vis.fast) {
+    if (vis.pulses === st.pulses) return false;
+    st.pulses = vis.pulses;
+    if (time - st.last < 0.2) return false;
+  } else if (time - st.last < 60 / bpmFor(psr)) return false;
+  st.last = time;
+  return true;
+}
+
+// ---------- Kierunek 1: Grzbiety impulsów ----------
+// Jedna linia na obrót: kształt dźwięku w tej chwili. Stos przesuwa się w górę, przednia linia zasłania tylne.
+const RIDGE_POINTS = 96;
+const RIDGE = { lines: [], live: new Float32Array(RIDGE_POINTS), last: -9, pulses: 0, flare: 0, c: null, key: "", dirty: true };
+function ridgeProfile(time, seed) {
+  const out = new Float32Array(RIDGE_POINTS), fft = A && playing ? A.fft.getValue() : null;
+  const shake = 0.012 + E.bright() * 0.09;
+  for (let i = 0; i < RIDGE_POINTS; i++) {
+    const x = (i + 0.5) / RIDGE_POINTS * 2 - 1, u = Math.abs(x);
+    // Niskie tony w środku, wysokie na brzegach; idealną symetrię łamie wolna fala.
+    const v = fft ? Math.pow(map(fft[Math.min(fft.length - 1, Math.round(Math.pow(fft.length, u)) - 1)], -96, -22, 0, 1), 1.7)
+      : 0.16 + 0.1 * Math.sin(x * 11 + seed) + 0.06 * Math.sin(x * 23 + seed * 1.7);
+    const envelope = Math.exp(-Math.pow(x / 0.56, 4));
+    out[i] = Math.max(0, v * (1 + 0.28 * Math.sin(x * 8 + seed)) + (Math.random() - 0.5) * shake) * envelope;
+  }
+  // Wygładzenie: sąsiednie punkty często czytają ten sam przedział widma.
+  for (let pass = 0; pass < 2; pass++) {
+    let prev = out[0];
+    for (let i = 1; i < RIDGE_POINTS - 1; i++) { const here = out[i]; out[i] = prev * 0.25 + here * 0.5 + out[i + 1] * 0.25; prev = here; }
+  }
+  return out;
+}
+function ridgeLine(time, seed) {
+  const v = ridgeProfile(time, seed), so = southward();
+  if (RIDGE.flare) {
+    // Rozbłysk: jedna linia dostaje górę wyższą niż reszta stosu.
+    const x0 = (Math.random() - 0.5) * 0.5, top = 0.5 + RIDGE.flare * 0.3;
+    for (let i = 0; i < RIDGE_POINTS; i++) v[i] += top * Math.exp(-Math.pow(((i + 0.5) / RIDGE_POINTS * 2 - 1 - x0) / 0.07, 2));
+    RIDGE.flare = 0;
+  }
+  return { v, color: so, blur: E.bright() };
+}
+function ridgePath(c, v, x0, w, y, amp) {
+  c.beginPath(); c.moveTo(x0, y);
+  for (let i = 0; i < RIDGE_POINTS; i++) c.lineTo(x0 + (i + 0.5) / RIDGE_POINTS * w, y - v[i] * amp);
+  c.lineTo(x0 + w, y);
+}
+function strokeRidge(c, line, x0, w, y, amp, alpha) {
+  ridgePath(c, line.v, x0, w, y, amp);
+  c.fillStyle = INK; c.fill();
+  if (line.blur > 0.2) { c.strokeStyle = mix(BONE, ROSE, line.color, alpha * 0.16 * line.blur); c.lineWidth = 4; c.stroke(); }
+  c.strokeStyle = mix(BONE, ROSE, line.color, alpha); c.lineWidth = 1.3; c.stroke();
+}
+function drawRidges(L, dt, time) {
+  ctx.fillStyle = INK; ctx.fillRect(0, 0, W, H);
+  const S = stage(), N = clamp(Math.round(S.h / 10), 22, 54), w = Math.min(S.w * 0.86, Math.max(S.h * 1.25, 320));
+  const amp = Math.min(S.h * 0.17, 90), gap = (S.h - amp - 4) / N, x0 = S.cx - w / 2, front = S.y + S.h - 4;
+  while (RIDGE.lines.length < N) { RIDGE.lines.unshift({ v: ridgeProfile(time, RIDGE.lines.length * 2.3), color: southward(), blur: 0 }); RIDGE.dirty = true; }
+  if (RIDGE.flare || rotationDue(RIDGE, time)) {
+    RIDGE.lines.push(ridgeLine(time, time));
+    RIDGE.dirty = true;
+  }
+  while (RIDGE.lines.length > N) RIDGE.lines.shift();
+  const key = `${W}x${H}:${S.y}:${S.h}`;
+  if (RIDGE.dirty || key !== RIDGE.key) {
+    const { c, g } = offscreen(RIDGE.c, W, H);
+    RIDGE.c = c; RIDGE.key = key; RIDGE.dirty = false;
+    g.lineJoin = "round";
+    g.save(); g.beginPath(); g.rect(0, S.y, W, H - S.y); g.clip();
+    RIDGE.lines.forEach((line, i) => strokeRidge(g, line, x0, w, front - (N - i) * gap, amp, 0.16 + 0.84 * Math.pow((i + 1) / N, 1.4)));
+    g.restore();
+  }
+  ctx.drawImage(RIDGE.c, 0, 0, W, H);
+  // Linia na żywo, jeszcze niezapisana.
+  const next = ridgeProfile(time, time * 0.3);
+  for (let i = 0; i < RIDGE_POINTS; i++) RIDGE.live[i] = lerp(RIDGE.live[i], next[i], 0.45);
+  ctx.lineJoin = "round";
+  strokeRidge(ctx, { v: RIDGE.live, color: southward(), blur: E.bright() }, x0, w, front, amp, 0.75 + vis.pulseT * 0.25);
+}
+
+// ---------- Kierunek 2: Słoje ----------
+// Każdy takt dorysowuje pierścień. Środek to początek zapisu, brzeg to teraz; rozbłysk zostaje na zawsze.
+const RING_MAX = 160;
+const RINGS = { list: [], flare: 0, nextAt: 0, c: null, key: "", dirty: true };
+function addRing(r) {
+  RINGS.list.push(r); RINGS.dirty = true;
+  if (RINGS.list.length <= RING_MAX) return;
+  // Brak miejsca: sąsiednie słoje łączą się w jeden, rozbłyski zostają.
+  const merged = [];
+  for (let i = 0; i < RINGS.list.length; i += 2) {
+    const a = RINGS.list[i], b = RINGS.list[i + 1] || a;
+    merged.push({ wind: (a.wind + b.wind) / 2, dens: (a.dens + b.dens) / 2, bz: (a.bz + b.bz) / 2, kp: (a.kp + b.kp) / 2, flare: Math.max(a.flare, b.flare) });
+  }
+  RINGS.list = merged;
+}
+function seedRings(history) { if (!RINGS.list.length) history.forEach(addRing); }
+function snapHistory() {
+  const out = [];
+  for (let i = 0; i < SNAP.wind.length; i += 3) out.push({ wind: SNAP.wind[i], dens: SNAP.dens[i], bz: SNAP.bz[Math.round(i / SNAP.wind.length * (SNAP.bz.length - 1))], kp: SNAP.kp, flare: 0 });
+  return out;
+}
+// Poza klatkami animacji, żeby zapis nocy szedł także w ukrytej karcie.
+function recordRing() {
+  if (!playing || !G) return;
+  const now = performance.now() / 1000;
+  if (now < RINGS.nextAt) return;
+  RINGS.nextAt = now + (G.barSteps || 16) / 4 * 60 / bpmFor(psr);
+  addRing({ wind: cur.wind, dens: cur.dens, bz: cur.bz, kp: cur.kp, flare: RINGS.flare });
+  RINGS.flare = 0;
+}
+const ringWobble = (a, r) => 0.5 * Math.sin(3 * a + 1.1 + r * 0.006) + 0.3 * Math.sin(5 * a + 2.7 - r * 0.011) + 0.2 * Math.sin(9 * a + 0.4 + r * 0.02);
+function ringColor(ring, alpha) {
+  const so = clamp(-ring.bz / 15, 0, 1), glow = map(ring.kp, 3, 8, 0, 1), light = map(ring.wind, 300, 800, 0.5, 1);
+  const base = BONE.map((v, i) => lerp(v, [95, 211, 141][i], glow * 0.7) * light);
+  return mix(base, ROSE, so, alpha);
+}
+function drawRings(L, dt, time) {
+  ctx.fillStyle = INK; ctx.fillRect(0, 0, W, H);
+  const S = stage(), R = Math.min(S.w, S.h) / 2 * 0.94, n = RINGS.list.length, dr = Math.min(12, R / Math.max(n + 1, 1));
+  const key = `${R}:${DPR}`;
+  if (RINGS.dirty || key !== RINGS.key) {
+    const { c, g } = offscreen(RINGS.c, R * 2 + 8, R * 2 + 8);
+    RINGS.c = c; RINGS.key = key; RINGS.dirty = false;
+    g.translate(R + 4, R + 4);
+    RINGS.list.forEach((ring, i) => {
+      const r = (i + 1) * dr, wobble = 0.01 + 0.07 * map(ring.wind, 300, 800, 0, 1);
+      g.beginPath();
+      for (let k = 0; k <= 96; k++) {
+        const a = k / 96 * 6.2832, rr = r * (1 + wobble * ringWobble(a, r));
+        k ? g.lineTo(Math.cos(a) * rr, Math.sin(a) * rr) : g.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
+      }
+      g.closePath();
+      if (ring.flare) { g.strokeStyle = "#fff2c4"; g.lineWidth = Math.max(2.2, dr * 1.1); }
+      else { g.strokeStyle = ringColor(ring, 0.9); g.lineWidth = Math.max(0.6, dr * map(ring.dens, 1, 15, 0.22, 0.95)); }
+      g.stroke();
+    });
+  }
+  ctx.drawImage(RINGS.c, S.cx - R - 4, S.cy - R - 4, R * 2 + 8, R * 2 + 8);
+  // Słój, który właśnie rośnie, drga falą dźwięku; serce błyska z pulsarem.
+  const wave = A && playing ? A.wave.getValue() : null, r = (n + 1) * dr, wobble = 0.01 + 0.07 * E.bright();
+  ctx.beginPath();
+  for (let k = 0; k <= 96; k++) {
+    const a = k / 96 * 6.2832, w = wave ? wave[Math.floor(k / 96 * (wave.length - 1))] : 0;
+    const rr = r * (1 + wobble * ringWobble(a, r)) + w * 22;
+    k ? ctx.lineTo(S.cx + Math.cos(a) * rr, S.cy + Math.sin(a) * rr) : ctx.moveTo(S.cx + Math.cos(a) * rr, S.cy + Math.sin(a) * rr);
+  }
+  ctx.strokeStyle = ringColor({ bz: cur.bz, kp: cur.kp, wind: cur.wind }, 0.95); ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.fillStyle = mix(BONE, BONE, 0, 0.35 + vis.pulseT * 0.65);
+  ctx.beginPath(); ctx.arc(S.cx, S.cy, 2 + vis.pulseT * 3 + vis.flareT * 8, 0, 6.2832); ctx.fill();
+}
+
+// ---------- Kierunek 3: Cymatyka ----------
+// Piasek na drgającej płytce zsuwa się do linii węzłowych figury Chladniego. Figurę wyznacza akord.
+const CY_MAX = 5200;
+const CY = { x: new Float32Array(CY_MAX), y: new Float32Array(CY_MAX), n: 0, m: 0, kick: 0, ready: false };
+const CY_MODES = [[2, 5], [3, 7], [2, 7], [3, 8], [4, 7], [1, 6], [3, 5], [5, 8], [2, 9], [4, 9], [5, 7], [1, 8]];
+function drawCymatics(L, dt, time) {
+  ctx.fillStyle = INK; ctx.fillRect(0, 0, W, H);
+  if (!CY.ready) { for (let i = 0; i < CY_MAX; i++) { CY.x[i] = Math.random(); CY.y[i] = Math.random(); } CY.ready = true; }
+  const S = stage(), side = Math.min(S.w * 0.94, S.h), x0 = S.cx - side / 2, y0 = S.cy - side / 2;
+  const [n, m] = CY_MODES[((vis.chordPc ?? 0) + PULSARS.indexOf(psr) * 5) % 12];
+  if (n !== CY.n || m !== CY.m) { CY.n = n; CY.m = m; CY.kick = Math.max(CY.kick, 0.012); }
+  CY.kick *= Math.exp(-dt * 2.2);
+  const count = Math.round(map(cur.dens, 1, 15, 2400, CY_MAX));
+  const jitter = 0.0016 + E.bright() * 0.0036 + CY.kick + vis.pulseT * 0.0012, pull = 0.014 / (Math.PI * (n + m)), PI = Math.PI;
+  ctx.fillStyle = mix(BONE, ROSE, southward(), 0.86);
+  for (let i = 0; i < count; i++) {
+    let x = CY.x[i], y = CY.y[i];
+    const cnx = Math.cos(n * PI * x), cmx = Math.cos(m * PI * x), cny = Math.cos(n * PI * y), cmy = Math.cos(m * PI * y);
+    const f = cnx * cmy - cmx * cny;
+    const fx = PI * (-n * Math.sin(n * PI * x) * cmy + m * Math.sin(m * PI * x) * cny);
+    const fy = PI * (-m * cnx * Math.sin(m * PI * y) + n * cmx * Math.sin(n * PI * y));
+    x += -f * fx * pull + (Math.random() - 0.5) * jitter;
+    y += -f * fy * pull + (Math.random() - 0.5) * jitter;
+    if (x < 0 || x > 1) x = Math.random();
+    if (y < 0 || y > 1) y = Math.random();
+    CY.x[i] = x; CY.y[i] = y;
+    ctx.fillRect(x0 + x * side, y0 + y * side, 1.5, 1.5);
+  }
+}
+
+// ---------- Kierunek 4: Linie pola ----------
+// Pole dipola bez planety: wiatr ściska stronę dzienną i wyciąga ogon. Przy Bz na południe linie pękają i łączą się z błyskiem.
+const FIELD_SHELLS = [1.3, 1.65, 2.05, 2.5, 3, 3.55, 4.15, 4.8, 5.5, 6.3, 7.2, 8.2];
+const FIELD = { next: 0, breaks: [] };
+function drawField(L, dt, time) {
+  ctx.fillStyle = INK; ctx.fillRect(0, 0, W, H);
+  const S = stage(), portrait = S.h > S.w, long = Math.max(S.w, S.h), short = Math.min(S.w, S.h);
+  const unit = Math.min(short / 2 / 3.7, long / 2 / 8.6), so = southward();
+  const squeeze = map(standoff(), 5, 14, 0.58, 1) - vis.flareT * 0.1, stretch = 0.5 + (1 - squeeze) * 1.8 + so * 0.5;
+  const shake = (vis.pulseT + vis.beatT) * 0.035, openFrom = Math.round(lerp(10, 6, so));
+  if (so > 0.13 && time > FIELD.next) {
+    FIELD.breaks.push({ shell: 6 + Math.floor(Math.random() * 6), t: time });
+    FIELD.next = time + lerp(3.4, 0.8, so);
+  }
+  FIELD.breaks = FIELD.breaks.filter((b) => time - b.t < 1.4);
+  ctx.save(); ctx.translate(S.cx, S.cy); if (portrait) ctx.rotate(Math.PI / 2);
+  const point = (shell, th, side) => {
+    const r = shell * Math.sin(th) ** 2;
+    let x = side * r * Math.sin(th), y = r * Math.cos(th) + Math.sin(th * 7 + time * 13) * shake * Math.sqrt(shell);
+    if (side < 0) { x *= squeeze; y *= lerp(1, squeeze, 0.3); } else { x *= 1 + shell / 9 * stretch; y *= 1 + shell / 9 * 0.22; }
+    return [x * unit, y * unit];
+  };
+  const path = new Path2D();
+  FIELD_SHELLS.forEach((shell, idx) => {
+    const th0 = Math.asin(Math.sqrt(0.7 / shell)), rupture = FIELD.breaks.find((b) => b.shell === idx);
+    const gap = rupture ? 0.42 * (1 - (time - rupture.t) / 1.4) : 0;
+    let pen = false;
+    for (let k = 0; k <= 40; k++) {
+      const th = lerp(th0, Math.PI - th0, k / 40);
+      if (Math.abs(th - Math.PI / 2) < gap) { pen = false; continue; }
+      const [x, y] = point(shell, th, -1);
+      pen ? path.lineTo(x, y) : path.moveTo(x, y); pen = true;
+    }
+    if (idx >= openFrom) {
+      // Linie otwarte: uciekają w ogon zamiast się domykać.
+      for (const flip of [0, 1]) {
+        for (let k = 0; k <= 18; k++) {
+          const th = lerp(th0, 0.95, k / 18), [x, y] = point(shell, flip ? Math.PI - th : th, 1);
+          k ? path.lineTo(x, y) : path.moveTo(x, y);
+        }
+        const [, ey] = point(shell, flip ? Math.PI - 0.95 : 0.95, 1);
+        path.lineTo(long / 2 + 20, ey * 1.25);
+      }
+    } else {
+      for (let k = 0; k <= 40; k++) {
+        const [x, y] = point(shell, lerp(th0, Math.PI - th0, k / 40), 1);
+        k ? path.lineTo(x, y) : path.moveTo(x, y);
+      }
+    }
+  });
+  const bright = 0.38 + vis.flareT * 0.4;
+  ctx.lineCap = "round";
+  ctx.strokeStyle = mix(BONE, ROSE, so, bright); ctx.lineWidth = 1; ctx.stroke(path);
+  // Cząstki płyną wzdłuż linii, szybciej przy mocnym wietrze.
+  ctx.setLineDash([3, 11]); ctx.lineDashOffset = -time * (14 + cur.wind / 16);
+  ctx.strokeStyle = mix(BONE, ROSE, so, 0.9); ctx.lineWidth = 2; ctx.stroke(path);
+  ctx.setLineDash([]);
+  for (const b of FIELD.breaks) {
+    // Błysk rekoneksji na nosie pękającej linii.
+    const age = (time - b.t) / 1.4, [x, y] = point(FIELD_SHELLS[b.shell], Math.PI / 2, -1);
+    ctx.fillStyle = `rgba(255,236,190,${0.9 * (1 - age)})`;
+    ctx.beginPath(); ctx.arc(x, y, 2 + 9 * age, 0, 6.2832); ctx.fill();
+  }
+  const al = auroraLevel();
+  if (al > 0.03) {
+    // Zorza: dwa łuki tam, gdzie linie schodzą do biegunów.
+    ctx.strokeStyle = `rgba(95,211,141,${0.25 + 0.6 * al})`; ctx.lineWidth = 2 + al * 4;
+    for (const side of [-1, 1]) { ctx.beginPath(); ctx.ellipse(0, side * unit * 0.85, unit * (0.2 + al * 0.45), unit * 0.09, 0, 0, 6.2832); ctx.stroke(); }
+  }
+  ctx.restore();
+}
+
+// ---------- Kierunek 5: Pole koloru ----------
+// Dwa wolno oddychające pola. Mały canvas powiększony na cały ekran daje miękkie brzegi prawie bez kosztu.
+const COLOR = (() => { const c = document.createElement("canvas"); c.width = 18; c.height = 26; return { c, g: c.getContext("2d") }; })();
+function drawColor(L, dt, time) {
+  const g = COLOR.g, so = southward(), al = auroraLevel(), breath = 0.5 + 0.5 * Math.sin(time * 0.35);
+  const beat = (vis.pulseT + vis.beatT) * 5 + vis.flareT * 26;
+  const split = map(standoff(), 5, 14, 0.66, 0.36) * 26;
+  g.fillStyle = `hsl(${lerp(232, 318, so)}, 30%, ${6 + beat * 0.2}%)`; g.fillRect(0, 0, 18, 26);
+  g.fillStyle = `hsl(${lerp(216, 158, al)}, ${lerp(34, 46, al)}%, ${lerp(17, 27, al) + breath * 2 + beat}%)`;
+  g.fillRect(2, 2, 14, split - 3);
+  // Od bursztynu do karminu przez czerwień, nie przez zieleń.
+  g.fillStyle = `hsl(${(lerp(32, -14, so) + 360) % 360}, ${lerp(58, 66, so)}%, ${map(cur.wind, 300, 800, 24, 40) + (1 - breath) * 2 + beat}%)`;
+  g.fillRect(2, split + 1, 14, 23 - split);
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(COLOR.c, 0, 0, W, H);
+}
+
+const STYLE_NOTES = {
+  ridges: "Jedna linia na obrót pulsara: kształt dźwięku w tej chwili. Kolor: Bz, drżenie: wiatr, wysoka góra: rozbłysk.",
+  rings: "Środek to ostatnie godziny, brzeg to teraz. Grubość: gęstość wiatru, kolor: Bz i Kp, jasny słój: rozbłysk.",
+  cymatics: "Piasek układa się w figurę aktualnego akordu. Ilość: gęstość wiatru, drgania: prędkość, kolor: Bz.",
+  field: "Linie pola Ziemi bez Ziemi. Wiatr je ściska i wyciąga, przy Bz na południe pękają z błyskiem.",
+  color: "Górne pole: zorza, dolne: wiatr i Bz. Granica przesuwa się z ciśnieniem wiatru, całość oddycha z pulsarem.",
+};
+const STYLES = { ridges: drawRidges, rings: drawRings, cymatics: drawCymatics, field: drawField, color: drawColor, bauhaus: drawBauhaus, scope: drawScope, score: drawScore, space: drawSpace };
 
 // ---------- Mapa pulsarów ----------
 // Rzut Hammera–Aitoffa całego nieba. Rektascensja rośnie w lewo, jak na mapach nieba; środek mapy to 12h.
@@ -1451,6 +1775,7 @@ setInterval(refreshAutoPulsar, 60000);
 function fmt(v, d = 0) { return Number.isFinite(v) ? v.toFixed(d).replace(".", ",").replace("-", "−") : "–"; }
 setInterval(() => {
   stepData();
+  recordRing();
   $("vWind").textContent = fmt(cur.wind);
   $("vDens").textContent = fmt(cur.dens, 1);
   $("vBz").textContent = fmt(cur.bz, 1);
@@ -1481,13 +1806,14 @@ addEventListener("pointerdown", resumeAudio);
 document.querySelectorAll("#modes button").forEach((b) => (b.onclick = () => enterMode(b.dataset.mode)));
 document.querySelectorAll("#styles button").forEach((b) => (b.onclick = () => {
   vis.style = b.dataset.style; vis.clear = true;
+  $("styleNote").textContent = STYLE_NOTES[vis.style] || "";
   document.querySelectorAll("#styles button").forEach((x) => x.classList.toggle("on", x === b));
 }));
 $("flare").onclick = () => triggerFlare(mode === "storm" ? 4 : 3);
 $("toggleSliders").onclick = () => { $("sliders").classList.toggle("open"); syncSliders(); };
 canvas.addEventListener("click", (e) => {
   const L = layout();
-  if (vis.style !== "score" && Math.hypot(e.clientX - L.pulsar.x, e.clientY - L.pulsar.y) < 40) return openSheet();
+  if ((vis.style === "bauhaus" || vis.style === "scope" || vis.style === "space") && Math.hypot(e.clientX - L.pulsar.x, e.clientY - L.pulsar.y) < 40) return openSheet();
   $("panel").classList.toggle("hidden");
 });
 
@@ -1507,6 +1833,7 @@ for (const [id, key, out, d] of SL) {
 
 addEventListener("resize", resize);
 resize();
+$("styleNote").textContent = STYLE_NOTES[vis.style];
 renderCard();
 enterMode("live");
 requestAnimationFrame(frame);

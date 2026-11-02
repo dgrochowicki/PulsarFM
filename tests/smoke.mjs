@@ -173,7 +173,7 @@ const silence = await rms();
 check(silence < 0.001, `cisza po Stop: RMS ${silence.toFixed(5)}`);
 await page.click("#play");
 
-for (const st of ["bauhaus", "scope", "score", "space"]) {
+for (const st of ["ridges", "rings", "cymatics", "field", "color", "bauhaus", "scope", "score", "space"]) {
   await page.click(`[data-style=${st}]`);
   await page.waitForTimeout(2500);
   await page.screenshot({ path: join(out, `${st}.png`) });

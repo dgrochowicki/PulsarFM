@@ -70,7 +70,7 @@ Pełny opis syntezy i instrumentów: `docs/DZWIEK.md` (aktualizować przy zmiana
 
 ## Style graficzne
 
-Przełącznik u góry: **Bauhaus** (domyślny; płaskie koła i łuki), **Oscyloskop** (jedna świecąca linia; Słońce to kształt fali dźwięku z `Tone.Waveform`), **Partytura** (pięciolinia od Słońca do Ziemi, grane nuty), **Kosmos** (dosłowny, mniejsze Słońce). Autor: Słońce i Ziemia w wersji dosłownej były „zbyt dosłowne”; szuka abstrakcji, z której nadal wiadomo, o co chodzi. Kierunek graficzny **niezdecydowany**; obecne style autor uznał za „dość łopatologiczne”. Nowe propozycje (grzbiety impulsów, słoje, cymatyka, linie pola, pole koloru) z opisem i rekomendacją: `docs/WIZUALIZACJE.md`.
+Przełącznik u góry ma najpierw szkice nowych kierunków z `docs/WIZUALIZACJE.md`: **Grzbiety** (domyślny), **Słoje**, **Cymatyka**, **Linie pola**, **Kolor** (kod w sekcjach „Kierunek 1–5” w `index.html`). Potem stare style: **Bauhaus** (płaskie koła i łuki), **Oscyloskop** (jedna świecąca linia; Słońce to kształt fali dźwięku z `Tone.Waveform`), **Partytura** (pięciolinia od Słońca do Ziemi, grane nuty), **Kosmos** (dosłowny, mniejsze Słońce). Autor: Słońce i Ziemia w wersji dosłownej były „zbyt dosłowne”; szuka abstrakcji, z której nadal wiadomo, o co chodzi. Kierunek graficzny **niezdecydowany**; obecne style autor uznał za „dość łopatologiczne”. Nowe propozycje (grzbiety impulsów, słoje, cymatyka, linie pola, pole koloru) z opisem i rekomendacją: `docs/WIZUALIZACJE.md`.
 
 Wybór pulsara: mapa całego nieba (rzut Hammera–Aitoffa, RA 12h w środku, rośnie w lewo, Droga Mleczna z konwersji b = 0). Każdy pulsar miga w swoim prawdziwym rytmie; szybkie mają drgający pierścień. **Autor nie chce listy, tylko wybór z grafiki.**
 
@@ -97,7 +97,7 @@ Zasada: każde nowe źródło danych dostaje **jedną wyraźną rolę**, żeby n
 
 **Później / do rozważenia**
 - [ ] Porównanie z Lyria RealTime (Google, Gemini API): model AI sterowany opisem gatunku + `bpm`, `density`, `brightness`. Możliwa hybryda: Lyria gra tło w gatunku pulsara, a pulsar i rozbłyski zostają w Tone.js. Wymaga klucza API i małego serwera.
-- [ ] Wybór kierunku graficznego: najpierw szybkie szkice kierunków 1 (grzbiety impulsów) i 2 (słoje) z `docs/WIZUALIZACJE.md` jako dodatkowe style w przełączniku, do porównania przez autora na telefonie. Autor jeszcze nie wybrał.
+- [ ] Wybór kierunku graficznego: szkice wszystkich 5 kierunków z `docs/WIZUALIZACJE.md` są w przełączniku. Autor wybiera; niewybrane style usunąć.
 
 ## Test dymny
 
