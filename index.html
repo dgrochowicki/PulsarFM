@@ -431,6 +431,12 @@ const E = {
 
 function vol(node, db) { node.volume.value = db; return node; }
 
+// Barwa pada z danych: 16 ostatnich minut wiatru to głośności 16 kolejnych alikwotów.
+function windPartials() {
+  const wind = windDegrees(0, 100);
+  return Array.from({ length: 16 }, (_, i) => (i === 0 ? 1 : (0.15 + (wind ? wind[i] / 100 : 0.5) * 0.85) / (i + 1) ** 0.7));
+}
+
 const GENRES = {
   // J2144: prawie cisza. Dwa długie tony, wiatr jako szum, gong co 8,5 s.
   drone: {
@@ -503,7 +509,7 @@ const GENRES = {
     label: "Ambient", scales: ["lydian", "aeolian"],
     make(B) {
       const pf = new Tone.Filter(900, "lowpass", -24).connect(B.rev);
-      const pad = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fatsawtooth", count: 3, spread: 22 }, envelope: { attack: 2.5, decay: 1, sustain: 0.75, release: 5 } }), -25).connect(pf);
+      const pad = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fatcustom", partials: windPartials(), count: 3, spread: 22 }, envelope: { attack: 2.5, decay: 1, sustain: 0.75, release: 5 } }), -21).connect(pf);
       const arp = vol(new Tone.FMSynth({ harmonicity: 3, modulationIndex: 5, envelope: { attack: 0.004, decay: 0.5, sustain: 0, release: 1.4 }, modulationEnvelope: { attack: 0.004, decay: 0.25, sustain: 0, release: 0.4 } }), -19).connect(B.delay);
       const kick = vol(new Tone.MembraneSynth({ pitchDecay: 0.09, octaves: 1.6, envelope: { attack: 0.012, decay: 0.95, sustain: 0, release: 0.6 } }), -10).connect(B.lim);
       const bass = vol(new Tone.MonoSynth({ oscillator: { type: "sine" }, envelope: { attack: 0.6, decay: 0.5, sustain: 0.8, release: 2 } }), -16).connect(B.lim);
@@ -516,7 +522,7 @@ const GENRES = {
           if (s === 0 && bar % 2 === 0) {
             const deg = prog[(bar / 2) % 4];
             const notes = chordDegs(deg, 4).map((d) => E.n(d, -1));
-            pad.releaseAll(t); pad.triggerAttack(notes, t + 0.05, 0.6);
+            pad.releaseAll(t); pad.set({ oscillator: { partials: windPartials() } }); pad.triggerAttack(notes, t + 0.05, 0.6);
             bass.triggerAttackRelease(E.n(deg, -2), "1m", t, 0.6);
             E.chord(notes, t);
           }

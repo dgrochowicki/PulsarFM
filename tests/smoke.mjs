@@ -116,9 +116,12 @@ const windMelody = await page.evaluate(() => {
   const rising = windDegrees(4, 12);
   windTail = Array(16).fill(400);
   const flat = windDegrees(4, 12);
+  windTail = Array.from({ length: 16 }, (_, i) => 400 + i);
+  const partials = windPartials();
   [mode, windTail] = saved;
-  return { rising, flat };
+  return { rising, flat, partials };
 });
+check(windMelody.partials.length === 16 && windMelody.partials.every((a) => a > 0) && windMelody.partials[15] > windMelody.partials[1] / 4, "barwa pada z wiatru");
 check(windMelody.rising[0] === 4 && windMelody.rising[15] === 12 && new Set(windMelody.flat).size === 1, `melodia z wiatru: ${windMelody.rising.join(" ")}`);
 
 const flares = await page.evaluate(() => {

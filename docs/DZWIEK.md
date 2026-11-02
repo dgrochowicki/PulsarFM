@@ -46,7 +46,7 @@ Droga sygnału: instrumenty gatunku → (echo / filtr / przester) → pogłos �
 |---|---|
 | **Drone** (J2144) | dwa długie, grube oscylatory (piła + sinus) przez wolno ruchomy filtr; różowy szum jak wiatr; gong FM co 8,5 s; rzadkie dzwony |
 | **Chorał** (B1919+21) | organy (oscylator z harmonicznymi), chór (gruba piła przez vibrato i filtr samogłoski), kotły (membrana) |
-| **Ambient** (B0329+54) | plama z grubej piły, basowy sinus, arpeggio FM przez echo (wysokości z ostatnich 16 minut wiatru, rytm z motywu), miękka, długo wybrzmiewająca stopa na każdy błysk |
+| **Ambient** (B0329+54) | plama z grubych oscylatorów o barwie z wiatru (16 ostatnich minut to głośności 16 alikwotów, nowa barwa przy zmianie akordu), basowy sinus, arpeggio FM przez echo (wysokości z ostatnich 16 minut wiatru, rytm z motywu), miękka, długo wybrzmiewająca stopa na każdy błysk |
 | **Minimal techno** (Geminga) | stopa (membrana), hi-hat = błyski pulsara (biały szum), otwarty hi-hat, klaps (szum przez filtr pasmowy), bas: głęboki sinus + cicha piła (acid przy Bz na południe), stabs z prostokątów |
 | **Glitch** (Vela) | pulsar jako ciąg impulsów 11 Hz, trzaski z białego szumu przez przester (czasem „zacięte”), piknięcia FM, sub-stopa, ziarnisty pad |
 | **Dub** (Krab) | pulsar jako ciąg impulsów 30 Hz, głęboki bas (sinus), akordy z prostokątów na słabą część taktu w długim echu, stopa i rimshot na trzy |

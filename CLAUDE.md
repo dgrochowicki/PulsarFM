@@ -37,7 +37,7 @@ Wspólne dla wszystkich gatunków (obiekt `E` w kodzie, wartości 0–1):
 
 | Dane | Dźwięk | Obraz |
 |---|---|---|
-| Prędkość wiatru | jasność brzmienia (filtry), wysokość motywów; w Ambiencie ostatnie 16 minut wyznacza wysokości melodii (`windDegrees`) | prędkość cząstek/kresek/fal, korona Słońca |
+| Prędkość wiatru | jasność brzmienia (filtry), wysokość motywów; w Ambiencie ostatnie 16 minut wyznacza wysokości melodii (`windDegrees`) i barwę pada (`windPartials`) | prędkość cząstek/kresek/fal, korona Słońca |
 | Gęstość wiatru | ile się dzieje (gęstość motywów, dodatkowe warstwy) | liczba cząstek/kresek/fal |
 | Prędkość × gęstość | – | odległość magnetopauzy (Chapman–Ferraro, kształt Shue) |
 | Bz < −2 nT | mroczna skala; wspólny niski bas rośnie z −Bz; w techno brzmienie acid | kolor (różowy/bursztynowy) |
@@ -101,7 +101,8 @@ Zasada: każde nowe źródło danych dostaje **jedną wyraźną rolę**, żeby n
 **Muzyka najpierw (decyzja autora, 2.11.2026)**
 Na razie muzyka ważniejsza od obrazu. Autorowi podoba się brzmienie gatunków z aplikacji: nie budować nowych od zera, tylko podmieniać w nich źródło nut.
 - [x] Ambient: wiatr pisze wysokości melodii, głębszy i dłuższy bit.
-- [ ] Warianty pada w Ambiencie do porównania (obecny brzmi generycznie): nagrania plazmy z kosmosu, barwa liczona z danych.
+- [x] Pad w Ambiencie: barwa z wiatru (`windPartials`), wybrana przez autora po porównaniu.
+- [ ] Pomysł do sprawdzenia: chór magnetosfery (University of Iowa, space-audio.org, licencja do potwierdzenia: strona główna CC BY 4.0, stopka podstrony „All rights reserved”). Jako ciągły pad nie zadziałał, „prawie nie gra”, ale same dźwięki autorowi się podobały; może rzadkie wydarzenie zamiast tła.
 - [ ] Przenieść melodię z wiatru na Techno i kolejne gatunki.
 - [ ] Pomysły: strojenie zamiast przełączania pulsarów, bez odlotu z Ziemi; nazwa „wiatr dotrze za N minut”; docelowo stream.
 
