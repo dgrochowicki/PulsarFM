@@ -103,6 +103,8 @@ Na razie muzyka ważniejsza od obrazu. Autorowi podoba się brzmienie gatunków 
 - [x] Ambient: wiatr pisze wysokości melodii, głębszy i dłuższy bit.
 - [x] Pad w Ambiencie: barwa z wiatru (`windPartials`), wybrana przez autora po porównaniu.
 - [ ] Pomysł do sprawdzenia: chór magnetosfery (University of Iowa, space-audio.org, licencja do potwierdzenia: strona główna CC BY 4.0, stopka podstrony „All rights reserved”). Jako ciągły pad nie zadziałał, „prawie nie gra”, ale same dźwięki autorowi się podobały; może rzadkie wydarzenie zamiast tła.
+- [x] Ambient: nuta melodii tylko przy wyraźnej zmianie wiatru (`windChange`), jeden pomiar na ósemkę; gęstsze tło, akord co około 11 s.
+- [ ] Ambient, wnioski z porównania z Brain.fm (nagranie autora): niska warstwa rytmiczna 100–250 Hz, cichy wysoki akcent, próba drżenia 18 Hz. Po kolei, każde do oceny na słuch.
 - [ ] Przenieść melodię z wiatru na Techno i kolejne gatunki.
 - [ ] Pomysły: strojenie zamiast przełączania pulsarów, bez odlotu z Ziemi; nazwa „wiatr dotrze za N minut”; docelowo stream.
 

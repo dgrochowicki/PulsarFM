@@ -112,15 +112,16 @@ check(Math.abs(geminga - 126.5) < 0.5, `tempo Gemingi: ${geminga.toFixed(1)} BPM
 const windMelody = await page.evaluate(() => {
   const saved = [mode, windTail];
   mode = "live";
-  windTail = Array.from({ length: 16 }, (_, i) => 400 + i);
-  const rising = windDegrees(4, 12);
-  windTail = Array(16).fill(400);
+  windTail = Array.from({ length: 17 }, (_, i) => 399 + i);
+  const rising = windDegrees(4, 12), partials = windPartials();
+  windTail = Array(17).fill(400);
   const flat = windDegrees(4, 12);
-  windTail = Array.from({ length: 16 }, (_, i) => 400 + i);
-  const partials = windPartials();
+  windTail[6] = 410;
+  const gusts = [4, 5, 6, 7].map(windChange);
   [mode, windTail] = saved;
-  return { rising, flat, partials };
+  return { rising, flat, partials, gusts };
 });
+check(JSON.stringify(windMelody.gusts) === "[0,10,10,0]", `nuty przy zmianach wiatru: ${windMelody.gusts}`);
 check(windMelody.partials.length === 16 && windMelody.partials.every((a) => a > 0) && windMelody.partials[15] > windMelody.partials[1] / 4, "barwa pada z wiatru");
 check(windMelody.rising[0] === 4 && windMelody.rising[15] === 12 && new Set(windMelody.flat).size === 1, `melodia z wiatru: ${windMelody.rising.join(" ")}`);
 

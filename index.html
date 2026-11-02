@@ -299,8 +299,8 @@ async function fetchLive() {
       }
     }
     liveOK = true; lastLive = out;
-    const tail = wind.value.filter((r) => r.active && r.proton_speed != null).slice(0, 16).reverse().map((r) => Number(r.proton_speed));
-    if (tail.length === 16) windTail = tail;
+    const tail = wind.value.filter((r) => r.active && r.proton_speed != null).slice(0, 17).reverse().map((r) => Number(r.proton_speed));
+    if (tail.length === 17) windTail = tail;
     if (!WAVES.seeded) {
       const long = xr.status === "fulfilled" ? xr.value.filter((r) => r.energy === "0.1-0.8nm" && r.flux > 0) : [];
       seedWaves(liveHistory(wind.value, mag.value, long, out.kp));
@@ -396,12 +396,17 @@ class Motif {
 }
 const rhythm = (len, fill, must = []) => Array.from({ length: len }, (_, i) => must.includes(i) || chance(fill));
 
-// Wysokości melodii z ostatnich 16 minut wiatru: każdy pomiar to jeden krok taktu. Rytm zostaje z motywu.
+// Ostatnie 17 minut wiatru: 16 kroków melodii i pomiar przed nimi, żeby znać zmianę w pierwszym kroku.
+function windValues() {
+  if (mode === "live" && windTail.length === 17) return windTail;
+  if (mode === "replay" || (mode === "live" && !lastLive)) return Array.from({ length: 17 }, (_, i) => SNAP.wind[(replayIdx - 16 + i + SNAP.wind.length) % SNAP.wind.length]);
+  return null;
+}
+// Wysokości melodii: każdy pomiar to jeden krok frazy.
 function windDegrees(lo, hi) {
-  let w = null;
-  if (mode === "live" && windTail.length === 16) w = windTail;
-  else if (mode === "replay" || (mode === "live" && !lastLive)) w = Array.from({ length: 16 }, (_, i) => SNAP.wind[(replayIdx - 15 + i + SNAP.wind.length) % SNAP.wind.length]);
-  if (!w) return null;
+  const all = windValues();
+  if (!all) return null;
+  const w = all.slice(1);
   const min = Math.min(...w), max = Math.max(...w), range = Math.max(max - min, 6), mid = (min + max) / 2;
   return w.map((v) => clamp(Math.round(lo + ((v - mid) / range + 0.5) * (hi - lo)), lo, hi));
 }
@@ -432,9 +437,14 @@ const E = {
 function vol(node, db) { node.volume.value = db; return node; }
 
 // Barwa pada z danych: 16 ostatnich minut wiatru to głośności 16 kolejnych alikwotów.
+// Zmiana wiatru w danym kroku, km/s na minutę. Od niej zależy, czy nuta w ogóle zabrzmi.
+function windChange(s) {
+  const w = windValues();
+  return w ? Math.abs(w[s + 1] - w[s]) : 0;
+}
 function windPartials() {
   const wind = windDegrees(0, 100);
-  return Array.from({ length: 16 }, (_, i) => (i === 0 ? 1 : (0.15 + (wind ? wind[i] / 100 : 0.5) * 0.85) / (i + 1) ** 0.7));
+  return Array.from({ length: 16 }, (_, i) => (i === 0 ? 1 : (0.15 + (wind ? wind[i] / 100 : 0.5) * 0.85) / (i + 1)));
 }
 
 const GENRES = {
@@ -509,8 +519,8 @@ const GENRES = {
     label: "Ambient", scales: ["lydian", "aeolian"],
     make(B) {
       const pf = new Tone.Filter(900, "lowpass", -24).connect(B.rev);
-      const pad = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fatcustom", partials: windPartials(), count: 3, spread: 22 }, envelope: { attack: 2.5, decay: 1, sustain: 0.75, release: 5 } }), -21).connect(pf);
-      const arp = vol(new Tone.FMSynth({ harmonicity: 3, modulationIndex: 5, envelope: { attack: 0.004, decay: 0.5, sustain: 0, release: 1.4 }, modulationEnvelope: { attack: 0.004, decay: 0.25, sustain: 0, release: 0.4 } }), -19).connect(B.delay);
+      const pad = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fatcustom", partials: windPartials(), count: 3, spread: 22 }, envelope: { attack: 4, decay: 1, sustain: 0.75, release: 8 } }), -28).connect(pf);
+      const arp = vol(new Tone.FMSynth({ harmonicity: 3, modulationIndex: 5, envelope: { attack: 0.004, decay: 0.5, sustain: 0, release: 1.4 }, modulationEnvelope: { attack: 0.004, decay: 0.25, sustain: 0, release: 0.4 } }), -13).connect(B.delay);
       const kick = vol(new Tone.MembraneSynth({ pitchDecay: 0.09, octaves: 1.6, envelope: { attack: 0.012, decay: 0.95, sustain: 0, release: 0.6 } }), -10).connect(B.lim);
       const bass = vol(new Tone.MonoSynth({ oscillator: { type: "sine" }, envelope: { attack: 0.6, decay: 0.5, sustain: 0.8, release: 2 } }), -16).connect(B.lim);
       const prog = [0, 5, 3, 4];
@@ -518,21 +528,25 @@ const GENRES = {
       return {
         nodes: [pf, pad, arp, kick, bass], tun: [pad, arp, kick, bass],
         step(t, s, bar) {
-          pf.frequency.rampTo(map(E.bright(), 0, 1, 450, 4200), 1.5);
-          if (s === 0 && bar % 2 === 0) {
-            const deg = prog[(bar / 2) % 4];
+          pf.frequency.rampTo(map(E.bright(), 0, 1, 700, 4200), 1.5);
+          // Akord trwa 4 takty, około 11 s: ciągłe, gęste tło zamiast widocznej kolejki akordów.
+          if (s === 0 && bar % 4 === 0) {
+            const deg = prog[(bar / 4) % 4];
             const notes = chordDegs(deg, 4).map((d) => E.n(d, -1));
-            pad.releaseAll(t); pad.set({ oscillator: { partials: windPartials() } }); pad.triggerAttack(notes, t + 0.05, 0.6);
-            bass.triggerAttackRelease(E.n(deg, -2), "1m", t, 0.6);
+            pad.releaseAll(t); pad.set({ oscillator: { partials: windPartials() } });
+            pad.triggerAttack([...notes, E.n(deg, 0), E.n(deg + 4, 0)], t + 0.05, 0.6);
+            bass.triggerAttackRelease(E.n(deg, -2), "3m", t, 0.6);
             E.chord(notes, t);
           }
           if (s === 0 && bar % 4 === 3) motif.mutate(0.3 + E.busy() * 0.5);
           if (s === 0 && bar % 16 === 15) motif.gen(0.3 + E.busy() * 0.5);
           const d = motif.at(s);
-          if (d != null && chance(0.5 + E.busy() * 0.5)) {
-            const wind = windDegrees(4, 12);
-            const n = E.n((wind ? wind[s] : d) + (E.bright() > 0.6 ? 7 : 0), 0);
-            arp.triggerAttackRelease(n, "16n", t, 0.35 + Math.random() * 0.45); E.note(n, t);
+          // Każdy pomiar to ósemka, więc fraza trwa dwa takty.
+          const i = (bar % 2) * 8 + (s >> 1), wind = windDegrees(4, 12), gust = windChange(i);
+          // Spokojna minuta to cisza, gęstszy wiatr łatwiej wywołuje nutę. Bez danych zostaje motyw.
+          if (wind ? s % 2 === 0 && gust >= lerp(4, 2, E.busy()) : d != null && chance(0.5 + E.busy() * 0.5)) {
+            const n = E.n((wind ? wind[i] : d) + (E.bright() > 0.6 ? 7 : 0), 0);
+            arp.triggerAttackRelease(n, "16n", t, wind ? 0.35 + Math.min(gust / 12, 1) * 0.45 : 0.35 + Math.random() * 0.45); E.note(n, t);
           }
         },
         pulse(t) { kick.triggerAttackRelease(E.n(0, -3), "4n", t, 0.8); },
