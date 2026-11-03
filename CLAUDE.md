@@ -12,7 +12,7 @@ Osobny projekt od Aurora Now (`dgrochowicki/Aurora`, prognoza zorzy). Ten sam au
 
 ## Technika
 
-- Jeden plik `index.html`, bez kroku budowania. Język interfejsu: polski.
+- Jeden plik `index.html` plus próbki w `audio/` (CC0, opis w `audio/README.md`), bez kroku budowania. Język interfejsu: polski.
 - Dźwięk: **Tone.js 14.8.49** z jsDelivr (`Tone.Transport`, `Tone.Draw`; nie przechodzić na v15 bez potrzeby, tam zmieniło się API).
 - Obraz: Canvas 2D, własne rysowanie, bez bibliotek.
 - Hosting: GitHub Pages z gałęzi `main` (plik `.nojekyll` jest w repo).
@@ -42,7 +42,7 @@ Wspólne dla wszystkich gatunków (obiekt `E` w kodzie, wartości 0–1):
 | Prędkość × gęstość | – | odległość magnetopauzy (Chapman–Ferraro, kształt Shue) |
 | Bz < −2 nT | mroczna skala; wspólny niski bas rośnie z −Bz; w techno brzmienie acid | kolor (różowy/bursztynowy) |
 | Kp | wysoka poświata (shimmer) | zorza |
-| Rozbłysk (C/M/X) | **trailerowe uderzenie**: C = niskie „buuum” z opadającą wysokością; M = + przesterowany akord „braam” z otwierającym się filtrem; X = pełny braam z tercją + szum | koła/drganie Słońca/znak f–fff |
+| Rozbłysk (C/M/X) | **trailerowe uderzenie**: zawsze prawdziwy bęben wielki (uderzenie, po 2 s pocieranie membrany) i niskie „buuum” z opadającą wysokością (C); M = + przesterowany akord „braam” z otwierającym się filtrem; X = pełny braam z tercją + szum | koła/drganie Słońca/znak f–fff |
 
 Decyzje autora: **żadnych dzwonków przy rozbłysku** (ma być jak w zwiastunie filmu); **bas w techno głęboki**, nie „sztuczny” piłokształtny.
 
@@ -104,7 +104,9 @@ Na razie muzyka ważniejsza od obrazu. Autorowi podoba się brzmienie gatunków 
 - [x] Pad w Ambiencie: barwa z wiatru (`windPartials`), wybrana przez autora po porównaniu.
 - [ ] Pomysł do sprawdzenia: chór magnetosfery (University of Iowa, space-audio.org, licencja do potwierdzenia: strona główna CC BY 4.0, stopka podstrony „All rights reserved”). Jako ciągły pad nie zadziałał, „prawie nie gra”, ale same dźwięki autorowi się podobały; może rzadkie wydarzenie zamiast tła.
 - [x] Ambient: nuta melodii tylko przy wyraźnej zmianie wiatru (`windChange`), jeden pomiar na ósemkę; gęstsze tło, akord co około 11 s.
-- [ ] Ambient, wnioski z porównania z Brain.fm (nagranie autora): niska warstwa rytmiczna 100–250 Hz, cichy wysoki akcent, próba drżenia 18 Hz. Po kolei, każde do oceny na słuch.
+- [x] Ambient, wnioski z porównania z Brain.fm (nagranie autora): prawdziwe próbki zamiast syntezy, melodia na harfie, niska warstwa rytmiczna na kontrabasie pizzicato (marimba była za wysoka i za głośna). Autor: syntetyczne brzmienia są słabe, syntezowana niska warstwa brzmiała „jak żaba”.
+- [ ] Do sprawdzenia dalej: cichy wysoki akcent, próba drżenia 18 Hz. Werbel na 2 i 4 autor odrzucił („za głośno, nie pasuje”); gra najcichszy `snare1_pppp` raz na takt, „żeby było wolno”.
+- [ ] Testy słuchowe: autor słucha w Safari, więc sprawdzać też w WebKit.
 - [ ] Przenieść melodię z wiatru na Techno i kolejne gatunki.
 - [ ] Pomysły: strojenie zamiast przełączania pulsarów, bez odlotu z Ziemi; nazwa „wiatr dotrze za N minut”; docelowo stream.
 

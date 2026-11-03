@@ -436,6 +436,8 @@ const E = {
 
 function vol(node, db) { node.volume.value = db; return node; }
 
+// Próbki z audio/. Nazwy nut to prawdziwe wysokości plików.
+const sampler = (files, release) => new Tone.Sampler({ urls: Object.fromEntries(Object.entries(files).map(([note, f]) => [note, f + ".m4a"])), baseUrl: "audio/", release });
 // Barwa pada z danych: 16 ostatnich minut wiatru to głośności 16 kolejnych alikwotów.
 // Zmiana wiatru w danym kroku, km/s na minutę. Od niej zależy, czy nuta w ogóle zabrzmi.
 function windChange(s) {
@@ -520,18 +522,24 @@ const GENRES = {
     make(B) {
       const pf = new Tone.Filter(900, "lowpass", -24).connect(B.rev);
       const pad = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fatcustom", partials: windPartials(), count: 3, spread: 22 }, envelope: { attack: 4, decay: 1, sustain: 0.75, release: 8 } }), -28).connect(pf);
-      const arp = vol(new Tone.FMSynth({ harmonicity: 3, modulationIndex: 5, envelope: { attack: 0.004, decay: 0.5, sustain: 0, release: 1.4 }, modulationEnvelope: { attack: 0.004, decay: 0.25, sustain: 0, release: 0.4 } }), -13).connect(B.delay);
       const kick = vol(new Tone.MembraneSynth({ pitchDecay: 0.09, octaves: 1.6, envelope: { attack: 0.012, decay: 0.95, sustain: 0, release: 0.6 } }), -10).connect(B.lim);
       const bass = vol(new Tone.MonoSynth({ oscillator: { type: "sine" }, envelope: { attack: 0.6, decay: 0.5, sustain: 0.8, release: 2 } }), -16).connect(B.lim);
+      // Kontrabas pizzicato niesie rytm, harfa gra melodię z wiatru.
+      const low = vol(sampler({ D2: "bas-D2", E2: "bas-E2", "F#2": "bas-Fs2", "G#2": "bas-Gs2", "C#3": "bas-Cs3", E3: "bas-E3", "G#3": "bas-Gs3", B3: "bas-B3" }, 0.2), -17);
+      low.connect(B.lim); low.connect(B.rev);
+      const harp = vol(sampler({ D4: "harp-D4", F4: "harp-F4", A4: "harp-A4", C5: "harp-C5", E5: "harp-E5", G5: "harp-G5", B5: "harp-B5", D6: "harp-D6" }, 1.5), -21).connect(B.delay);
+      // Najcichszy werbel raz na takt, między uderzeniami bitu, żeby go nie przykrywał.
+      const snare = vol(sampler({ C3: "werbel-pppp" }, 0.2), -35).connect(B.lim);
       const prog = [0, 5, 3, 4];
+      let chordDeg = prog[0];
       const motif = new Motif(16, [4, 12], 0.45);
       return {
-        nodes: [pf, pad, arp, kick, bass], tun: [pad, arp, kick, bass],
+        nodes: [pf, pad, harp, kick, bass, low, snare], tun: [pad, kick, bass],
         step(t, s, bar) {
           pf.frequency.rampTo(map(E.bright(), 0, 1, 700, 4200), 1.5);
           // Akord trwa 4 takty, około 11 s: ciągłe, gęste tło zamiast widocznej kolejki akordów.
           if (s === 0 && bar % 4 === 0) {
-            const deg = prog[(bar / 4) % 4];
+            const deg = chordDeg = prog[(bar / 4) % 4];
             const notes = chordDegs(deg, 4).map((d) => E.n(d, -1));
             pad.releaseAll(t); pad.set({ oscillator: { partials: windPartials() } });
             pad.triggerAttack([...notes, E.n(deg, 0), E.n(deg + 4, 0)], t + 0.05, 0.6);
@@ -542,11 +550,19 @@ const GENRES = {
           if (s === 0 && bar % 16 === 15) motif.gen(0.3 + E.busy() * 0.5);
           const d = motif.at(s);
           // Każdy pomiar to ósemka, więc fraza trwa dwa takty.
+          if (s === 10 && snare.loaded) snare.triggerAttack("C3", t, 0.9);
           const i = (bar % 2) * 8 + (s >> 1), wind = windDegrees(4, 12), gust = windChange(i);
+          // Na każdą ćwierćnutę, a między nimi tylko przy wyraźnej zmianie wiatru. Dźwięk akordu wybiera wiatr.
+          if (s % 4 === 0 || (wind && s % 2 === 0 && gust >= lerp(4, 2, E.busy()))) {
+            const tones = chordDegs(chordDeg, 4), pick = wind ? wind[i] : s / 4;
+            if (low.loaded) low.triggerAttackRelease(E.n(tones[pick % 4], -2), 0.3, t, s % 4 === 0 ? 0.75 : 0.5);
+          }
           // Spokojna minuta to cisza, gęstszy wiatr łatwiej wywołuje nutę. Bez danych zostaje motyw.
           if (wind ? s % 2 === 0 && gust >= lerp(4, 2, E.busy()) : d != null && chance(0.5 + E.busy() * 0.5)) {
             const n = E.n((wind ? wind[i] : d) + (E.bright() > 0.6 ? 7 : 0), 0);
-            arp.triggerAttackRelease(n, "16n", t, wind ? 0.35 + Math.min(gust / 12, 1) * 0.45 : 0.35 + Math.random() * 0.45); E.note(n, t);
+            const v = wind ? 0.35 + Math.min(gust / 12, 1) * 0.45 : 0.35 + Math.random() * 0.45;
+            if (harp.loaded) harp.triggerAttackRelease(n, "2n", t, v);
+            E.note(n, t);
           }
         },
         pulse(t) { kick.triggerAttackRelease(E.n(0, -3), "4n", t, 0.8); },
@@ -757,6 +773,10 @@ async function initAudio() {
   // Rozbłysk jak w zwiastunie filmu: niskie uderzenie, które opada, i ciężki akord („braam”) z otwierającym się filtrem.
   const boom = vol(new Tone.MembraneSynth({ pitchDecay: 1.1, octaves: 2.5, oscillator: { type: "sine" }, envelope: { attack: 0.004, decay: 5, sustain: 0, release: 2 } }), -10);
   boom.connect(lim); boom.connect(rev);
+  // Prawdziwy bęben wielki: uderzenie, a gdy wybrzmi, pocieranie membrany.
+  const drumHit = vol(sampler({ C2: "wybuch-uderzenie" }, 2), -6);
+  const drumRub = vol(sampler({ C2: "wybuch-pocieranie" }, 2), -14);
+  for (const d of [drumHit, drumRub]) { d.connect(lim); d.connect(rev); }
   const braamF = new Tone.Filter({ frequency: 100, type: "lowpass", rolloff: -24, Q: 1.5 });
   const braamDist = new Tone.Distortion(0.45);
   const braamVol = new Tone.Volume(-16);
@@ -766,7 +786,7 @@ async function initAudio() {
   const swellFilter = new Tone.AutoFilter(0.15, 300, 4).connect(swellEnv).start();
   vol(new Tone.Noise("pink"), -14).connect(swellFilter).start();
 
-  A = { master, lim, wave, fft, rev, delay, droneVol, drone, starVol, star, shimmer, boom, braam, braamF, swellEnv };
+  A = { master, lim, wave, fft, rev, delay, droneVol, drone, starVol, star, shimmer, boom, drumHit, drumRub, braam, braamF, swellEnv };
   Tone.Transport.scheduleRepeat(onStep, "16n");
   applyPulsarAudio();
 }
@@ -841,6 +861,9 @@ function triggerFlare(level) {
   if (!playing || !A) return;
   const now = Tone.now();
   A.boom.triggerAttackRelease(E.n(0, -3), "1n", now, level === 2 ? 0.6 : 1);
+  const hit = level === 2 ? 0.6 : level === 3 ? 0.8 : 1;
+  if (A.drumHit.loaded) A.drumHit.triggerAttack("C2", now, hit);
+  if (A.drumRub.loaded) A.drumRub.triggerAttack("C2", now + 2, hit);
   if (level >= 3) {
     // Kwinta z oktawą, przy klasie X także tercja: mroczna albo jasna, zależnie od Bz.
     const ch = [E.n(0, -3), E.n(4, -3), E.n(0, -2)];

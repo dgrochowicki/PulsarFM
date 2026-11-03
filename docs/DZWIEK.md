@@ -10,7 +10,7 @@
 | **Oscylator „fat”** | kilka lekko rozstrojonych oscylatorów naraz; daje szeroki, chóralny dźwięk | pad w ambiencie, chór, akord „braam” |
 | **Oscylator z harmonicznymi** | własna mieszanka tonu podstawowego i alikwotów | organy w chorale (7 harmonicznych) |
 | **Ciąg impulsów** | wąskie impulsy o zadanej częstotliwości | **sam pulsar**: Vela, Krab, J0437 i Terzan 5 grają swoją prawdziwą częstotliwością obrotu |
-| **Synteza FM** | jeden oscylator moduluje częstotliwość drugiego; daje metaliczne, dzwonkowe i szklane barwy | arpeggio w ambiencie, pozytywka, piknięcia w glitchu, gong w drone |
+| **Synteza FM** | jeden oscylator moduluje częstotliwość drugiego; daje metaliczne, dzwonkowe i szklane barwy | pozytywka, piknięcia w glitchu, gong w drone |
 | **Membrana** | sinus z gwałtownie opadającą wysokością | stopa w techno, kotły w chorale, trailerowe „buuum” |
 | **Szum** | biały (ostry) albo różowy (głębszy) | hi-hat, klaps, trzaski, wiatr w drone, „szum” przy rozbłysku X |
 | **Obwiednia** | kształt głośności w czasie: atak, opadanie, podtrzymanie, wybrzmienie | ta sama piła z długim atakiem to plama, z krótkim to stab |
@@ -46,7 +46,7 @@ Droga sygnału: instrumenty gatunku → (echo / filtr / przester) → pogłos �
 |---|---|
 | **Drone** (J2144) | dwa długie, grube oscylatory (piła + sinus) przez wolno ruchomy filtr; różowy szum jak wiatr; gong FM co 8,5 s; rzadkie dzwony |
 | **Chorał** (B1919+21) | organy (oscylator z harmonicznymi), chór (gruba piła przez vibrato i filtr samogłoski), kotły (membrana) |
-| **Ambient** (B0329+54) | plama z grubych oscylatorów o barwie z wiatru (16 ostatnich minut to głośności 16 alikwotów, nowa barwa przy zmianie akordu; akord trwa 4 takty, około 11 s, i ma 6 dźwięków), basowy sinus, arpeggio FM przez echo (16 ostatnich minut wiatru, pomiar na ósemkę: wysokość z prędkości, nuta tylko przy zmianie od 4 km/s na minutę, mniej przy dużej gęstości), miękka, długo wybrzmiewająca stopa na każdy błysk |
+| **Ambient** (B0329+54) | plama z grubych oscylatorów o barwie z wiatru (16 ostatnich minut to głośności 16 alikwotów, nowa barwa przy zmianie akordu; akord trwa 4 takty, około 11 s, i ma 6 dźwięków), basowy sinus, melodia na próbkach harfy przez echo (16 ostatnich minut wiatru, pomiar na ósemkę: wysokość z prędkości, nuta tylko przy zmianie od 4 km/s na minutę, mniej przy dużej gęstości), niska warstwa rytmiczna na próbkach kontrabasu pizzicato (krótkie nuty akordu na ćwierćnuty, między nimi przy zmianie wiatru), najcichszy werbel raz na takt, miękka, długo wybrzmiewająca stopa na każdy błysk |
 | **Minimal techno** (Geminga) | stopa (membrana), hi-hat = błyski pulsara (biały szum), otwarty hi-hat, klaps (szum przez filtr pasmowy), bas: głęboki sinus + cicha piła (acid przy Bz na południe), stabs z prostokątów |
 | **Glitch** (Vela) | pulsar jako ciąg impulsów 11 Hz, trzaski z białego szumu przez przester (czasem „zacięte”), piknięcia FM, sub-stopa, ziarnisty pad |
 | **Dub** (Krab) | pulsar jako ciąg impulsów 30 Hz, głęboki bas (sinus), akordy z prostokątów na słabą część taktu w długim echu, stopa i rimshot na trzy |
@@ -63,7 +63,7 @@ Droga sygnału: instrumenty gatunku → (echo / filtr / przester) → pogłos �
 | Gęstość wiatru | jak często grają nuty motywu, dodatkowe warstwy rytmu, sprzężenie echa w dubie |
 | Bz < −2 nT | mroczna skala (na początku taktu), wspólny niski bas, acid w techno |
 | Kp | wysoka poświata nad akordami, druga linia szklanej harmonijki |
-| Rozbłysk C / M / X | „buuum” / + „braam” / pełny „braam” z tercją + szum |
+| Rozbłysk C / M / X | bęben wielki (uderzenie, po 2 s pocieranie) i „buuum” / + „braam” / pełny „braam” z tercją + szum |
 
 Zmiany są celowo wygładzane, więc przy spokojnym Słońcu są subtelne. Żeby je usłyszeć, użyj trybu „Burza” albo suwaków „Steruj ręcznie”.
 
