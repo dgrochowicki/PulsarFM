@@ -44,6 +44,24 @@ Droga sygnału: instrumenty gatunku → (echo / filtr / przester) → pogłos �
 
 ## 4. Instrumenty w każdym gatunku
 
+### Pulsary, tempo i styl
+
+Styl to prawdziwy rodzaj muzyki, do którego dany gatunek ma się zbliżać, z hasłem i przykładami do researchu. Przykłady są z pamięci, do sprawdzenia przy słuchaniu.
+
+| Pulsar | Gatunek | Tempo | Skąd tempo | Tonacja | Styl | Czego szukać |
+|---|---|---|---|---|---|---|
+| J2144−3933 | Drone | 112,8 BPM | 16 uderzeń na błysk | D, stała | drone, dark ambient | Stars of the Lid, Éliane Radigue |
+| B1919+21 | Chorał | 89,7 BPM | 2 uderzenia na błysk | D, stała | sakralny ambient, muzyka chóralna | Arvo Pärt, Hildegarda z Bingen |
+| B0329+54 | Ambient | 84,0 BPM | co błysk | D, stała | ambient, muzyka do skupienia | Brian Eno, Brain.fm |
+| Geminga | Minimal techno | 126,5 BPM | co 2. błysk | D, stała | melodyjne techno, Berlin i Detroit | Robert Hood, Galeria Kaskada (nagranie autora) |
+| B0950+08 | Deep | 118,5 BPM | co 2. błysk | D, stała | dub techno, deep techno | Basic Channel, Deepchord |
+| Vela | Glitch | 84,0 BPM | co 8. błysk | F | glitch, IDM | Autechre, Alva Noto |
+| Krab | Dub | 71,1 BPM | co 25. błysk | B | dub, roots reggae | King Tubby, Rhythm & Sound |
+| J0437−4715 | Liquid | 173,7 BPM | co 60. błysk | F | liquid drum and bass, jungle | LTJ Bukem (łamany bit, melodyczne tło, wyraźny, melodyczny bas), Calibre |
+| J1748−2446ad (Terzan 5) | Pozytywka | 95,5 BPM | co 450. błysk | F | pozytywka, kołysanka, walc 3/4 | Yann Tiersen, „music box” |
+
+### Instrumenty
+
 | Gatunek (pulsar) | Instrumenty |
 |---|---|
 | **Drone** (J2144) | dwa długie, grube oscylatory (piła + sinus) przez wolno ruchomy filtr; różowy szum jak wiatr; gong FM co 8,5 s; rzadkie dzwony |
@@ -53,7 +71,7 @@ Droga sygnału: instrumenty gatunku → (echo / filtr / przester) → pogłos �
 | **Deep** (B0950+08) | perkusja i bas jak w Minimal techno, ale głośne krótkie akordy z prostokątów, cicha plama jako tło, melodia brzmieniem akordów z nutami na miejscach największych zmian wiatru (4–7 nut w dwóch taktach, zależnie od gęstości), otwarty hi-hat na stałe |
 | **Glitch** (Vela) | pulsar jako ciąg impulsów 11 Hz, trzaski z białego szumu przez przester (czasem „zacięte”), piknięcia FM, sub-stopa, ziarnisty pad |
 | **Dub** (Krab) | pulsar jako ciąg impulsów 30 Hz, głęboki bas (sinus), akordy z prostokątów na słabą część taktu w długim echu, stopa i rimshot na trzy |
-| **Szklany chór** (J0437) | chór z grubych sinusów, szklana harmonijka (sinus z vibrato), pulsar 173,7 Hz |
+| **Liquid drum and bass** (J0437) | co 60. błysk to uderzenie, 173,7 BPM. Rytm z próbek: stopa prosta i cicha, łamie się werbel (spóźniony co drugi takt, między mocnymi uderzeniami ciche), hi-hat, otwarty hi-hat, shaker. Łagodny, melodyczny bas na wzór autora „buum buum bum bum bum buum” (nisko, około F1, wysokości z wiatru), chór z grubych sinusów jako tło z akordami z wiatru co 8 taktów, tło melodyczne idące po dźwiękach akordu, szklana harmonijka (sinus z vibrato, wiele głosów, nuty wybrzmiewają) z melodią z wiatru na ćwierćnutach, pulsar 173,7 Hz tylko krótkim błyskiem co 4 takty |
 | **Pozytywka** (Terzan 5) | pozytywka FM (lekko nierówna w czasie, jak mechanizm), walczyk z trójkątów, pulsar 716 Hz |
 
 **Warstwy wspólne dla wszystkich gatunków:** niski bas, który rośnie przy Bz na południe; wysoka poświata przy Kp ≥ 4; trailerowe uderzenie przy rozbłysku (membrana opadająca z wysokości + przesterowany akord „braam” z otwierającym się filtrem).

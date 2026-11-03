@@ -48,6 +48,8 @@ Decyzje autora: **żadnych dzwonków przy rozbłysku** (ma być jak w zwiastunie
 
 ## Pulsary i gatunki
 
+Każdy pulsar ma **tempo z okresu**: uderzenie co N błysków (`tempoBpm` albo sprowadzenie do 60–120), a karta pulsara opisuje to jednakowo (`psrFacts()`).
+
 Wolny pulsar (okres ≥ 0,2 s) ustala **tempo** (błysk = uderzenie, BPM sprowadzane do 60–120 przez mnożenie/dzielenie przez 2). Szybki pulsar **gra sam siebie** ciągiem impulsów o prawdziwej częstotliwości i ustala **tonację**: cały utwór transponowany do najbliższej nuty i dostrojony w centach (`musicFor()`).
 
 Automatyczny wybór pulsara używa geolokalizacji i czasu UTC, aby co minutę wybrać najwyżej położony nad horyzontem pulsar z katalogu. Gdy geolokalizacja jest niedostępna lub odmówiona, używa Szczecina; ręczny wybór z mapy wyłącza tryb automatyczny.
@@ -61,7 +63,7 @@ Automatyczny wybór pulsara używa geolokalizacji i czasu UTC, aby co minutę wy
 | PSR B0950+08 | 0,2531 s | Deep | 30/P = 118,6 BPM; pomysł autora: akordy z przodu, melodia tym samym brzmieniem jako uzupełnienie |
 | Vela | 89,3 ms | Glitch | 11,2 Hz = trzydziestodwójki przy 84 BPM |
 | Krab | 33,7 ms | Dub | ok. 30 Hz, najniższy bas |
-| PSR J0437−4715 | 5,757 ms | Szklany chór | 173,7 Hz ≈ F3 −9 c |
+| PSR J0437−4715 | 5,757 ms | Liquid drum and bass | 173,7 Hz ≈ F3 −9 c; co 60. błysk = uderzenie, 173,7 BPM; pomysł: tempo też z pulsara |
 | PSR J1748−2446ad (Terzan 5) | 1,396 ms | Pozytywka (3/4) | 716 Hz |
 
 Okresy i położenia są z pamięci modelu (literatura/ATNF). **Do zweryfikowania z katalogiem** przy etapie 2.

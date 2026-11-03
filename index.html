@@ -91,6 +91,7 @@
   .card .facts div { font-size: 12px; color: var(--dim); }
   .card .facts b { display: block; font-size: 16px; color: var(--text); font-variant-numeric: tabular-nums; }
   .card .desc { margin-top: 8px; font-size: 13.5px; color: rgba(238,240,246,0.8); }
+  .card .why { margin-top: 6px; font-size: 12.5px; color: var(--dim); }
 </style>
 </head>
 <body>
@@ -123,7 +124,7 @@
 
   <button class="psr" id="psrBtn">
     <span class="dot" id="psrDot"></span>
-    <span class="t"><b id="psrName">PSR B0329+54</b><div id="psrLine">Rytm 84 / min</div></span>
+    <span class="t"><b id="psrName">PSR B0329+54</b><div id="psrLine"></div></span>
     <span class="chev">Zmień na mapie ›</span>
   </button>
 
@@ -181,13 +182,13 @@ const PULSARS = [
   { id: "Geminga", genre: "techno", lab: [-9, 15, "right"], name: "Geminga", short: "Geminga", P: 0.237099, ra: 6.565, dec: 17.77,
     desc: "Bliski pulsar świecący w promieniach gamma. Cztery błyski na sekundę: szybka, nerwowa pulsacja." },
   { id: "B0950", genre: "deep", lab: [0, -15, "center"], name: "PSR B0950+08", short: "B0950+08", P: 0.253065, ra: 9.886, dec: 7.93,
-    desc: "Jasny, bliski pulsar z czterema błyskami na sekundę. Co drugi błysk daje równe, spokojne 118 uderzeń na minutę." },
+    desc: "Jasny, bliski pulsar, błyska cztery razy na sekundę." },
   { id: "Vela", genre: "glitch", lab: [0, -15, "center"], name: "Pulsar Vela", short: "Vela", P: 0.089328, ra: 8.589, dec: -45.18,
     desc: "Pozostałość supernowej w gwiazdozbiorze Żagla. 11 błysków na sekundę to już warkot, nie rytm." },
   { id: "Crab", genre: "dub", lab: [11, -7, "left"], name: "Pulsar w Krabie", short: "Krab", P: 0.03374, ra: 5.576, dec: 22.01,
     desc: "Serce Mgławicy Kraba, po supernowej z 1054 roku. 30 obrotów na sekundę: najniższy bas." },
   { id: "J0437", genre: "glass", lab: [0, 26, "center"], name: "PSR J0437−4715", short: "J0437", P: 0.005757452, ra: 4.621, dec: -47.25,
-    desc: "Najbliższy i najjaśniejszy pulsar milisekundowy. Obraca się 174 razy na sekundę, czyli gra dźwięk F." },
+    desc: "Najbliższy i najjaśniejszy pulsar milisekundowy. Obraca się 174 razy na sekundę." },
   { id: "Ter5", genre: "musicbox", lab: [0, -17, "center"], name: "PSR J1748−2446ad", short: "Terzan 5 · najszybszy", P: 0.00139595, ra: 17.810, dec: -24.77,
     desc: "Najszybszy znany pulsar, 716 obrotów na sekundę, w gromadzie kulistej Terzan 5." },
 ];
@@ -213,14 +214,22 @@ function musicFor(p) {
 // Tempo, w którym naprawdę gra gatunek pulsara.
 function bpmFor(p) {
   const m = musicFor(p), def = GENRES[p.genre];
-  return m.kind === "tempo" ? (def.tempoBpm ? def.tempoBpm(p.P) : m.bpm) : def.bpm || 72;
+  return def.tempoBpm ? def.tempoBpm(p.P) : m.kind === "tempo" ? m.bpm : def.bpm || 72;
 }
-function psrLine(p) {
-  const m = musicFor(p);
+// Wszystko, co pulsar ustala w muzyce, opisane tak samo dla każdego. Liczby idą z tego, co naprawdę gra.
+function psrFacts(p) {
+  const m = musicFor(p), bpm = bpmFor(p), perMin = 60 / p.P, ratio = perMin / bpm;
   const per = p.P >= 1 ? fmt(p.P, 2) + " s" : p.P >= 0.01 ? fmt(p.P * 1000, 1) + " ms" : fmt(p.P * 1000, 2) + " ms";
-  if (m.kind === "tempo") return { per, role: "Rytm", val: Math.round(60 / p.P) + " / min", line: `Rytm ${fmt(60 / p.P, 0)} błysków na minutę` };
-  const c = Math.round(m.cents);
-  return { per, role: "Tonacja", val: `${m.note}`, line: `Tonacja ${m.note}, ${fmt(m.f, 1)} Hz (${c >= 0 ? "+" : "−"}${Math.abs(c)} centów)` };
+  const each = Math.round(ratio), hits = Math.round(1 / ratio);
+  const beat = ratio < 0.75 ? `${hits} ${hits < 5 ? "uderzenia" : "uderzeń"} na błysk` : each === 1 ? "co błysk" : `co ${each}. błysk`;
+  const tempoWhy = ratio < 0.75 ? `na jeden błysk ${hits < 5 ? "przypadają" : "przypada"} ${hits} ${hits < 5 ? "uderzenia" : "uderzeń"}` : each === 1 ? "każdy błysk to uderzenie" : `co ${each}. błysk to uderzenie`;
+  const rate = fmt(1 / p.P, p.P >= 0.01 ? 1 : 0);
+  const key = m.kind === "tempo" ? "D" : m.note.replace(/\d/, ""), c = Math.round(m.cents);
+  const keySub = m.kind === "tempo" ? "stała" : `${fmt(m.f, 1)} Hz, ${c >= 0 ? "+" : "−"}${Math.abs(c)} c`;
+  const keyWhy = m.kind === "tempo" ? `Tonacja D jest stała: pulsar błyska ${rate} razy na sekundę, to rytm, a nie dźwięk.`
+    : m.f < 20 ? `Pulsar błyska ${rate} razy na sekundę, to za nisko, żeby usłyszeć dźwięk, ale o kilka oktaw wyżej najbliższa nuta to ${m.note}: stąd tonacja.`
+    : `Pulsar błyska ${rate} razy na sekundę, czyli brzmi jak dźwięk ${fmt(m.f, 1)} Hz. Najbliższa nuta to ${m.note}: stąd tonacja, dostrojona o ${c >= 0 ? "+" : "−"}${Math.abs(c)} centów.`;
+  return { per, bpm: fmt(bpm, 1), beat, key, keySub, why: `Tempo ${fmt(bpm, 1)} BPM: ${tempoWhy}. ${keyWhy}` };
 }
 let psr = PULSARS[0];
 
@@ -685,7 +694,7 @@ const GENRES = {
 
   // Vela: 11 błysków na sekundę słychać jako warkot. Przy 84 BPM to dokładnie trzydziestodwójki.
   glitch: {
-    label: "Glitch", bpm: 60 * 11.1947 / 8, scales: ["phrygian", "phrygian"],
+    label: "Glitch", tempoBpm: (P) => 60 / (8 * P), scales: ["phrygian", "phrygian"],
     make(B) {
       const crush = new Tone.Distortion(0.85).connect(B.delay);
       const click = vol(new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.001, decay: 0.006, sustain: 0 } }), -22).connect(crush);
@@ -723,7 +732,7 @@ const GENRES = {
 
   // Krab: 30 Hz to najniższy bas. Dub: głęboki bas, akordy na słabą część taktu w długim echu, uderzenie na trzy.
   dub: {
-    label: "Dub", bpm: 70, scales: ["dorian", "aeolian"],
+    label: "Dub", tempoBpm: (P) => 60 / (25 * P), scales: ["dorian", "aeolian"],
     make(B) {
       const echo = new Tone.FeedbackDelay({ delayTime: "8n.", feedback: 0.62, wet: 0.55 }).connect(B.rev);
       const ef = new Tone.Filter(1800, "lowpass").connect(echo);
@@ -753,37 +762,81 @@ const GENRES = {
     },
   },
 
-  // J0437: czysty ton F. Szklana harmonijka i chór, wolno.
+  // J0437: ton F, a co 60. błysk to uderzenie: 173,7 BPM, tempo liquid drum and bass. Szybki rytm pod wolnym chórem i szkłem.
   glass: {
-    label: "Szklany chór", bpm: 60, scales: ["lydian", "aeolian"],
+    label: "Liquid drum and bass", tempoBpm: (P) => 1 / P, pulseBurst: true, scales: ["lydian", "aeolian"],
     make(B) {
       const vf = new Tone.Filter({ frequency: 900, type: "bandpass", Q: 0.8 }).connect(B.rev);
-      const choir = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fatsine", count: 4, spread: 25 }, envelope: { attack: 3, decay: 1, sustain: 0.8, release: 6 } }), -18).connect(vf);
+      const choir = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fatsine", count: 4, spread: 25 }, envelope: { attack: 3, decay: 1, sustain: 0.8, release: 6 } }), -23).connect(vf);
       const vib = new Tone.Vibrato(5.5, 0.06).connect(B.rev);
-      const glass = vol(new Tone.Synth({ oscillator: { type: "sine" }, envelope: { attack: 0.03, decay: 3, sustain: 0, release: 3 } }), -14).connect(vib);
-      const glass2 = vol(new Tone.Synth({ oscillator: { type: "sine" }, envelope: { attack: 0.03, decay: 3, sustain: 0, release: 3 } }), -24).connect(vib);
-      const motif = new Motif(8, [5, 12], 0.4);
+      // Kilka głosów: nuta melodii wybrzmiewa, zamiast urywać się na następnej.
+      const glass = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "sine" }, envelope: { attack: 0.03, decay: 3, sustain: 0, release: 3 } }), -22).connect(vib);
+      // Perkusja z prawdziwych próbek. Dwa pliki pod różnymi nutami: uderzenia nie są identyczne, a wysokość się nie zmienia.
+      const kick = vol(sampler({ C2: "dnb-stopa" }, 0.1), -13).connect(B.lim);
+      const snare = vol(sampler({ C3: "dnb-werbel-1", D3: "dnb-werbel-2" }, 0.1), -17);
+      snare.connect(B.lim); snare.connect(B.rev);
+      const ghost = vol(sampler({ C3: "dnb-ghost" }, 0.05), -18).connect(B.lim);
+      const hat = vol(sampler({ C3: "dnb-hat-1", D3: "dnb-hat-2" }, 0.03), -25).connect(B.lim);
+      const ohat = vol(sampler({ C3: "dnb-ohat" }, 0.1), -24).connect(B.lim);
+      const shaker = vol(sampler({ C3: "dnb-shaker" }, 0.03), -26).connect(B.lim);
+      // Bas: niski i łagodny, miękkie wejście i poślizg między nutami.
+      const sub = vol(new Tone.Synth({ portamento: 0.07, oscillator: { type: "custom", partials: [1, 0.12] }, envelope: { attack: 0.035, decay: 0.15, sustain: 0.85, release: 0.2 } }), -11).connect(B.lim);
+      // Tło melodyczne: to samo miękkie brzmienie co chór, wolno idzie po dźwiękach akordu.
+      const pad2 = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fatsine", count: 3, spread: 18 }, envelope: { attack: 0.5, decay: 1, sustain: 0.5, release: 3 } }), -25).connect(vf);
+      const motif = new Motif(16, [5, 12], 0.4);
+      // Stopa prosta i cicha, łamie się werbel: co drugi takt mocne uderzenie spóźnia się o ósemkę, a między nimi grają ciche. Pozycje to szesnastki.
+      const BREAK = [{ kick: [0, 10], snare: [4, 12], ghost: [7, 9, 15] }, { kick: [0, 10], snare: [4, 14], ghost: [7, 9, 12, 15] }];
+      // Bas na dwa takty: buum buum bum bum bum buum, pozycja w szesnastkach i długość.
+      const BASS = [[0, 6], [6, 6], [12, 2], [14, 2], [16, 2], [20, 8]];
+      const padTones = [4, 6, 7, 9, 7, 6];
+      let lastMel = 8;
       const prog = [0, 3, 5, 4];
+      let chordDeg = prog[0];
+      const fire = (node, note, t, v) => { if (node.loaded) node.triggerAttack(note, t, v); };
       return {
-        mix: { Chór: choir, "Szkło 1": glass, "Szkło 2": glass2 },
-        nodes: [vf, choir, vib, glass, glass2], tun: [choir, glass, glass2],
+        mix: { Stopa: kick, Werbel: snare, "Werbel cichy": ghost, "Hi-hat": hat, "Otwarty hi-hat": ohat, Shaker: shaker, Bas: sub, "Chór": choir, "Tło melodyczne": pad2, Melodia: glass },
+        nodes: [vf, choir, pad2, vib, glass, kick, snare, ghost, hat, ohat, shaker, sub], tun: [choir, pad2, glass, sub],
         step(t, s, bar) {
-          vf.frequency.rampTo(map(E.bright(), 0, 1, 600, 1600), 2);
-          if (s === 0 && bar % 2 === 0) {
-            const notes = chordDegs(prog[(bar / 2) % 4], 3).map((x) => E.n(x, -1));
+          vf.frequency.rampTo(map(E.bright(), 0, 1, 600, 1600), 2, t);
+          // Impuls pulsara nie gra ciągle: krótki błysk co 4 takty.
+          if (s === 0 && bar % 4 === 0) { A.starVol.volume.setValueAtTime(-30, t); A.starVol.volume.linearRampToValueAtTime(-80, t + 0.3); }
+          // Akord co 8 taktów, około 11 s: pod szybkim rytmem chór ma płynąć wolno.
+          if (s === 0 && bar % 8 === 0) {
+            const part = (bar / 8) % 4;
+            chordDeg = windChord(part) ?? prog[part];
+            const notes = chordDegs(chordDeg, 4).map((x) => E.n(x, -1));
             choir.releaseAll(t); choir.triggerAttack(notes, t, 0.5); E.chord(notes, t);
-            Tone.Draw.schedule(() => vis.beat(), t);
           }
-          if (s % 2 === 0) {
-            const d = motif.at(s / 2);
-            if (d != null && chance(0.55 + E.busy() * 0.4)) {
+          // Co 32 takty dwa takty samego chóru i melodii.
+          if (bar % 32 < 30) {
+            if (s === 0) Tone.Draw.schedule(() => vis.beat(), t);
+            const br = BREAK[bar % 2];
+            if (br.kick.includes(s)) fire(kick, "C2", t, 1);
+            if (br.snare.includes(s)) fire(snare, bar % 4 === 3 ? "D3" : "C3", t, 0.9);
+            if (br.ghost.includes(s) || (E.busy() > 0.3 && s === 13)) fire(ghost, "C3", t, 0.5 + Math.random() * 0.3);
+            if (s % 2 === 0 && s !== 14) fire(hat, s % 4 ? "D3" : "C3", t, s % 4 ? 0.8 : 0.55);
+            if (s === 14) fire(ohat, "C3", t, 0.7);
+            if (s % 2 === 1) fire(shaker, "C3", t, 0.4 + E.busy() * 0.4);
+            // Wysokości basu pisze wiatr, pierwsza nuta to zawsze podstawa akordu. Co drugi raz ostatnia nuta jest dłuższa.
+            const pos = (bar % 2) * 16 + s, nb = BASS.findIndex(([at]) => at === pos);
+            if (nb >= 0) {
+              const w = windDegrees(0, 4), last = nb === BASS.length - 1;
+              const deg = chordDeg + (nb === 0 || !w ? [0, 0, 2, 4, 2, 0][nb] : [0, 2, 4, 6, 7][w[nb * 2]]); // tylko dźwięki akordu, żeby bas nie gryzł się z melodią
+              sub.triggerAttackRelease(E.n(deg, -3), (BASS[nb][1] + (last && bar % 4 === 3 ? 3 : 0)) * Tone.Time("16n").toSeconds(), t, nb < 2 || last ? 0.9 : 0.75);
+            }
+          }
+          if (s === 0 && bar % 2 === 0) pad2.triggerAttackRelease(E.n(chordDeg + padTones[(bar / 2) % padTones.length], 0), 2.5, t, 0.5);
+          // Melodia ćwierćnutami, fraza na 4 takty: jeden pomiar wiatru na ćwierćnutę.
+          if (s % 4 === 0) {
+            const i = (bar % 4) * 4 + (s >> 2), wind = windDegrees(5, 12), d = wind ? (windPeaks(Math.round(lerp(6, 10, E.busy()))).has(i) ? clamp(wind[i], lastMel - 2, lastMel + 2) : null) : motif.at(i);
+            if (d != null) {
+              lastMel = d; // małe kroki: melodia płynie, zamiast skakać
               const n = E.n(d, 0);
-              glass.triggerAttackRelease(n, "2n", t, 0.5);
-              if (E.glow() > 0.3) glass2.triggerAttackRelease(E.n(d + 7, 0), "2n", t + 0.02, 0.3);
+              glass.triggerAttackRelease(n, "2n", t, 0.5 + Math.min(windChange(i) / 12, 1) * 0.3);
               E.note(n, t);
             }
           }
-          if (s === 0 && bar % 2 === 1) motif.mutate(0.5);
+          if (s === 0 && bar % 4 === 3) motif.mutate(0.5);
         },
       };
     },
@@ -791,7 +844,7 @@ const GENRES = {
 
   // Terzan 5: 716 obrotów na sekundę, wysoki pisk. Pozytywka w metrum na trzy.
   musicbox: {
-    label: "Pozytywka", bpm: 96, barSteps: 12, scales: ["major", "aeolian"],
+    label: "Pozytywka", tempoBpm: (P) => 60 / (450 * P), barSteps: 12, scales: ["major", "aeolian"],
     make(B) {
       const box = vol(new Tone.PolySynth(Tone.FMSynth, { harmonicity: 8, modulationIndex: 2.5, envelope: { attack: 0.001, decay: 1.4, sustain: 0, release: 1.2 }, modulationEnvelope: { attack: 0.001, decay: 0.4, sustain: 0, release: 0.3 } }), -9).connect(B.rev);
       const lowF = new Tone.Filter(1200, "lowpass").connect(B.rev);
@@ -958,7 +1011,7 @@ function applyPulsarAudio() {
     A.starVol.volume.rampTo(-80, 0.5);
   } else {
     A.star.frequency.value = M.f;
-    if (playing) A.starVol.volume.rampTo(M.f < 20 ? -28 : M.f < 100 ? -33 : M.f < 400 ? -32 : -40, 1.5);
+    if (playing) if (!G?.pulseBurst) A.starVol.volume.rampTo(M.f < 20 ? -28 : M.f < 100 ? -33 : M.f < 400 ? -32 : -40, 1.5);
   }
   A.shimmer.set({ detune: M.cents }); A.braam.set({ detune: M.cents }); A.boom.detune.value = M.cents;
   A.drone.frequency.value = Tone.Frequency(E.m(0, -3), "midi").toFrequency();
@@ -1625,12 +1678,13 @@ function drawSky(time) {
 }
 
 function renderCard() {
-  const i = psrLine(psr), m = musicFor(psr);
+  const f = psrFacts(psr), label = GENRES[psr.genre].label;
   $("card").innerHTML = `<div class="name">${psr.name}</div>
-    <div class="facts"><div><b>${GENRES[psr.genre].label}</b>gatunek</div><div><b>${i.per}</b>okres obrotu</div><div><b>${i.val}</b>${m.kind === "tempo" ? "błysków na minutę" : fmt(m.f, 1) + " Hz, nadaje tonację"}</div></div>
-    <div class="desc">${psr.desc}</div>`;
+    <div class="facts"><div><b>${label}</b>gatunek</div><div><b>${f.per}</b>okres obrotu</div><div><b>${f.bpm} BPM</b>${f.beat}</div><div><b>${f.key}</b>tonacja, ${f.keySub}</div></div>
+    <div class="desc">${psr.desc}</div>
+    <div class="why">${f.why}</div>`;
   $("psrName").textContent = psr.name;
-  $("psrLine").textContent = GENRES[psr.genre].label + " · " + i.line.charAt(0).toLowerCase() + i.line.slice(1);
+  $("psrLine").textContent = `${label} · ${f.bpm} BPM · tonacja ${f.key}`;
 }
 
 function selectPulsar(p, manual = false) {
@@ -1731,7 +1785,7 @@ $("play").onclick = async () => {
     if (!A) await initAudio();
     if (!playing) {
       stepCount = 0; schedulePulse(); A.master.volume.rampTo(0, 0.1); Tone.Transport.start("+0.1"); playing = true;
-      if (M.kind === "tone") A.starVol.volume.rampTo(M.f < 20 ? -28 : M.f < 100 ? -33 : M.f < 400 ? -32 : -40, 1.5);
+      if (M.kind === "tone") if (!G?.pulseBurst) A.starVol.volume.rampTo(M.f < 20 ? -28 : M.f < 100 ? -33 : M.f < 400 ? -32 : -40, 1.5);
     } else { stopAudio(); playing = false; }
     $("play").textContent = playing ? "■ Stop" : "▶ Posłuchaj";
     $("play").classList.toggle("on", playing);

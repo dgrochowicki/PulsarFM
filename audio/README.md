@@ -7,3 +7,5 @@ Pliki przycięte, znormalizowane i zapisane jako AAC. Nazwy kontrabasu podają p
 Bęben wielki (`wybuch-*`, przy rozbłysku): Versilian Community Sample Library (VCSL), licencja CC0 1.0, https://github.com/sgossner/VCSL
 
 Werbel `werbel-pppp`: VSCO 2 CE, jak wyżej.
+
+Perkusja `dnb-*` (liquid drum and bass): VCSL, jak wyżej, licencja CC0 1.0. Pliki przycięte i znormalizowane.
