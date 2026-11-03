@@ -138,6 +138,7 @@
   <div class="more dev-only">
     <button class="ghost" id="flare">Wywołaj rozbłysk</button>
     <button class="ghost" id="toggleSliders">Steruj ręcznie</button>
+    <div id="layers"></div>
   </div>
 
   <div class="sliders dev-only" id="sliders">
@@ -179,6 +180,8 @@ const PULSARS = [
     desc: "Jeden z najwolniejszych znanych pulsarów: jeden błysk co 8,5 s. Prawie cisza między uderzeniami." },
   { id: "Geminga", genre: "techno", lab: [-9, 15, "right"], name: "Geminga", short: "Geminga", P: 0.237099, ra: 6.565, dec: 17.77,
     desc: "Bliski pulsar świecący w promieniach gamma. Cztery błyski na sekundę: szybka, nerwowa pulsacja." },
+  { id: "B0950", genre: "deep", lab: [0, -15, "center"], name: "PSR B0950+08", short: "B0950+08", P: 0.253065, ra: 9.886, dec: 7.93,
+    desc: "Jasny, bliski pulsar z czterema błyskami na sekundę. Co drugi błysk daje równe, spokojne 118 uderzeń na minutę." },
   { id: "Vela", genre: "glitch", lab: [0, -15, "center"], name: "Pulsar Vela", short: "Vela", P: 0.089328, ra: 8.589, dec: -45.18,
     desc: "Pozostałość supernowej w gwiazdozbiorze Żagla. 11 błysków na sekundę to już warkot, nie rytm." },
   { id: "Crab", genre: "dub", lab: [11, -7, "left"], name: "Pulsar w Krabie", short: "Krab", P: 0.03374, ra: 5.576, dec: 22.01,
@@ -411,7 +414,7 @@ function windDegrees(lo, hi) {
   return w.map((v) => clamp(Math.round(lo + ((v - mid) / range + 0.5) * (hi - lo)), lo, hi));
 }
 
-let A = null, G = null, playing = false, mood = "bright", stepCount = 0, pulseId = null;
+let A = null, G = null, playing = false, mood = "bright", stepCount = 0, pulseId = null, pulsePending = false;
 let M = musicFor(psr);
 
 // Wspólne pokrętła z danych, 0–1.
@@ -444,6 +447,16 @@ function windChange(s) {
   const w = windValues();
   return w ? Math.abs(w[s + 1] - w[s]) : 0;
 }
+// Kroki frazy z n największymi zmianami wiatru.
+function windPeaks(n) {
+  return new Set(Array.from({ length: 16 }, (_, i) => i).sort((a, b) => windChange(b) - windChange(a)).slice(0, n));
+}
+// Akord z wiatru: każda z 4 części frazy to średnia z 4 minut, wybiera stopień od ciemnego (mały wiatr) do jasnego.
+const WIND_CHORDS = [5, 3, 0, 2, 4];
+function windChord(part) {
+  const w = windDegrees(0, WIND_CHORDS.length - 1);
+  return w ? WIND_CHORDS[Math.round((w[part * 4] + w[part * 4 + 1] + w[part * 4 + 2] + w[part * 4 + 3]) / 4)] : null;
+}
 function windPartials() {
   const wind = windDegrees(0, 100);
   return Array.from({ length: 16 }, (_, i) => (i === 0 ? 1 : (0.15 + (wind ? wind[i] / 100 : 0.5) * 0.85) / (i + 1)));
@@ -464,6 +477,7 @@ const GENRES = {
       const bell = vol(new Tone.FMSynth({ harmonicity: 5.07, modulationIndex: 8, envelope: { attack: 0.001, decay: 5, sustain: 0, release: 5 } }), -26).connect(B.delay);
       const motif = new Motif(8, [7, 14], 0.6);
       return {
+        mix: { "Dźwięk 1": o1, "Dźwięk 2": o2, Szum: noise, Gong: gong, Dzwon: bell },
         nodes: [f, lfo, o1, o2, nf, noise, gong, bell], tun: [o1, o2, gong, bell],
         step(t, s, bar) {
           if (s === 0 && bar % 8 === 0) {
@@ -494,6 +508,7 @@ const GENRES = {
       const melody = new Motif(8, [7, 12], 0.85);
       let k = 0;
       return {
+        mix: { Organy: organ, Chór: choir, Kotły: timp },
         nodes: [organ, vf, vib, choir, timp], tun: [organ, choir, timp],
         step(t, s, bar) {
           vf.frequency.rampTo(map(E.bright(), 0, 1, 600, 1600), 2);
@@ -534,6 +549,7 @@ const GENRES = {
       let chordDeg = prog[0];
       const motif = new Motif(16, [4, 12], 0.45);
       return {
+        mix: { Pad: pad, Harfa: harp, Kontrabas: low, Bit: kick, Bas: bass, Werbel: snare },
         nodes: [pf, pad, harp, kick, bass, low, snare], tun: [pad, kick, bass],
         step(t, s, bar) {
           pf.frequency.rampTo(map(E.bright(), 0, 1, 700, 4200), 1.5);
@@ -573,44 +589,98 @@ const GENRES = {
   // Geminga: połowa jej rytmu to 126 BPM, czyli tempo techno. Błyski pulsara grają hi-hat na ósemkach.
   techno: {
     label: "Minimal techno", tempoBpm: (P) => 30 / P, scales: ["dorian", "phrygian"],
-    make(B) {
-      const kick = vol(new Tone.MembraneSynth({ pitchDecay: 0.045, octaves: 6, envelope: { attack: 0.001, decay: 0.35, sustain: 0, release: 0.1 } }), -10).connect(B.lim);
+    // Każdy pulsar ma mieć inne instrumenty. Deep: krótkie akordy z prostokątów jako akcent, tło, melodia brzmieniem akordów.
+    // Techno: tło z długich, płynących akordów, melodia na organach, szepty.
+    make(B, deep = false) {
+      const kick = vol(new Tone.MembraneSynth({ pitchDecay: 0.045, octaves: 6, envelope: { attack: 0.001, decay: 0.3, sustain: 0, release: 0.1 } }), -6).connect(B.lim);
       const hf = new Tone.Filter(8000, "highpass").connect(B.lim);
       const hat = vol(new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.001, decay: 0.04, sustain: 0 } }), -24).connect(hf);
-      const ohat = vol(new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.001, decay: 0.18, sustain: 0 } }), -30).connect(hf);
+      const ohat = vol(new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.001, decay: 0.18, sustain: 0 } }), -22).connect(hf);
       const cf = new Tone.Filter({ frequency: 1600, type: "bandpass", Q: 1.2 }).connect(B.rev);
-      const clap = vol(new Tone.NoiseSynth({ noise: { type: "pink" }, envelope: { attack: 0.002, decay: 0.12, sustain: 0 } }), -16).connect(cf);
+      const clap = vol(new Tone.NoiseSynth({ noise: { type: "pink" }, envelope: { attack: 0.002, decay: 0.12, sustain: 0 } }), -14.5).connect(cf);
       // Bas: głęboki sinus (sub) plus cichy, filtrowany piłokształtny na wierzchu, żeby był słyszalny na małych głośnikach.
       const subSat = new Tone.Chebyshev(3).connect(B.lim);
       subSat.wet.value = 0.15;
       const bass = vol(new Tone.MonoSynth({ oscillator: { type: "sine" }, filter: { type: "lowpass", rolloff: -24, Q: 0.5 }, envelope: { attack: 0.006, decay: 0.3, sustain: 0.55, release: 0.18 }, filterEnvelope: { attack: 0.01, decay: 0.2, sustain: 1, release: 0.2, baseFrequency: 220, octaves: 0.5 } }), -12).connect(subSat);
-      const bassTop = vol(new Tone.MonoSynth({ oscillator: { type: "sawtooth" }, filter: { Q: 2, type: "lowpass", rolloff: -24 }, envelope: { attack: 0.004, decay: 0.12, sustain: 0.1, release: 0.1 }, filterEnvelope: { attack: 0.002, decay: 0.1, sustain: 0, release: 0.1, baseFrequency: 140, octaves: 2.5 } }), -26).connect(B.lim);
-      const stab = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fatsquare", count: 2, spread: 15 }, envelope: { attack: 0.003, decay: 0.12, sustain: 0, release: 0.15 } }), -26).connect(B.delay);
-      const bassLine = new Motif(16, [0, 4], 0.45);
+      const stab = deep ? vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fatsquare", count: 2, spread: 15 }, envelope: { attack: 0.003, decay: 0.12, sustain: 0, release: 0.15 } }), -2).connect(B.delay) : null;
+      const melF = deep ? null : new Tone.Filter(3500, "lowpass").connect(B.delay);
+      const melody = deep
+        ? vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fatsquare", count: 2, spread: 15 }, envelope: { attack: 0.003, decay: 0.12, sustain: 0, release: 0.15 } }), -14).connect(B.delay)
+        : vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "custom", partials: [1, 0.7, 0.5, 0.25, 0.15, 0.1] }, envelope: { attack: 0.004, decay: 0.18, sustain: 0.15, release: 0.1 } }), -19).connect(melF); // organy
+      // Szepty: szum przez wąski filtr, który w każdej sylabie stoi gdzie indziej. Imitacja, nie głos.
+      const whF = deep ? null : new Tone.Filter({ type: "bandpass", frequency: 2600, Q: 2.5 }).connect(B.delay);
+      const whisper = deep ? null : vol(new Tone.NoiseSynth({ noise: { type: "pink" }, envelope: { attack: 0.012, decay: 0.09, sustain: 0 } }), -6).connect(whF);
+      // Tło: gruba piła z wolno ruchomym filtrem, przyciszana stopą, żeby pompowała. Ma stałą głośność i pasmo, na które ucho jest czułe, więc musi być dużo ciszej, niż wskazują szczyty.
+      const pump = new Tone.Gain(1).connect(B.rev), pump2 = new Tone.Gain(1).connect(B.lim);
+      const plF = new Tone.Filter({ type: "lowpass", frequency: 800, Q: deep ? 2 : 3, rolloff: -24 });
+      plF.connect(pump); plF.connect(pump2);
+      const plLfo = new Tone.LFO(deep ? { frequency: "16m", min: 350, max: 2200 } : { frequency: "8m", min: 300, max: 2400 }).connect(plF.frequency).start();
+      const plama = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fatsawtooth", count: 3, spread: deep ? 32 : 20 }, envelope: { attack: deep ? 0.6 : 1.2, decay: 0.5, sustain: 0.8, release: deep ? 1.5 : 3 } }), deep ? -42 : -43).connect(plF);
+      const plProg = [0, 0, 5, 3];
+      let flash = 0, inBreakdown = false, chordDeg = 0, whKey = null, whBars = 0;
+      const melLo = deep ? 4 : 0, melHi = deep ? 12 : 7;
+      const leadMotif = new Motif(16, [melLo, melHi], 0.4);
+      const bassLine = new Motif(4, [0, 4], 0.8);
       let stabR = rhythm(16, 0.18, [3]);
       return {
-        nodes: [kick, hf, hat, ohat, cf, clap, subSat, bass, bassTop, stab], tun: [bass, bassTop, stab, kick],
+        mix: { Stopa: kick, "Hi-hat": hat, "Otwarty hi-hat": ohat, Klaps: clap, Bas: bass, ...(deep ? { Akordy: stab, "Tło": plama, Melodia: melody } : { "Tło": plama, Melodia: melody, Szepty: whisper }) },
+        nodes: [kick, hf, hat, ohat, cf, clap, subSat, bass, stab, melody, melF, whF, whisper, pump, pump2, plF, plLfo, plama].filter(Boolean), tun: [bass, stab, melody, kick, plama].filter(Boolean),
         step(t, s, bar) {
           const phrase = bar % 16;
           const breakdown = phrase >= 14; // dwa takty oddechu przed nową frazą
-          bassTop.filter.Q.value = E.dark() ? 14 : 2; // Bz na południe: brzmienie acid
-          bassTop.volume.value = E.dark() ? -17 : -26;
-          bassTop.filterEnvelope.octaves = 1.5 + E.bright() * 3;
-          if (!breakdown && s % 4 === 0) { kick.triggerAttackRelease(E.n(0, -3), "8n", t, 1); if (s === 0) Tone.Draw.schedule(() => vis.beat(), t); }
-          if (s % 4 === 2 && E.busy() > 0.25) ohat.triggerAttackRelease("16n", t, 0.6);
+          if (s === 0 && bar % 4 === 0) {
+            const part = (bar / 4) % 4;
+            chordDeg = windChord(part) ?? plProg[part];
+            plama.releaseAll(t); plama.triggerAttack(chordDegs(chordDeg, 4).map((x) => E.n(x, -1)), t + 0.02, 0.7);
+          }
+          inBreakdown = breakdown;
+          if (!breakdown && s === 0) Tone.Draw.schedule(() => vis.beat(), t);
+          if (s % 4 === 2) ohat.triggerAttackRelease("16n", t, 0.6);
           if (!breakdown && (s === 4 || s === 12)) clap.triggerAttackRelease("16n", t, 0.8);
           const d = bassLine.at(s);
-          if (!breakdown && d != null) { bass.triggerAttackRelease(E.n(d, -3), "16n", t, 0.9); bassTop.triggerAttackRelease(E.n(d, -2), "16n", t, 0.7); }
-          if (stabR[s]) {
-            const notes = chordDegs(0, 4).map((x) => E.n(x, -1));
+          if (!breakdown && d != null && s % 4 !== 0) bass.triggerAttackRelease(E.n(d + chordDeg, -3), "16n", t, 0.9);
+          if (deep && stabR[s]) {
+            const notes = chordDegs(chordDeg, 4).map((x) => E.n(x, -1));
             stab.triggerAttackRelease(notes, "16n", t, 0.5); E.note(notes[3], t);
           }
-          if (s === 0 && bar % 4 === 0) { bassLine.mutate(0.5); E.chord(chordDegs(0, 4).map((x) => E.n(x, -1)), t); }
+          // Każdy pomiar wiatru to ósemka, fraza trwa dwa takty. Bez danych gra motyw.
+          const i = (bar % 2) * 8 + (s >> 1), wind = windDegrees(melLo, melHi), gust = windChange(i), md = leadMotif.at(s);
+          // Stała liczba nut na miejscach największych zmian wiatru, więc fraza powtarza się także w spokojny dzień.
+          if (wind ? s % 2 === 0 && windPeaks(Math.round(deep ? lerp(4, 7, E.busy()) : lerp(6, 10, E.busy()))).has(i) : md != null) {
+            const n = E.n(wind ? wind[i] : md, deep ? 0 : -1), v = wind ? 0.5 + Math.min(gust / 12, 1) * 0.4 : 0.7;
+            if (!deep) melF.frequency.setValueAtTime(3500 * (0.6 + E.bright() * 0.8), t);
+            melody.triggerAttackRelease(n, deep ? "16n" : 0.12, t, v);
+            E.note(n, t);
+          }
+          // Szepty przy większej zmianie wiatru: nowy pomiar z różnicą od 5 km/s daje 4 takty szeptów. Gęstość dokłada sylaby.
+          if (!deep && s === 0) {
+            const w = windValues(), key = w && w[15] + "/" + w[16];
+            if (whBars > 0) whBars--;
+            if (w && key !== whKey) { whKey = key; if (Math.abs(w[16] - w[15]) >= 5) whBars = 4; }
+          }
+          if (whBars > 0 && ([8, 11, 14].includes(s) || (E.busy() > 0.3 && (s === 10 || s === 13)))) {
+            whF.frequency.setValueAtTime(1800 + windDegrees(0, 100)[i] * 26, t);
+            whisper.triggerAttackRelease("16n", t, 0.6 + Math.random() * 0.3);
+          }
+          if (s === 0 && bar % 4 === 0) { bassLine.mutate(0.5); E.chord(chordDegs(chordDeg, 4).map((x) => E.n(x, -1)), t); }
           if (s === 0 && phrase === 0) stabR = rhythm(16, 0.1 + E.busy() * 0.25, [3]);
         },
-        pulse(t) { hat.triggerAttackRelease("32n", t, 0.6 + Math.random() * 0.3); },
+        // Hi-hat na każdy błysk Gemingi, stopa na co drugi: oba idą z tego samego zegara pulsara.
+        pulse(t) {
+          hat.triggerAttackRelease("32n", t, 0.6 + Math.random() * 0.3);
+          if (flash++ % 2 === 1 && !inBreakdown) {
+            kick.triggerAttackRelease(E.n(0, -3), "8n", t, 1);
+            for (const g of [pump, pump2]) { g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(deep ? 0.25 : 0.6, t); g.gain.linearRampToValueAtTime(1, t + 0.3); }
+          }
+        },
       };
     },
+  },
+
+  // B0950+08: 118,6 BPM. To samo co techno, ale niesie je akord, nie acid.
+  deep: {
+    label: "Deep", tempoBpm: (P) => 30 / P, scales: ["dorian", "phrygian"],
+    make(B) { return GENRES.techno.make(B, true); },
   },
 
   // Vela: 11 błysków na sekundę słychać jako warkot. Przy 84 BPM to dokładnie trzydziestodwójki.
@@ -627,6 +697,7 @@ const GENRES = {
       let clicks = rhythm(16, 0.35, [0, 6]), subs = rhythm(16, 0.12, [0]);
       let clickEnd = 0;
       return {
+        mix: { Trzaski: click, Piknięcia: blip, Sub: sub, Pad: pad },
         nodes: [crush, click, blip, sub, pf, pad], tun: [blip, sub, pad],
         step(t, s, bar) {
           crush.distortion = map(E.bright(), 0, 1, 0.5, 0.95);
@@ -664,6 +735,7 @@ const GENRES = {
       const line = new Motif(16, [-7, 0], 0.35);
       const prog = [0, 0, 3, 4];
       return {
+        mix: { Akordy: skank, Bas: bass, Stopa: kick, Rimshot: rim },
         nodes: [echo, ef, skank, bass, kick, rf, rim], tun: [skank, bass, kick],
         step(t, s, bar) {
           ef.frequency.rampTo(map(E.bright(), 0, 1, 700, 3500), 2);
@@ -693,6 +765,7 @@ const GENRES = {
       const motif = new Motif(8, [5, 12], 0.4);
       const prog = [0, 3, 5, 4];
       return {
+        mix: { Chór: choir, "Szkło 1": glass, "Szkło 2": glass2 },
         nodes: [vf, choir, vib, glass, glass2], tun: [choir, glass, glass2],
         step(t, s, bar) {
           vf.frequency.rampTo(map(E.bright(), 0, 1, 600, 1600), 2);
@@ -726,6 +799,7 @@ const GENRES = {
       const motif = new Motif(12, [7, 16], 0.55);
       const prog = [0, 4, 5, 3];
       return {
+        mix: { Pozytywka: box, "Niskie nuty": low },
         nodes: [box, lowF, low], tun: [box, low],
         step(t, s, bar) {
           const deg = prog[Math.floor(bar / 2) % 4];
@@ -764,7 +838,7 @@ async function initAudio() {
   const droneVol = new Tone.Volume(-70).connect(lim);
   const droneFilter = new Tone.Filter(160, "lowpass").connect(droneVol);
   const drone = new Tone.FatOscillator("D1", "sawtooth", 14).connect(droneFilter).start();
-  new Tone.LFO(0.08, 90, 260).connect(droneFilter.frequency).start();
+  new Tone.LFO(0.08, 120, 400).connect(droneFilter.frequency).start();
   const starVol = new Tone.Volume(-80).connect(rev);
   const starFilter = new Tone.Filter(1400, "lowpass").connect(starVol);
   const star = new Tone.PulseOscillator(100, 0.85).connect(starFilter).start();
@@ -793,6 +867,12 @@ async function initAudio() {
 
 function onStep(time) {
   if (!G) return;
+  // Zegar pulsara rusza od pierwszego kroku gatunku. Transport.ticks jest za nim o lookAhead, więc nie nadaje się do wyrównania.
+  if (pulsePending) {
+    pulsePending = false;
+    const start = Tone.Transport.getTicksAtTime(time) + Tone.Time(psr.P).toTicks();
+    pulseId = Tone.Transport.scheduleRepeat(onPulse, psr.P, `${Math.round(start)}i`);
+  }
   const bs = G.barSteps || 16;
   const s = stepCount % bs, bar = Math.floor(stepCount / bs);
   if (s === 0) {
@@ -800,6 +880,7 @@ function onStep(time) {
     mood = next;
   }
   G.inst.step(time, s, bar);
+  holdMutes();
   stepCount++;
 }
 
@@ -811,10 +892,44 @@ function onPulse(time) {
 // Impulsy startują na następnej szesnastce, razem z pierwszym krokiem nowego gatunku.
 function schedulePulse() {
   if (pulseId != null) { Tone.Transport.clear(pulseId); pulseId = null; }
+  pulsePending = false;
   if (M.kind !== "tempo") return;
-  const step = Tone.Transport.PPQ / 4;
-  const start = playing ? Math.ceil(Tone.Transport.ticks / step) * step : 0;
-  pulseId = Tone.Transport.scheduleRepeat(onPulse, psr.P, `${start}i`);
+  if (playing) { pulsePending = true; return; }
+  pulseId = Tone.Transport.scheduleRepeat(onPulse, psr.P, "0i");
+}
+
+// Włączniki warstw pod ?dev, do rozmowy o konkretnych dźwiękach. Wyciszony zostaje wyciszony także po zmianie gatunku.
+const mutedLayers = new Set(), savedLayerVolume = new Map();
+const devMode = new URLSearchParams(location.search).has("dev");
+function sharedLayers() {
+  return { "Dron z Bz": A.drone, "Poświata z Kp": A.shimmer, "Impuls pulsara": A.star, "Wybuch: bęben": A.drumHit, "Wybuch: pocieranie": A.drumRub, "Wybuch: buum": A.boom, "Wybuch: braam": A.braam };
+}
+function layerEntries() {
+  if (!A || !G) return [];
+  const own = Object.entries(G.inst.mix).map(([name, node]) => [`${psr.genre}:${name}`, name, node]);
+  return [...own, ...Object.entries(sharedLayers()).map(([name, node]) => [`wspólne:${name}`, name, node])];
+}
+function holdMutes() {
+  if (!mutedLayers.size) return;
+  for (const [key, , node] of layerEntries()) if (mutedLayers.has(key)) node.output.volume.value = -Infinity;
+}
+function toggleLayer(key, node) {
+  if (mutedLayers.delete(key)) node.output.volume.value = savedLayerVolume.get(key) ?? 0;
+  else { mutedLayers.add(key); savedLayerVolume.set(key, node.output.volume.value); holdMutes(); }
+  renderLayers();
+}
+function renderLayers() {
+  if (!devMode) return;
+  const box = $("layers"), rows = layerEntries();
+  box.innerHTML = "";
+  for (const [key, name, node] of rows) {
+    const b = document.createElement("button");
+    b.className = "ghost"; b.textContent = name; b.dataset.layer = key;
+    b.style.opacity = mutedLayers.has(key) ? 0.35 : 1;
+    if (mutedLayers.has(key)) b.style.textDecoration = "line-through";
+    b.onclick = () => toggleLayer(key, node);
+    box.appendChild(b);
+  }
 }
 
 function applyPulsarAudio() {
@@ -835,6 +950,8 @@ function applyPulsarAudio() {
   A.delay.delayTime.rampTo(Tone.Time("8n.").toSeconds(), 0.2);
   const bus = { lim: new Tone.Gain().connect(A.lim), rev: new Tone.Gain().connect(A.rev), delay: new Tone.Gain().connect(A.delay) };
   G = { ...def, bus, inst: def.make(bus) };
+  for (const [key, , node] of layerEntries()) if (mutedLayers.has(key)) savedLayerVolume.set(key, node.output.volume.value);
+  holdMutes(); renderLayers();
   G.inst.tun.forEach((n) => { if (n.set) n.set({ detune: M.cents }); else if (n.detune) n.detune.value = M.cents; });
   schedulePulse();
   if (M.kind === "tempo") {
@@ -851,7 +968,7 @@ function applyPulsarAudio() {
 
 function updateAudioParams() {
   if (!A) return;
-  A.droneVol.volume.rampTo(cur.bz < 0 ? map(-cur.bz, 0, 20, -40, -12) : -70, 2);
+  A.droneVol.volume.rampTo(cur.bz < 0 ? map(-cur.bz, 0, 20, -30, -12) : -70, 2);
   A.shimmer.volume.rampTo(cur.kp >= 4 ? map(cur.kp, 4, 9, -32, -16) : -60, 2);
   A.delay.feedback.rampTo(map(cur.wind, 300, 800, 0.3, 0.55), 2);
 }

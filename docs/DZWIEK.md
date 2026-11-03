@@ -34,6 +34,8 @@ Droga sygnału: instrumenty gatunku → (echo / filtr / przester) → pogłos �
 
 - **Zegar.** Tone.js odlicza szesnastki w tempie wyznaczonym przez pulsar. W każdej szesnastce gatunek decyduje, co zagrać (`step(t, s, bar)` w `GENRES`).
 - **Puls pulsara.** Przy wolnych pulsarach osobny zegar uderza dokładnie co okres pulsara (np. co 0,7145 s) i gra stopę, gong, kocioł albo hi-hat, zależnie od gatunku.
+- **Głośność warstw oceniać na wyjściu.** Pomiar przy źródle myli: nie widać filtrów, pogłosu i echa ani czułości ucha. Mierzyć każdą warstwę solo na `A.master`, z ważeniem A i przez pełny cykl filtra (Deep i Minimal techno 3.11.2026: stopa około -46 dB, tło około -60 dB).
+- **Akordy z wiatru (Deep, Minimal techno).** Co 4 takty akord: średnia z kolejnych 4 z ostatnich 16 minut wybiera stopień z `WIND_CHORDS`, od ciemnego do jasnego. Za akordem idzie plama i bas.
 - **Harmonia.** Każdy gatunek ma dwie skale (jasną i mroczną) i krótki ciąg akordów zapisany jako stopnie skali. Akordy buduje się z tercji.
 - **Melodia.** Klasa `Motif`: krótka fraza (8–16 kroków), która się powtarza, a co kilka taktów zmienia jedną nutę. Co kilkanaście taktów powstaje nowa fraza. Dzięki temu słychać melodię, a nie losowe nuty.
 - **Rytm.** Wzory perkusyjne to tablice „gra / nie gra” na 16 kroków, losowane od nowa co kilka taktów.
@@ -47,7 +49,8 @@ Droga sygnału: instrumenty gatunku → (echo / filtr / przester) → pogłos �
 | **Drone** (J2144) | dwa długie, grube oscylatory (piła + sinus) przez wolno ruchomy filtr; różowy szum jak wiatr; gong FM co 8,5 s; rzadkie dzwony |
 | **Chorał** (B1919+21) | organy (oscylator z harmonicznymi), chór (gruba piła przez vibrato i filtr samogłoski), kotły (membrana) |
 | **Ambient** (B0329+54) | plama z grubych oscylatorów o barwie z wiatru (16 ostatnich minut to głośności 16 alikwotów, nowa barwa przy zmianie akordu; akord trwa 4 takty, około 11 s, i ma 6 dźwięków), basowy sinus, melodia na próbkach harfy przez echo (16 ostatnich minut wiatru, pomiar na ósemkę: wysokość z prędkości, nuta tylko przy zmianie od 4 km/s na minutę, mniej przy dużej gęstości), niska warstwa rytmiczna na próbkach kontrabasu pizzicato (krótkie nuty akordu na ćwierćnuty, między nimi przy zmianie wiatru), najcichszy werbel raz na takt, miękka, długo wybrzmiewająca stopa na każdy błysk |
-| **Minimal techno** (Geminga) | stopa (membrana), hi-hat = błyski pulsara (biały szum), otwarty hi-hat, klaps (szum przez filtr pasmowy), bas: głęboki sinus + cicha piła (acid przy Bz na południe), stabs z prostokątów |
+| **Minimal techno** (Geminga) | stopa (membrana), hi-hat = błyski pulsara (biały szum), otwarty hi-hat, klaps (szum przez filtr pasmowy), bas: głęboki sinus idący za akordem, długie płynące akordy z grubej piły jako tło (przenikają się, filtr otwiera się co 8 taktów), cicha melodia z wiatru na organach (kilka harmonicznych, krótko), szepty: szum przez wąski filtr przez 4 takty po skoku wiatru od 5 km/s na minutę (imitacja, nie głos). Wzór: nagranie „Galeria Kaskada”. Usunięte 3.11.2026 na prośbę autora: Acid (piła, Q 12, poślizg 0,04, przester 0,55) i Bas górny (cicha piła nad sinusem) |
+| **Deep** (B0950+08) | perkusja i bas jak w Minimal techno, ale głośne krótkie akordy z prostokątów, cicha plama jako tło, melodia brzmieniem akordów z nutami na miejscach największych zmian wiatru (4–7 nut w dwóch taktach, zależnie od gęstości), otwarty hi-hat na stałe |
 | **Glitch** (Vela) | pulsar jako ciąg impulsów 11 Hz, trzaski z białego szumu przez przester (czasem „zacięte”), piknięcia FM, sub-stopa, ziarnisty pad |
 | **Dub** (Krab) | pulsar jako ciąg impulsów 30 Hz, głęboki bas (sinus), akordy z prostokątów na słabą część taktu w długim echu, stopa i rimshot na trzy |
 | **Szklany chór** (J0437) | chór z grubych sinusów, szklana harmonijka (sinus z vibrato), pulsar 173,7 Hz |
@@ -59,9 +62,9 @@ Droga sygnału: instrumenty gatunku → (echo / filtr / przester) → pogłos �
 
 | Dane | Zmiana |
 |---|---|
-| Prędkość wiatru | otwarcie filtrów (jaśniej), wysokość motywów, długość echa, intensywność acid |
+| Prędkość wiatru | otwarcie filtrów (jaśniej), wysokość motywów, długość echa, jasność melodii w techno |
 | Gęstość wiatru | jak często grają nuty motywu, dodatkowe warstwy rytmu, sprzężenie echa w dubie |
-| Bz < −2 nT | mroczna skala (na początku taktu), wspólny niski bas, acid w techno |
+| Bz < −2 nT | mroczna skala (na początku taktu), wspólny niski bas |
 | Kp | wysoka poświata nad akordami, druga linia szklanej harmonijki |
 | Rozbłysk C / M / X | bęben wielki (uderzenie, po 2 s pocieranie) i „buuum” / + „braam” / pełny „braam” z tercją + szum |
 

@@ -40,7 +40,7 @@ Wspólne dla wszystkich gatunków (obiekt `E` w kodzie, wartości 0–1):
 | Prędkość wiatru | jasność brzmienia (filtry), wysokość motywów; w Ambiencie ostatnie 16 minut wyznacza wysokości melodii (`windDegrees`) i barwę pada (`windPartials`) | prędkość cząstek/kresek/fal, korona Słońca |
 | Gęstość wiatru | ile się dzieje (gęstość motywów, dodatkowe warstwy) | liczba cząstek/kresek/fal |
 | Prędkość × gęstość | – | odległość magnetopauzy (Chapman–Ferraro, kształt Shue) |
-| Bz < −2 nT | mroczna skala; wspólny niski bas rośnie z −Bz; w techno brzmienie acid | kolor (różowy/bursztynowy) |
+| Bz < −2 nT | mroczna skala; wspólny niski bas rośnie z −Bz | kolor (różowy/bursztynowy) |
 | Kp | wysoka poświata (shimmer) | zorza |
 | Rozbłysk (C/M/X) | **trailerowe uderzenie**: zawsze prawdziwy bęben wielki (uderzenie, po 2 s pocieranie membrany) i niskie „buuum” z opadającą wysokością (C); M = + przesterowany akord „braam” z otwierającym się filtrem; X = pełny braam z tercją + szum | koła/drganie Słońca/znak f–fff |
 
@@ -58,6 +58,7 @@ Automatyczny wybór pulsara używa geolokalizacji i czasu UTC, aby co minutę wy
 | PSR B1919+21 | 1,337 s | Chorał | pierwszy odkryty pulsar |
 | PSR B0329+54 | 0,7145 s | Ambient | domyślny |
 | Geminga | 0,2371 s | Minimal techno | 30/P = 126,5 BPM; błyski = hi-hat na ósemkach. **Autor: „mega”** |
+| PSR B0950+08 | 0,2531 s | Deep | 30/P = 118,6 BPM; pomysł autora: akordy z przodu, melodia tym samym brzmieniem jako uzupełnienie |
 | Vela | 89,3 ms | Glitch | 11,2 Hz = trzydziestodwójki przy 84 BPM |
 | Krab | 33,7 ms | Dub | ok. 30 Hz, najniższy bas |
 | PSR J0437−4715 | 5,757 ms | Szklany chór | 173,7 Hz ≈ F3 −9 c |
@@ -67,6 +68,8 @@ Okresy i położenia są z pamięci modelu (literatura/ATNF). **Do zweryfikowani
 
 Pełny opis syntezy i instrumentów: `docs/DZWIEK.md` (aktualizować przy zmianach w `GENRES`). Muzyka to reguły, nie model AI: każdy gatunek w `GENRES` ma `make(B)` zwracające `{ nodes, tun, step(t, s, bar), pulse?(t) }`. Melodie to klasa `Motif` (fraza, która się powtarza i co kilka taktów mutuje), żeby było słychać melodię, a nie losowe nuty.
 
+**Zasada autora (3.11.2026): każdy pulsar to inna muzyka.** Gatunki mogą być podobne, ale zawsze coś musi być inne, poza tempem przede wszystkim instrumenty.
+
 ## Style graficzne
 
 Przełącznik u góry ma najpierw szkice nowych kierunków z `docs/WIZUALIZACJE.md`: **Grzbiety** (domyślny), **Fale** (dawne Słoje: Słońce w środku, fale we wszystkie strony; pomysł autora), **Cymatyka**, **Kolor** (kod w sekcjach „Kierunek” w `index.html`, numeracja jak w `docs/WIZUALIZACJE.md`). Potem stare style: **Bauhaus** (płaskie koła i łuki), **Oscyloskop** (jedna świecąca linia; Słońce to kształt fali dźwięku z `Tone.Waveform`). Autor: Słońce i Ziemia w wersji dosłownej były „zbyt dosłowne”; szuka abstrakcji, z której nadal wiadomo, o co chodzi. Kierunek graficzny **niezdecydowany**; obecne style autor uznał za „dość łopatologiczne”. Nowe propozycje z opisem i rekomendacją: `docs/WIZUALIZACJE.md`. Linie pola, Partytura i Kosmos usunięte na prośbę autora (2.11.2026).
@@ -75,7 +78,7 @@ Wybór pulsara: mapa całego nieba (rzut Hammera–Aitoffa, RA 12h w środku, ro
 
 ## Tylko prawdziwe dane
 
-Decyzja autora (2.11.2026): słuchacz niczego nie wywołuje sam. Są tylko tryby „Na żywo” i „Zapis 3 h”. Przycisk Burza, „Wywołaj rozbłysk” i suwaki działają wyłącznie pod adresem z `?dev`, do dopracowywania obrazu.
+Decyzja autora (2.11.2026): słuchacz niczego nie wywołuje sam. Są tylko tryby „Na żywo” i „Zapis 3 h”. Przycisk Burza, „Wywołaj rozbłysk” i suwaki działają wyłącznie pod adresem z `?dev`, do dopracowywania obrazu. Pod `?dev` są też włączniki każdej warstwy dźwięku z nazwą (pole `mix` w `make()` gatunku): używać tych nazw w rozmowie z autorem.
 
 ## Plan (zatwierdzony przez autora 1.11.2026)
 
@@ -107,7 +110,8 @@ Na razie muzyka ważniejsza od obrazu. Autorowi podoba się brzmienie gatunków 
 - [x] Ambient, wnioski z porównania z Brain.fm (nagranie autora): prawdziwe próbki zamiast syntezy, melodia na harfie, niska warstwa rytmiczna na kontrabasie pizzicato (marimba była za wysoka i za głośna). Autor: syntetyczne brzmienia są słabe, syntezowana niska warstwa brzmiała „jak żaba”.
 - [ ] Do sprawdzenia dalej: cichy wysoki akcent, próba drżenia 18 Hz. Werbel na 2 i 4 autor odrzucił („za głośno, nie pasuje”); gra najcichszy `snare1_pppp` raz na takt, „żeby było wolno”.
 - [ ] Testy słuchowe: autor słucha w Safari, więc sprawdzać też w WebKit.
-- [ ] Przenieść melodię z wiatru na Techno i kolejne gatunki.
+- [ ] Przenieść melodię z wiatru na kolejne gatunki. Deep i Techno zrobione: akordy z przodu, plama w tle, powtarzalna fraza z wiatru; Acid i Bas górny usunięte (autor, 3.11.2026), melodia techno na syntezatorze, nie z próbek.
+- [ ] Techno, pomysły od producentów z Instagrama: trzy pasma (ciało 250 Hz–1 kHz, ugryzienie 1–4 kHz, powietrze 4 kHz+) i warstwy o różnych długościach pętli (bas 0,25 taktu, shaker 0,5, hi-hat 1, syntezator 8). Wykres orbit z tych pętli to też pomysł na obraz.
 - [ ] Pomysły: strojenie zamiast przełączania pulsarów, bez odlotu z Ziemi; nazwa „wiatr dotrze za N minut”; docelowo stream.
 
 **Później / do rozważenia**

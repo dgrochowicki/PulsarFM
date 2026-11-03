@@ -62,7 +62,7 @@ const rms = () => page.evaluate(async () => {
 });
 
 let failed = false;
-for (const id of ["B0329", "B1919", "J2144", "Geminga", "Vela", "Crab", "J0437", "Ter5"]) {
+for (const id of ["B0329", "B1919", "J2144", "Geminga", "B0950", "Vela", "Crab", "J0437", "Ter5"]) {
   await page.evaluate((id) => selectPulsar(PULSARS.find((p) => p.id === id)), id);
   await page.waitForTimeout(4000);
   const r = await rms();
@@ -191,6 +191,18 @@ await page.waitForTimeout(6000);
 const silence = await rms();
 check(silence < 0.001, `cisza po Stop: RMS ${silence.toFixed(5)}`);
 await page.click("#play");
+
+// Każdy gatunek ma nazwane warstwy, a każdą da się wyciszyć.
+const layers = await page.evaluate(async () => {
+  const out = {};
+  for (const p of PULSARS) {
+    selectPulsar(p);
+    const entries = layerEntries();
+    out[p.genre] = entries.length && entries.every(([, , n]) => n.output && n.output.volume);
+  }
+  return out;
+});
+check(Object.keys(layers).length === 9 && Object.values(layers).every(Boolean), `warstwy do wyciszenia: ${Object.keys(layers).length} gatunków`);
 
 for (const st of ["ridges", "waves", "cymatics", "color", "bauhaus", "scope"]) {
   await page.click(`[data-style=${st}]`);
