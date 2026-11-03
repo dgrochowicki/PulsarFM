@@ -78,7 +78,7 @@ Pełny opis syntezy i instrumentów: `docs/DZWIEK.md` (aktualizować przy zmiana
 
 Przełącznik u góry ma najpierw szkice nowych kierunków z `docs/WIZUALIZACJE.md`: **Grzbiety** (domyślny), **Fale** (dawne Słoje: Słońce w środku, fale we wszystkie strony; pomysł autora), **Cymatyka**, **Kolor** (kod w sekcjach „Kierunek” w `index.html`, numeracja jak w `docs/WIZUALIZACJE.md`). Potem stare style: **Bauhaus** (płaskie koła i łuki), **Oscyloskop** (jedna świecąca linia; Słońce to kształt fali dźwięku z `Tone.Waveform`). Autor: Słońce i Ziemia w wersji dosłownej były „zbyt dosłowne”; szuka abstrakcji, z której nadal wiadomo, o co chodzi. Kierunek graficzny **niezdecydowany**; obecne style autor uznał za „dość łopatologiczne”. Nowe propozycje z opisem i rekomendacją: `docs/WIZUALIZACJE.md`. Linie pola, Partytura i Kosmos usunięte na prośbę autora (2.11.2026).
 
-Wybór pulsara: mapa całego nieba (rzut Hammera–Aitoffa, RA 12h w środku, rośnie w lewo, Droga Mleczna z konwersji b = 0). Każdy pulsar miga w swoim prawdziwym rytmie; szybkie mają drgający pierścień. **Autor nie chce listy, tylko wybór z grafiki.**
+Wybór pulsara: mapa całego nieba na cały ekran, prostokątna (RA 12h w środku, rośnie w lewo, Droga Mleczna z konwersji b = 0). Każdy pulsar miga w swoim prawdziwym rytmie; szybkie mają drgający pierścień. **Autor nie chce listy, tylko wybór z grafiki.**
 
 ## Tylko prawdziwe dane
 

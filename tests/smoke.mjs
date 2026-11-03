@@ -47,7 +47,7 @@ if (!autoSelection.enabled || !autoSelection.fallback || !autoSelection.selected
 }
 await page.evaluate(() => {
   const p = PULSARS.find((item) => item !== psr);
-  const point = aitoff(p.ra, p.dec), rect = sky.getBoundingClientRect();
+  const point = skyXY(p.ra, p.dec), rect = sky.getBoundingClientRect();
   sky.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: rect.left + point.x, clientY: rect.top + point.y }));
 });
 const manualSelection = await page.evaluate(() => document.querySelector("#autoPulsar").getAttribute("aria-pressed") === "false");
