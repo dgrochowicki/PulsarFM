@@ -197,24 +197,22 @@ const NOTE_PL = { "C#": "Cis", "D#": "Dis", "F#": "Fis", "G#": "Gis", "A#": "B",
 
 // Wolny pulsar ustala tempo, szybki tonację i dokładne strojenie całego utworu.
 function musicFor(p) {
-  if (p.P >= 0.2) {
-    let bpm = 60 / p.P;
-    while (bpm < 60) bpm *= 2;
-    while (bpm >= 120) bpm /= 2;
-    return { kind: "tempo", bpm, tr: 0, cents: 0, f: 1 / p.P };
-  }
+  if (p.P >= 0.2) return { kind: "tempo", tr: 0, cents: 0, f: 1 / p.P };
   const f = 1 / p.P;
   const midi = 69 + 12 * Math.log2(f / 440);
   const root = Math.round(midi);
   let tr = (((root - 62) % 12) + 12) % 12; // względem D
   if (tr > 6) tr -= 12;
   const name = NOTE_NAMES[((root % 12) + 12) % 12];
-  return { kind: "tone", bpm: 72, tr, cents: (midi - root) * 100, f, note: (NOTE_PL[name] || name) + (f < 30 ? "" : Math.floor(root / 12) - 1) };
+  return { kind: "tone", tr, cents: (midi - root) * 100, f, note: (NOTE_PL[name] || name) + (f < 30 ? "" : Math.floor(root / 12) - 1) };
 }
-// Tempo, w którym naprawdę gra gatunek pulsara.
+// Tempo z błysków: wolno je tylko mnożyć lub dzielić przez 2, jak oktawy, żeby rytm był prawdziwym podziałem błysków.
 function bpmFor(p) {
-  const m = musicFor(p), def = GENRES[p.genre];
-  return def.tempoBpm ? def.tempoBpm(p.P) : m.kind === "tempo" ? m.bpm : def.bpm || 72;
+  const floor = GENRES[p.genre].tempoFloor || 80;
+  let bpm = 60 / p.P;
+  while (bpm < floor) bpm *= 2;
+  while (bpm >= floor * 2) bpm /= 2;
+  return bpm;
 }
 // Wszystko, co pulsar ustala w muzyce, opisane tak samo dla każdego. Liczby idą z tego, co naprawdę gra.
 function psrFacts(p) {
@@ -460,6 +458,15 @@ function windChange(s) {
 function windPeaks(n) {
   return new Set(Array.from({ length: 16 }, (_, i) => i).sort((a, b) => windChange(b) - windChange(a)).slice(0, n));
 }
+// Jedna melodia dla wszystkich gatunków: te same dane dają te same nuty, nowy pomiar je zmienia. 16 kroków, stopnie 0–7 lub null,
+// małe skoki, żeby płynęła, nuty na miejscach największych zmian wiatru. Instrument, rytm, tempo i rejestr należą do gatunku.
+function windMelody() {
+  const deg = windDegrees(0, 7);
+  if (!deg) return null;
+  const peaks = windPeaks(Math.round(lerp(6, 10, E.busy())));
+  let cur = deg[0];
+  return deg.map((d, i) => { cur = clamp(d, cur - 2, cur + 2); return peaks.has(i) ? cur : null; });
+}
 // Akord z wiatru: każda z 4 części frazy to średnia z 4 minut, wybiera stopień od ciemnego (mały wiatr) do jasnego.
 const WIND_CHORDS = [5, 3, 0, 2, 4];
 function windChord(part) {
@@ -496,7 +503,8 @@ const GENRES = {
             E.chord([E.n(0, -1), E.n(second, -1), E.n(4, 0)], t);
           }
           nf.frequency.rampTo(map(E.bright(), 0, 1, 250, 2200), 2);
-          if (s % 4 === 0 && chance(0.03 + E.busy() * 0.08)) { const n = E.n(motif.at(bar * 4 + s / 4), 0); bell.triggerAttackRelease(n, "2n", t, 0.5); E.note(n, t); }
+          const mel = windMelody(), mi = (bar % 8) * 2 + (s >> 3); // jedna nuta melodii na półnutę
+          if (mel ? s % 8 === 0 && mel[mi] != null : s % 4 === 0 && chance(0.03 + E.busy() * 0.08)) { const n = E.n(mel ? 7 + mel[mi] : motif.at(bar * 4 + s / 4), 0); bell.triggerAttackRelease(n, "2n", t, 0.5); E.note(n, t); }
           if (s === 0 && bar % 4 === 3) motif.mutate(0.6);
         },
         pulse(t) { gong.triggerAttackRelease(E.n(0, -2), "1n", t, 0.8); },
@@ -508,14 +516,15 @@ const GENRES = {
   choral: {
     label: "Chorał", scales: ["major", "aeolian"],
     make(B) {
-      const organ = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "custom", partials: [1, 0.55, 0.35, 0.22, 0.12, 0.08, 0.05] }, envelope: { attack: 0.25, decay: 0.2, sustain: 0.9, release: 2.2 } }), -26).connect(B.rev);
+      const organ = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "custom", partials: [1, 0.55, 0.35, 0.22, 0.12, 0.08, 0.05] }, envelope: { attack: 0.25, decay: 0.2, sustain: 0.9, release: 2.2 } }), -28).connect(B.rev);
       const vf = new Tone.Filter({ frequency: 1000, type: "bandpass", Q: 0.9 }).connect(B.rev);
       const vib = new Tone.Vibrato(5, 0.08).connect(vf);
       const choir = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fatsawtooth", count: 4, spread: 30 }, envelope: { attack: 1.2, decay: 0.5, sustain: 0.8, release: 3 } }), -24).connect(vib);
-      const timp = vol(new Tone.MembraneSynth({ pitchDecay: 0.08, octaves: 2, envelope: { attack: 0.002, decay: 0.8, sustain: 0, release: 0.5 } }), -16).connect(B.rev);
+      const timp = vol(new Tone.MembraneSynth({ pitchDecay: 0.08, octaves: 2, envelope: { attack: 0.002, decay: 0.8, sustain: 0, release: 0.5 } }), -17);
+      timp.connect(B.rev); timp.connect(B.lim); // wprost też, żeby było słychać uderzenie, nie tylko pogłos
       const prog = [0, 3, 4, 0, 5, 3, 1, 4];
       const melody = new Motif(8, [7, 12], 0.85);
-      let k = 0;
+      let k = 0, lastTop = 7;
       return {
         mix: { Organy: organ, Chór: choir, Kotły: timp },
         nodes: [organ, vf, vib, choir, timp], tun: [organ, choir, timp],
@@ -523,19 +532,20 @@ const GENRES = {
           vf.frequency.rampTo(map(E.bright(), 0, 1, 600, 1600), 2);
           if (s % 8 !== 0) return;
           const deg = prog[k % prog.length];
-          const top = melody.at(k);
+          const mel = windMelody(), own = mel && mel[k % 16];
+          const top = mel ? (own != null ? (lastTop = 7 + own) : lastTop) : melody.at(k);
           const voices = [E.n(deg, -2), E.n(deg, -1), E.n(deg + 2, -1), E.n(deg + 4, -1)];
           // Sopran: nuta motywu dopasowana do najbliższego dźwięku akordu.
           const sop = E.m(top, -1), tones = [deg, deg + 2, deg + 4, deg + 7, deg + 9].map((d) => E.m(d, -1));
           const snap = tones.reduce((a, b) => (Math.abs(b - sop) < Math.abs(a - sop) ? b : a));
-          voices.push(nn(snap));
+          voices.push(mel ? nn(sop) : nn(snap));
           organ.releaseAll(t); organ.triggerAttack(voices, t, 0.55);
           choir.releaseAll(t); choir.triggerAttack(voices.slice(2), t, 0.4 + E.busy() * 0.3);
           E.chord(voices, t); E.note(voices[voices.length - 1], t);
           k++;
           if (k % 8 === 0) melody.mutate(0.9);
         },
-        pulse(t) { timp.triggerAttackRelease(E.n(0, -3), "8n", t, 0.6); },
+        pulse(t) { timp.triggerAttackRelease(E.n(0, -2), "8n", t, 0.7); },
       };
     },
   },
@@ -583,8 +593,9 @@ const GENRES = {
             if (low.loaded) low.triggerAttackRelease(E.n(tones[pick % 4], -2), 0.3, t, s % 4 === 0 ? 0.75 : 0.5);
           }
           // Spokojna minuta to cisza, gęstszy wiatr łatwiej wywołuje nutę. Bez danych zostaje motyw.
-          if (wind ? s % 2 === 0 && gust >= lerp(4, 2, E.busy()) : d != null && chance(0.5 + E.busy() * 0.5)) {
-            const n = E.n((wind ? wind[i] : d) + (E.bright() > 0.6 ? 7 : 0), 0);
+          const mel = windMelody();
+          if (mel ? s % 2 === 0 && mel[i] != null : d != null && chance(0.5 + E.busy() * 0.5)) {
+            const n = E.n((mel ? 4 + mel[i] : d) + (E.bright() > 0.6 ? 7 : 0), 0);
             const v = wind ? 0.35 + Math.min(gust / 12, 1) * 0.45 : 0.35 + Math.random() * 0.45;
             if (harp.loaded) harp.triggerAttackRelease(n, "2n", t, v);
             E.note(n, t);
@@ -597,7 +608,7 @@ const GENRES = {
 
   // Geminga: połowa jej rytmu to 126 BPM, czyli tempo techno. Błyski pulsara grają hi-hat na ósemkach.
   techno: {
-    label: "Minimal techno", tempoBpm: (P) => 30 / P, scales: ["dorian", "phrygian"],
+    label: "Minimal techno", scales: ["dorian", "phrygian"],
     // Każdy pulsar ma mieć inne instrumenty. Deep: krótkie akordy z prostokątów jako akcent, tło, melodia brzmieniem akordów.
     // Techno: tło z długich, płynących akordów, melodia na organach, szepty.
     make(B, deep = false) {
@@ -653,10 +664,10 @@ const GENRES = {
             stab.triggerAttackRelease(notes, "16n", t, 0.5); E.note(notes[3], t);
           }
           // Każdy pomiar wiatru to ósemka, fraza trwa dwa takty. Bez danych gra motyw.
-          const i = (bar % 2) * 8 + (s >> 1), wind = windDegrees(melLo, melHi), gust = windChange(i), md = leadMotif.at(s);
+          const i = (bar % 2) * 8 + (s >> 1), mel = windMelody(), gust = windChange(i), md = leadMotif.at(s);
           // Stała liczba nut na miejscach największych zmian wiatru, więc fraza powtarza się także w spokojny dzień.
-          if (wind ? s % 2 === 0 && windPeaks(Math.round(deep ? lerp(4, 7, E.busy()) : lerp(6, 10, E.busy()))).has(i) : md != null) {
-            const n = E.n(wind ? wind[i] : md, deep ? 0 : -1), v = wind ? 0.5 + Math.min(gust / 12, 1) * 0.4 : 0.7;
+          if (mel ? s % 2 === 0 && mel[i] != null : md != null) {
+            const n = E.n(mel ? melLo + mel[i] : md, deep ? 0 : -1), v = mel ? 0.5 + Math.min(gust / 12, 1) * 0.4 : 0.7;
             if (!deep) melF.frequency.setValueAtTime(3500 * (0.6 + E.bright() * 0.8), t);
             melody.triggerAttackRelease(n, deep ? "16n" : 0.12, t, v);
             E.note(n, t);
@@ -688,13 +699,13 @@ const GENRES = {
 
   // B0950+08: 118,6 BPM. To samo co techno, ale niesie je akord, nie acid.
   deep: {
-    label: "Deep", tempoBpm: (P) => 30 / P, scales: ["dorian", "phrygian"],
+    label: "Deep", scales: ["dorian", "phrygian"],
     make(B) { return GENRES.techno.make(B, true); },
   },
 
   // Vela: 11 błysków na sekundę słychać jako warkot. Przy 84 BPM to dokładnie trzydziestodwójki.
   glitch: {
-    label: "Glitch", tempoBpm: (P) => 60 / (8 * P), scales: ["phrygian", "phrygian"],
+    label: "Glitch", scales: ["phrygian", "phrygian"],
     make(B) {
       const crush = new Tone.Distortion(0.85).connect(B.delay);
       const click = vol(new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.001, decay: 0.006, sustain: 0 } }), -22).connect(crush);
@@ -717,8 +728,8 @@ const GENRES = {
             clickEnd = t + (n - 1) * gap;
           }
           if (subs[s]) sub.triggerAttackRelease(E.n(0, -3), "8n", t, 0.9);
-          const d = motif.at(s);
-          if (d != null && chance(0.4 + E.busy() * 0.5)) { const nt = E.n(d, 0); blip.triggerAttackRelease(nt, "32n", t, 0.7); E.note(nt, t); }
+          const mel = windMelody(), mi = (bar % 2) * 8 + (s >> 1), d = mel ? (s % 2 === 0 && mel[mi] != null ? 7 + mel[mi] : null) : motif.at(s);
+          if (d != null && (mel || chance(0.4 + E.busy() * 0.5))) { const nt = E.n(d, 0); blip.triggerAttackRelease(nt, "32n", t, 0.7); E.note(nt, t); }
           if (s === 0 && bar % 4 === 0) {
             const notes = [E.n(0, -1), E.n(1, -1), E.n(4, -1)];
             pad.releaseAll(t); pad.triggerAttack(notes, t, 0.4); E.chord(notes, t);
@@ -732,7 +743,7 @@ const GENRES = {
 
   // Krab: 30 Hz to najniższy bas. Dub: głęboki bas, akordy na słabą część taktu w długim echu, uderzenie na trzy.
   dub: {
-    label: "Dub", tempoBpm: (P) => 60 / (25 * P), scales: ["dorian", "aeolian"],
+    label: "Dub", scales: ["dorian", "aeolian"],
     make(B) {
       const echo = new Tone.FeedbackDelay({ delayTime: "8n.", feedback: 0.62, wet: 0.55 }).connect(B.rev);
       const ef = new Tone.Filter(1800, "lowpass").connect(echo);
@@ -753,8 +764,9 @@ const GENRES = {
           if (s === 4 || s === 12) { const notes = chordDegs(deg, 3).map((x) => E.n(x, 0)); skank.triggerAttackRelease(notes, "16n", t, 0.6); E.note(notes[2], t); }
           if (s === 8) { kick.triggerAttackRelease(E.n(0, -3), "8n", t, 1); rim.triggerAttackRelease("16n", t, 0.7); Tone.Draw.schedule(() => vis.beat(), t); }
           if (s === 14 && chance(0.15 + E.busy() * 0.3)) rim.triggerAttackRelease("16n", t, 0.5); // echo „rzucone” w delay
-          const d = line.at(s);
-          if (d != null) bass.triggerAttackRelease(E.n(d + deg, -2), "8n", t, 0.9);
+          // Bas gra tu melodię z wiatru. Bez danych własna linia idąca za akordem.
+          const mel = windMelody(), mi = (bar % 2) * 8 + (s >> 1), d = mel ? (s % 2 === 0 && mel[mi] != null ? mel[mi] - 7 : null) : line.at(s);
+          if (d != null) bass.triggerAttackRelease(E.n(mel ? d : d + deg, -2), "8n", t, 0.9);
           if (s === 0) E.chord(chordDegs(deg, 3).map((x) => E.n(x, -1)), t);
           if (s === 0 && bar % 4 === 3) line.mutate(0.5);
         },
@@ -762,9 +774,9 @@ const GENRES = {
     },
   },
 
-  // J0437: ton F, a co 60. błysk to uderzenie: 173,7 BPM, tempo liquid drum and bass. Szybki rytm pod wolnym chórem i szkłem.
+  // J0437: ton F, a co 64. błysk to uderzenie: 162,8 BPM, tempo liquid drum and bass. Szybki rytm pod wolnym chórem i szkłem.
   glass: {
-    label: "Liquid drum and bass", tempoBpm: (P) => 1 / P, pulseBurst: true, scales: ["lydian", "aeolian"],
+    label: "Liquid drum and bass", tempoFloor: 100, pulseBurst: true, scales: ["lydian", "aeolian"],
     make(B) {
       const vf = new Tone.Filter({ frequency: 900, type: "bandpass", Q: 0.8 }).connect(B.rev);
       const choir = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fatsine", count: 4, spread: 25 }, envelope: { attack: 3, decay: 1, sustain: 0.8, release: 6 } }), -23).connect(vf);
@@ -789,7 +801,6 @@ const GENRES = {
       // Bas na dwa takty: buum buum bum bum bum buum, pozycja w szesnastkach i długość.
       const BASS = [[0, 6], [6, 6], [12, 2], [14, 2], [16, 2], [20, 8]];
       const padTones = [4, 6, 7, 9, 7, 6];
-      let lastMel = 8;
       const prog = [0, 3, 5, 4];
       let chordDeg = prog[0];
       const fire = (node, note, t, v) => { if (node.loaded) node.triggerAttack(note, t, v); };
@@ -828,9 +839,8 @@ const GENRES = {
           if (s === 0 && bar % 2 === 0) pad2.triggerAttackRelease(E.n(chordDeg + padTones[(bar / 2) % padTones.length], 0), 2.5, t, 0.5);
           // Melodia ćwierćnutami, fraza na 4 takty: jeden pomiar wiatru na ćwierćnutę.
           if (s % 4 === 0) {
-            const i = (bar % 4) * 4 + (s >> 2), wind = windDegrees(5, 12), d = wind ? (windPeaks(Math.round(lerp(6, 10, E.busy()))).has(i) ? clamp(wind[i], lastMel - 2, lastMel + 2) : null) : motif.at(i);
+            const i = (bar % 4) * 4 + (s >> 2), mel = windMelody(), d = mel ? (mel[i] != null ? 5 + mel[i] : null) : motif.at(i);
             if (d != null) {
-              lastMel = d; // małe kroki: melodia płynie, zamiast skakać
               const n = E.n(d, 0);
               glass.triggerAttackRelease(n, "2n", t, 0.5 + Math.min(windChange(i) / 12, 1) * 0.3);
               E.note(n, t);
@@ -844,7 +854,7 @@ const GENRES = {
 
   // Terzan 5: 716 obrotów na sekundę, wysoki pisk. Pozytywka w metrum na trzy.
   musicbox: {
-    label: "Pozytywka", tempoBpm: (P) => 60 / (450 * P), barSteps: 12, scales: ["major", "aeolian"],
+    label: "Pozytywka", barSteps: 12, scales: ["major", "aeolian"],
     make(B) {
       const box = vol(new Tone.PolySynth(Tone.FMSynth, { harmonicity: 8, modulationIndex: 2.5, envelope: { attack: 0.001, decay: 1.4, sustain: 0, release: 1.2 }, modulationEnvelope: { attack: 0.001, decay: 0.4, sustain: 0, release: 0.3 } }), -9).connect(B.rev);
       const lowF = new Tone.Filter(1200, "lowpass").connect(B.rev);
@@ -858,8 +868,9 @@ const GENRES = {
           const deg = prog[Math.floor(bar / 2) % 4];
           if (s === 0) { low.triggerAttackRelease(E.n(deg, 0), "4n", t, 0.7); Tone.Draw.schedule(() => vis.beat(), t); if (bar % 2 === 0) E.chord(chordDegs(deg, 3).map((x) => E.n(x, 0)), t); }
           if (s === 4 || s === 8) low.triggerAttackRelease([E.n(deg + 2, 0), E.n(deg + 4, 0)], "8n", t, 0.45);
-          if (s % 2 === 0 || E.busy() > 0.5) {
-            const d = motif.at(s);
+          const mel = windMelody(), mi = ((bar * 12 + s) >> 1) % 16; // fraza 16 ósemek przechodzi przez takty na 3/4
+          if (mel ? s % 2 === 0 : s % 2 === 0 || E.busy() > 0.5) {
+            const d = mel ? (mel[mi] != null ? 7 + mel[mi] : null) : motif.at(s);
             if (d != null) {
               const n = E.n(d, 0);
               // Pozytywka lekko rozstrojona i nierówna, jak mechanizm.

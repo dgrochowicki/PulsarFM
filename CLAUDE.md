@@ -48,9 +48,9 @@ Decyzje autora: **żadnych dzwonków przy rozbłysku** (ma być jak w zwiastunie
 
 ## Pulsary i gatunki
 
-Każdy pulsar ma **tempo z okresu**: uderzenie co N błysków (`tempoBpm` albo sprowadzenie do 60–120), a karta pulsara opisuje to jednakowo (`psrFacts()`).
+Każdy pulsar ma **tempo z błysków**, tylko przez mnożenie lub dzielenie przez 2, w zakresie 80–160 BPM (`bpmFor()`; Liquid `tempoFloor: 100`). Karta pulsara opisuje to jednakowo (`psrFacts()`).
 
-Wolny pulsar (okres ≥ 0,2 s) ustala **tempo** (błysk = uderzenie, BPM sprowadzane do 60–120 przez mnożenie/dzielenie przez 2). Szybki pulsar **gra sam siebie** ciągiem impulsów o prawdziwej częstotliwości i ustala **tonację**: cały utwór transponowany do najbliższej nuty i dostrojony w centach (`musicFor()`).
+Wolny pulsar (okres ≥ 0,2 s) ma też błysk słyszalny wprost. Szybki pulsar **gra sam siebie** ciągiem impulsów o prawdziwej częstotliwości i ustala **tonację**: cały utwór transponowany do najbliższej nuty i dostrojony w centach (`musicFor()`).
 
 Automatyczny wybór pulsara używa geolokalizacji i czasu UTC, aby co minutę wybrać najwyżej położony nad horyzontem pulsar z katalogu. Gdy geolokalizacja jest niedostępna lub odmówiona, używa Szczecina; ręczny wybór z mapy wyłącza tryb automatyczny.
 
@@ -62,13 +62,15 @@ Automatyczny wybór pulsara używa geolokalizacji i czasu UTC, aby co minutę wy
 | Geminga | 0,2371 s | Minimal techno | 30/P = 126,5 BPM; błyski = hi-hat na ósemkach. **Autor: „mega”** |
 | PSR B0950+08 | 0,2531 s | Deep | 30/P = 118,6 BPM; pomysł autora: akordy z przodu, melodia tym samym brzmieniem jako uzupełnienie |
 | Vela | 89,3 ms | Glitch | 11,2 Hz = trzydziestodwójki przy 84 BPM |
-| Krab | 33,7 ms | Dub | ok. 30 Hz, najniższy bas |
-| PSR J0437−4715 | 5,757 ms | Liquid drum and bass | 173,7 Hz ≈ F3 −9 c; co 60. błysk = uderzenie, 173,7 BPM; pomysł: tempo też z pulsara |
+| Krab | 33,7 ms | Dub | ok. 30 Hz, najniższy bas; 111,1 BPM |
+| PSR J0437−4715 | 5,757 ms | Liquid drum and bass | 173,7 Hz ≈ F3 −9 c; co 64. błysk = uderzenie, 162,8 BPM |
 | PSR J1748−2446ad (Terzan 5) | 1,396 ms | Pozytywka (3/4) | 716 Hz |
 
 Okresy i położenia są z pamięci modelu (literatura/ATNF). **Do zweryfikowania z katalogiem** przy etapie 2.
 
 Pełny opis syntezy i instrumentów: `docs/DZWIEK.md` (aktualizować przy zmianach w `GENRES`). Muzyka to reguły, nie model AI: każdy gatunek w `GENRES` ma `make(B)` zwracające `{ nodes, tun, step(t, s, bar), pulse?(t) }`. Melodie to klasa `Motif` (fraza, która się powtarza i co kilka taktów mutuje), żeby było słychać melodię, a nie losowe nuty.
+
+**Zasada autora (3.11.2026): jedne dane, jedna melodia.** Nuty i pauzy melodii są wspólne dla wszystkich gatunków (`windMelody()`) i zmieniają się przy nowym pomiarze; styl należy do gatunku.
 
 **Zasada autora (3.11.2026): każdy pulsar to inna muzyka.** Gatunki mogą być podobne, ale zawsze coś musi być inne, poza tempem przede wszystkim instrumenty.
 
@@ -112,9 +114,18 @@ Na razie muzyka ważniejsza od obrazu. Autorowi podoba się brzmienie gatunków 
 - [x] Ambient, wnioski z porównania z Brain.fm (nagranie autora): prawdziwe próbki zamiast syntezy, melodia na harfie, niska warstwa rytmiczna na kontrabasie pizzicato (marimba była za wysoka i za głośna). Autor: syntetyczne brzmienia są słabe, syntezowana niska warstwa brzmiała „jak żaba”.
 - [ ] Do sprawdzenia dalej: cichy wysoki akcent, próba drżenia 18 Hz. Werbel na 2 i 4 autor odrzucił („za głośno, nie pasuje”); gra najcichszy `snare1_pppp` raz na takt, „żeby było wolno”.
 - [ ] Testy słuchowe: autor słucha w Safari, więc sprawdzać też w WebKit.
-- [ ] Przenieść melodię z wiatru na kolejne gatunki. Deep i Techno zrobione: akordy z przodu, plama w tle, powtarzalna fraza z wiatru; Acid i Bas górny usunięte (autor, 3.11.2026), melodia techno na syntezatorze, nie z próbek.
+- [x] Melodia z wiatru we wszystkich gatunkach. Deep i Techno zrobione: akordy z przodu, plama w tle, powtarzalna fraza z wiatru; Acid i Bas górny usunięte (autor, 3.11.2026), melodia techno na syntezatorze, nie z próbek.
 - [ ] Techno, pomysły od producentów z Instagrama: trzy pasma (ciało 250 Hz–1 kHz, ugryzienie 1–4 kHz, powietrze 4 kHz+) i warstwy o różnych długościach pętli (bas 0,25 taktu, shaker 0,5, hi-hat 1, syntezator 8). Wykres orbit z tych pętli to też pomysł na obraz.
 - [ ] Pomysły: strojenie zamiast przełączania pulsarów, bez odlotu z Ziemi; nazwa „wiatr dotrze za N minut”; docelowo stream.
+
+**Następne kroki (pomysły autora, 3.11.2026)**
+- [ ] Nowe style pod tempo pulsara, około 90 BPM. Pierwszy hip-hop na B1706−16 (około 92 BPM, każdy błysk to uderzenie): stopa i werbel z próbek, głęboki bas, melodia z wiatru w stylu lo-fi. Potem R&B na B1859+03 (około 91,5 BPM), wyraźnie innymi instrumentami, najlepiej z prawdziwym pianinem elektrycznym. Okresy z pamięci, do sprawdzenia w ATNF. Inni kandydaci: B0834+06, B1237+25.
+- [ ] Rock i pop przy około 90 BPM: odłożone. Rock tylko, jeśli w bibliotekach CC0 są dobre gitary; pop stoi na wokalu i refrenie, których nie mamy.
+- [ ] Akordy z wiatru wszędzie, ta sama zasada co melodia: wspólne akordy i ich kolejność, tempo zmian przy stylu. Autor jeszcze się zastanawia. Najpierw próba na Ambiencie, porównanie ze słuchu; ostrożnie z Ambientem i Chorałem.
+- [ ] Forma utworu z danych zamiast zegara: gęstość układa warstwy, skręt Bz na południe działa jak drop.
+- [ ] Deep i Geminga: klaps i hi-haty są cicho; inna perkusja i bas w każdym z nich. Szepty to imitacja, ewentualnie prawdziwe nagranie CC0.
+- [ ] Dopracować Drone, Chorał, Glitch, Dub (przy 111 BPM i z melodią w basie) i Pozytywkę: wciąż stare brzmienia z syntezy.
+- [ ] Liquid: autor chce porównać z ulubionymi utworami LTJ Bukema i Calibre (nagranie telefonem do `docs/`).
 
 **Później / do rozważenia**
 - [ ] Porównanie z Lyria RealTime (Google, Gemini API): model AI sterowany opisem gatunku + `bpm`, `density`, `brightness`. Możliwa hybryda: Lyria gra tło w gatunku pulsara, a pulsar i rozbłyski zostają w Tone.js. Wymaga klucza API i małego serwera.
