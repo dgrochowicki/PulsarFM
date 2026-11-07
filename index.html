@@ -8,7 +8,7 @@
   :root {
     --tile: rgba(196, 221, 255, 0.1);
     --base: rgba(5, 6, 11, 0.55);
-    --pop: rgba(22, 25, 33, 0.94);
+    --pop: rgba(20, 23, 32, 0.6);
     --line: rgba(255, 255, 255, 0.09);
     --text: #eef0f6;
     --dim: rgba(238, 240, 246, 0.55);
@@ -51,8 +51,9 @@
   .st-main .t div { font-size: 11.5px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   /* Okienka nad paskiem: informacja o pulsarze, tryb danych, styl obrazu. */
+  /* Okienka półprzezroczyste: pod spodem widać mapę albo obraz, rozmyte. */
   .pop { position: absolute; bottom: calc(100% + 8px); background: var(--pop); border: 1px solid var(--line); border-radius: var(--r);
-    -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); display: none; z-index: 5; }
+    -webkit-backdrop-filter: blur(16px) saturate(1.2); backdrop-filter: blur(16px) saturate(1.2); display: none; z-index: 5; }
   .pop.open { display: block; }
   .info-pop { left: 0; width: 100%; }
   .mode-wrap, .style-wrap { position: relative; flex: 0 0 auto; }
@@ -1769,8 +1770,7 @@ function sizeSky() {
   SW = wrap.width; SH = wrap.height;
   // Pulsary leżą w pasie do ±55°: ±65° mieści się między nagłówkiem a kartą, reszta nieba idzie pod nie.
   const top = document.querySelector(".sheet-head").getBoundingClientRect().bottom + 12 - wrap.top;
-  const below = $("infoPop").classList.contains("open") ? $("infoPop") : document.querySelector(".bar .station");
-  const bottom = below.getBoundingClientRect().top - 8 - wrap.top;
+  const bottom = document.querySelector(".bar .station").getBoundingClientRect().top - 8 - wrap.top;
   skyMid = (top + bottom) / 2; skyScale = (bottom - top) / 130;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   sky.width = SW * dpr; sky.height = SH * dpr; sky.style.width = SW + "px"; sky.style.height = SH + "px";
@@ -1928,11 +1928,9 @@ sky.addEventListener("click", (e) => {
 function openSheet() { sheetOpen = true; document.body.classList.add("map"); $("sheet").classList.add("open"); $("psrBtn").classList.add("on"); $("psrBtn").title = "Back to the music"; renderCard(); $("infoPop").classList.add("open"); $("infoBtn").setAttribute("aria-expanded", true); sizeSky(); }
 function closeSheet() { sheetOpen = false; document.body.classList.remove("map"); $("sheet").classList.remove("open"); $("psrBtn").classList.remove("on"); $("psrBtn").title = "Choose a pulsar"; toggleInfoPop(false); }
 $("psrBtn").innerHTML = ICONS.map; $("infoBtn").innerHTML = ICONS.info;
-// Na mapie zmiana okienka zmienia miejsce na niebo, więc mapę trzeba przeliczyć.
+// Okienko leży na mapie, mapa pod nim ma stały rozmiar.
 function toggleInfoPop(open) {
-  const was = $("infoPop").classList.contains("open");
   $("infoPop").classList.toggle("open", open); $("infoBtn").setAttribute("aria-expanded", open);
-  if (sheetOpen && was !== open) sizeSky();
 }
 $("psrBtn").onclick = (e) => { e.stopPropagation(); sheetOpen ? closeSheet() : openSheet(); };
 $("stMain").onclick = (e) => { e.stopPropagation(); sheetOpen ? closeSheet() : openSheet(); };
