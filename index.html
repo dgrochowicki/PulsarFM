@@ -1,193 +1,232 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Pulsar FM</title>
+<title>Pulsar.fm</title>
 <style>
   :root {
-    --panel: rgba(14, 16, 24, 0.92);
+    --tile: rgba(196, 221, 255, 0.1);
+    --base: rgba(5, 6, 11, 0.55);
+    --pop: rgba(22, 25, 33, 0.94);
     --line: rgba(255, 255, 255, 0.09);
     --text: #eef0f6;
     --dim: rgba(238, 240, 246, 0.55);
+    --icon: rgba(255, 255, 255, 0.7);
     --accent: #ffcf6e;
+    --r: 18px;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; height: 100%; background: #05060b; color: var(--text);
     font: 15px/1.35 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
   #c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  button { font: inherit; color: inherit; }
+  /* Kafelek w kolorze z projektu (#C4DDFF, 10%) na lekko przyciemnionym tle, żeby był czytelny nad obrazem. Bez rozmycia: ono kosztuje przy każdej klatce. */
+  .tile { background: linear-gradient(var(--tile), var(--tile)), var(--base); border-radius: var(--r); }
+  .ico { width: 32px; height: 32px; padding: 0; border: 0; background: none; border-radius: 10px; color: var(--icon); display: grid; place-items: center; cursor: pointer; flex: 0 0 auto; }
+  .ico:hover, .ico[aria-expanded="true"] { background: rgba(255,255,255,0.08); color: #fff; }
+  .ico svg, .sq svg { width: 18px; height: 18px; }
 
-  .top { position: fixed; left: 0; right: 0; top: 0; padding: calc(env(safe-area-inset-top) + 14px) 18px 0; pointer-events: none; }
-  .top h1 { margin: 0; font-size: 20px; font-weight: 650; letter-spacing: 0.2px; }
-  .top .status { color: var(--dim); font-size: 12.5px; margin-top: 3px; max-width: 80vw; }
-  /* Wizualizacja: jedna ikona, po kliknięciu wybór w okienku. */
-  .style-btn { margin-top: 10px; pointer-events: auto; width: 44px; height: 44px; border-radius: 14px; border: 1px solid var(--line);
-    background: rgba(255,255,255,0.06); color: var(--text); display: grid; place-items: center; cursor: pointer; }
-  .style-btn svg, .styles svg { width: 26px; height: 26px; }
-  .style-pop { position: absolute; margin-top: 8px; pointer-events: auto; background: rgba(14,17,28,0.96); border: 1px solid var(--line);
-    border-radius: 18px; padding: 10px; width: 300px; max-width: calc(100vw - 36px); display: none; }
-  .style-pop.open { display: block; }
+  .top { position: fixed; left: 0; right: 0; top: 0; padding: calc(env(safe-area-inset-top) + 34px) 38px 0; pointer-events: none; }
+  .top h1 { margin: 0; font-size: 16px; font-weight: 500; letter-spacing: 0.1px; }
+  .top .status { display: none; color: var(--dim); font-size: 12.5px; margin-top: 4px; max-width: 80vw; }
+  .top .status.show { display: block; }
+
+  /* Panel: dane po lewej i pasek na dole. Kliknięcie w obraz chowa całość. */
+  .panel { transition: opacity .35s ease; }
+  .panel.hidden { opacity: 0; pointer-events: none; }
+  .panel.hidden * { pointer-events: none !important; }
+  .bar { position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 20px); display: flex; justify-content: center; gap: 8px; pointer-events: none; }
+  .bar > * { pointer-events: auto; }
+  .play { flex: 0 0 auto; width: 52px; height: 52px; padding: 0; border: 0; border-radius: var(--r); background: #fff; color: #000; display: grid; place-items: center; cursor: pointer; }
+  .play svg { width: 18px; height: 18px; }
+  .sq { width: 52px; height: 52px; padding: 0; border: 0; color: var(--icon); display: grid; place-items: center; cursor: pointer; }
+  .sq:hover, .sq[aria-expanded="true"] { color: #fff; }
+
+  .station { position: relative; width: 320px; height: 52px; display: flex; align-items: center; gap: 2px; padding: 0 10px 0 0; }
+  .st-main { flex: 1; min-width: 0; height: 100%; display: flex; align-items: center; gap: 12px; padding: 0 8px 0 18px; border: 0; background: none; text-align: left; cursor: pointer; }
+  .st-main .dot { width: 12px; height: 12px; border-radius: 50%; background: #cfe0ff; box-shadow: 0 0 10px #9fc2ff; flex: 0 0 auto; }
+  .st-main .t { min-width: 0; }
+  .st-main b { display: block; font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .st-main .t div { font-size: 11.5px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* Okienka nad paskiem: informacja o pulsarze, tryb danych, styl obrazu. */
+  .pop { position: absolute; bottom: calc(100% + 8px); background: var(--pop); border: 1px solid var(--line); border-radius: var(--r);
+    -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); display: none; z-index: 5; }
+  .pop.open { display: block; }
+  .info-pop { left: 0; width: 100%; }
+  .mode-wrap, .style-wrap { position: relative; flex: 0 0 auto; }
+  .mode-pop { right: 0; padding: 6px; }
+  .modes button { display: flex; align-items: center; gap: 10px; width: 100%; border: 0; background: none; color: var(--dim);
+    font-size: 14px; font-weight: 500; padding: 9px 12px; border-radius: 11px; cursor: pointer; white-space: nowrap; }
+  .modes button.on { background: rgba(255,255,255,0.1); color: var(--text); }
+  .modes svg { width: 18px; height: 18px; }
+  .style-pop { right: 0; padding: 10px; width: 300px; max-width: calc(100vw - 20px); }
   .styles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-  .styles button { border: 0; background: rgba(255,255,255,0.04); color: var(--dim); font-size: 12px; font-weight: 600; padding: 10px 4px 8px;
+  .styles button { border: 0; background: rgba(255,255,255,0.04); color: var(--dim); font-size: 12px; font-weight: 500; padding: 10px 4px 8px;
     border-radius: 12px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; }
-  .styles button.on { background: rgba(255,255,255,0.14); color: var(--text); }
+  .styles button.on { background: rgba(255,255,255,0.12); color: var(--text); }
+  .styles svg { width: 24px; height: 24px; }
   .style-pop .note { color: var(--dim); font-size: 12px; margin: 10px 4px 2px; }
 
-  .panel { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom) + 12px);
-    width: min(560px, calc(100% - 20px)); background: var(--panel); border: 1px solid var(--line);
-    border-radius: 22px; padding: 14px;
-    transition: transform .35s ease, opacity .35s ease; }
-  .panel.hidden { transform: translate(-50%, calc(100% + 30px)); opacity: 0; pointer-events: none; }
+  /* Informacja o pulsarze: ta sama w okienku nad stacją i na mapie. */
+  .info { padding: 16px 18px 18px; font-size: 12px; }
+  .info-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .info-head b { font-size: 14px; font-weight: 500; }
+  .info .tag { color: rgba(238,240,246,0.8); margin-top: 3px; }
+  .info .ico { margin: -6px -8px 0 0; }
+  .info dl { display: grid; grid-template-columns: 100px 1fr; gap: 3px 0; margin: 14px 0 0; }
+  .info dt { color: var(--dim); }
+  .info dd { margin: 0; color: var(--text); font-variant-numeric: tabular-nums; }
+  .info .about { margin: 14px 0 0; color: rgba(238,240,246,0.8); }
+  .info .how { margin-top: 12px; color: var(--dim); }
+  .info .how span { display: block; color: rgba(238,240,246,0.8); margin-bottom: 2px; }
 
-  .row { display: flex; gap: 8px; align-items: center; }
-  .play { flex: 0 0 auto; width: 48px; height: 48px; padding: 0; border-radius: 50%; border: 0; display: grid; place-items: center;
-    background: var(--accent); color: #241703; font-weight: 700; font-size: 16px; cursor: pointer; }
-  .play.on { background: rgba(255,255,255,0.12); color: var(--text); }
-
-  .psr { display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 10px; padding: 9px 12px;
-    background: rgba(255,255,255,0.05); border: 1px solid var(--line); border-radius: 14px; color: var(--text); cursor: pointer; text-align: left; }
-  .psr .dot { width: 10px; height: 10px; border-radius: 50%; background: #cfe0ff; box-shadow: 0 0 10px #9fc2ff; flex: 0 0 auto; }
-  .psr .t { flex: 1; min-width: 0; }
-  .psr .t b { font-size: 14px; }
-  .psr .t div { font-size: 12px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .psr .chev { color: var(--dim); font-size: 13px; white-space: nowrap; }
-  .row .psr { flex: 1; min-width: 0; margin-top: 0; }
-  @media (max-width: 480px) { .psr .chev .long, .stat .long { display: none; } }
-  @media (min-width: 481px) { .stat .short { display: none; } }
-  /* Tryb danych: jedna ikona, wybór w okienku nad panelem. */
-  .mode-wrap { position: relative; flex: 0 0 auto; }
-  .mode-btn { width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--line); background: rgba(255,255,255,0.06);
-    color: var(--text); display: grid; place-items: center; cursor: pointer; }
-  .mode-btn svg, .modes svg { width: 22px; height: 22px; }
-  .mode-pop { position: absolute; right: 0; bottom: calc(100% + 8px); background: rgba(14,17,28,0.97); border: 1px solid var(--line);
-    border-radius: 16px; padding: 6px; display: none; z-index: 5; }
-  .mode-pop.open { display: block; }
-  .modes button { display: flex; align-items: center; gap: 10px; width: 100%; border: 0; background: none; color: var(--dim);
-    font-size: 14px; font-weight: 600; padding: 9px 12px; border-radius: 11px; cursor: pointer; white-space: nowrap; }
-  .modes button.on { background: rgba(255,255,255,0.12); color: var(--text); }
-
-  .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 10px; }
-  .stat { background: rgba(255,255,255,0.04); border-radius: 12px; padding: 8px 9px 7px; text-align: left; min-width: 0; }
-  .stat .v { font-size: 17px; font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .stat .v small { font-size: 10px; font-weight: 500; color: var(--dim); margin-left: 3px; }
-  @media (max-width: 480px) { .stats { gap: 5px; } .stat { padding: 8px 5px 7px; } .stat .v { font-size: 14px; } .stat .v small { margin-left: 1px; font-size: 9px; } .stat.wide .v small { display: none; } }
-  @media (max-width: 360px) { .stats { gap: 4px; } .stat { padding: 8px 4px 7px; } .stat .k, .stat .r { font-size: 9.5px; } .stat .v small { display: none; } }
-  .stat .k { font-size: 11px; color: var(--dim); margin-top: 1px; }
+  /* Dane: kolumna po lewej. */
+  .stats { position: fixed; left: 20px; top: 50%; transform: translateY(-50%); width: 110px; display: grid; gap: 6px; }
+  .stat { padding: 13px 16px 12px; text-align: left; min-width: 0; }
+  .stat .v { font-size: 17px; font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .stat .v small { font-size: 11px; font-weight: 400; color: var(--dim); margin-left: 3px; }
+  .stat .k { font-size: 11px; color: var(--dim); margin-top: 2px; }
+  .stat .r { font-size: 11px; line-height: 1.2; color: rgb(239,230,210); opacity: .9; margin-top: 1px; }
   .stat .r.off { opacity: .35; }
-  .stat .r { font-size: 11px; line-height: 1.2; color: rgb(239,230,210); opacity: .9; margin-top: 3px; hyphens: manual; }
+  .stat .short { display: none; }
 
-  .more { display: flex; gap: 8px; margin-top: 10px; }
-  .ghost { flex: 1; height: 38px; border-radius: 12px; border: 1px solid var(--line); background: none;
-    color: var(--text); font-size: 13.5px; cursor: pointer; }
+  .devbox { position: fixed; right: 16px; top: calc(env(safe-area-inset-top) + 80px); width: 260px; max-height: 70vh; overflow: auto; padding: 10px; }
+  .more { display: flex; gap: 8px; flex-wrap: wrap; }
+  .ghost { flex: 1; height: 34px; border-radius: 10px; border: 1px solid var(--line); background: none; color: var(--text); font-size: 12.5px; cursor: pointer; }
   .ghost:active { background: rgba(255,255,255,0.08); }
-
   .sliders { display: none; margin-top: 10px; gap: 8px; }
   .sliders.open { display: grid; }
-  .sliders label { display: grid; grid-template-columns: 70px 1fr 54px; align-items: center; gap: 8px; font-size: 13px; color: var(--dim); }
+  .sliders label { display: grid; grid-template-columns: 60px 1fr 44px; align-items: center; gap: 6px; font-size: 12px; color: var(--dim); }
   .sliders output { text-align: right; color: var(--text); font-variant-numeric: tabular-nums; }
   input[type=range] { width: 100%; accent-color: var(--accent); }
   .err { color: #ff9b8a; }
   body:not(.dev) .dev-only { display: none !important; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
   /* Mapa pulsarów */
   .sheet { position: fixed; inset: 0; background: #05060b;
-    display: flex; flex-direction: column; padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px);
+    display: flex; flex-direction: column; padding: calc(env(safe-area-inset-top) + 24px) 20px calc(env(safe-area-inset-bottom) + 20px);
     opacity: 0; pointer-events: none; transition: opacity .3s ease; }
   .sheet.open { opacity: 1; pointer-events: auto; }
-  .sheet-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; max-width: 900px; width: 100%; margin: 0 auto; }
-  .sheet-head b { font-size: 19px; }
-  .sheet-head .sub { color: var(--dim); font-size: 13px; margin-top: 3px; }
-  .sheet-actions { display: flex; gap: 8px; flex: 0 0 auto; }
-  .sheet-head button { border: 0; background: var(--accent); color: #241703; font-weight: 700; border-radius: 18px; height: 36px; padding: 0 16px; cursor: pointer; }
-  .sheet-head button.auto-toggle { background: rgba(255,255,255,0.12); color: var(--text); }
-  .sheet-head button.auto-toggle.on { background: var(--accent); color: #241703; }
-  .auto-status { max-width: 900px; width: 100%; margin: 8px auto 0; color: var(--dim); font-size: 12px; }
-  .sheet-head, .auto-status, .card { position: relative; z-index: 1; }
+  .sheet-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-left: 18px; }
+  .sheet-head b { font-size: 16px; font-weight: 500; }
+  .sheet-actions { display: flex; gap: 8px; align-items: center; }
+  .auto-toggle { height: 36px; padding: 0 14px; border: 0; border-radius: 12px; color: var(--icon); font-size: 13px; cursor: pointer; }
+  .auto-toggle.on { background: #fff; color: #000; }
+  .sheet-head .sq { width: 36px; height: 36px; border-radius: 12px; }
+  .sheet-head, .card { position: relative; z-index: 1; }
   .skywrap { position: absolute; inset: 0; }
   #sky { display: block; touch-action: manipulation; cursor: pointer; }
-  .card { max-width: 900px; width: 100%; margin: auto auto 0; background: rgba(12,15,26,0.82); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); border: 1px solid var(--line); border-radius: 18px; padding: 14px 16px; }
-  .card .name { font-size: 17px; font-weight: 650; }
-  .card .facts { display: flex; gap: 18px; margin-top: 8px; flex-wrap: wrap; }
-  .card .facts div { font-size: 12px; color: var(--dim); }
-  .card .facts b { display: block; font-size: 16px; color: var(--text); font-variant-numeric: tabular-nums; }
-  .card .desc { margin-top: 8px; font-size: 13.5px; color: rgba(238,240,246,0.8); }
-  .card .why { margin-top: 6px; font-size: 12.5px; color: var(--dim); }
+  .card { width: 360px; max-width: 100%; margin: auto auto 0; background: var(--pop); border: 1px solid var(--line); border-radius: var(--r);
+    -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+
+  /* Telefon: dane w jednym rzędzie nad paskiem, styl obrazu w prawym górnym rogu. */
+  @media (max-width: 640px) {
+    .top { padding: calc(env(safe-area-inset-top) + 18px) 20px 0; }
+    .bar { left: 10px; right: 10px; bottom: calc(env(safe-area-inset-bottom) + 10px); gap: 6px; }
+    .play, .sq { width: 48px; height: 48px; }
+    .station { flex: 1; width: auto; min-width: 0; height: 48px; padding-right: 6px; }
+    .st-main { padding-left: 14px; gap: 10px; }
+    .style-wrap { position: fixed; top: calc(env(safe-area-inset-top) + 8px); right: 10px; }
+    .style-wrap .sq { width: 44px; height: 44px; }
+    .style-pop { top: calc(100% + 8px); bottom: auto; }
+    .info-pop { position: fixed; left: 10px; right: 10px; width: auto; bottom: calc(env(safe-area-inset-bottom) + 66px); }
+    .stats { left: 10px; right: 10px; top: auto; bottom: calc(env(safe-area-inset-bottom) + 64px); transform: none; width: auto; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+    .stat { padding: 8px 6px 7px; border-radius: 14px; }
+    .stat .v { font-size: 14px; }
+    .stat .v small { margin-left: 1px; font-size: 9px; }
+    .stat.wide .v small { display: none; }
+    .stat .k, .stat .r { font-size: 10.5px; }
+    .stat .long { display: none; }
+    .stat .short { display: inline; }
+    .devbox { top: auto; bottom: 150px; left: 10px; right: 10px; width: auto; max-height: 40vh; }
+    .sheet { padding-left: 10px; padding-right: 10px; }
+    .sheet-head { padding-left: 10px; }
+    .card { width: auto; }
+  }
+  @media (max-width: 360px) { .stats { gap: 4px; } .stat { padding: 8px 4px 7px; } .stat .k, .stat .r { font-size: 9.5px; } .stat .v small { display: none; } }
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
 
 <div class="top">
-  <h1>Pulsar FM</h1>
-  <div class="status" id="status">Ładuję dane…</div>
-  <button class="style-btn" id="styleBtn" type="button" aria-haspopup="true" aria-expanded="false"></button>
-  <div class="style-pop" id="stylePop">
-    <div class="styles" id="styles">
-      <button data-style="ridges" class="on">Grzbiety</button>
-      <button data-style="waves">Fale</button>
-      <button data-style="cymatics">Cymatyka</button>
-      <button data-style="color">Kolor</button>
-      <button data-style="bauhaus">Bauhaus</button>
-      <button data-style="scope">Oscyloskop</button>
-    </div>
-    <div class="note" id="styleNote"></div>
-  </div>
+  <h1>Pulsar.fm</h1>
+  <div class="status" id="status" aria-live="polite">Loading data…</div>
 </div>
 
 <div class="panel" id="panel">
-  <div class="row">
-    <button class="play" id="play" type="button" aria-label="Posłuchaj" title="Posłuchaj"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg></button>
-    <button class="psr" id="psrBtn">
-      <span class="dot" id="psrDot"></span>
-      <span class="t"><b id="psrName">PSR B0329+54</b><div id="psrLine"></div></span>
-      <span class="chev"><span class="long">Zmień na mapie </span>›</span>
-    </button>
+  <div class="stats">
+    <div class="stat tile" title="The last 16 minutes of solar wind set the notes of the melody and the chords"><div class="v"><span id="vWind">–</span><small>km/s</small></div><div class="k">Solar wind</div><div class="r">Melody</div></div>
+    <div class="stat tile" title="The denser the wind, the more notes in the melody and the more small drum hits"><div class="v"><span id="vDens">–</span><small>p/cm³</small></div><div class="k">Density</div><div class="r">Rhythm</div></div>
+    <div class="stat tile" title="Bz below −2 nT: a dark scale and a low bass; above 0: a bright scale"><div class="v"><span id="vBz">–</span><small>nT</small></div><div class="k">Bz</div><div class="r" id="rBz">Scale</div></div>
+    <div class="stat tile" title="From Kp 4, quiet high tones play above the chords, louder as Kp rises"><div class="v" id="vKp">–</div><div class="k">Kp</div><div class="r" id="rKp"><span class="long">High tones</span><span class="short">Highs</span></div></div>
+    <div class="stat tile" title="A new flare from class C: a boom like in a film trailer (big drum, low boom, at M and X a braam chord)"><div class="v" id="vX">–</div><div class="k">Solar flare</div><div class="r" id="rX">Boom</div></div>
+  </div>
+
+  <div class="bar">
+    <button class="play" id="play" type="button" aria-label="Play" title="Play"></button>
+    <div class="station tile">
+      <button class="st-main" id="stMain" type="button" title="Choose a pulsar">
+        <span class="dot" id="psrDot"></span>
+        <span class="t"><b id="psrName">PSR B0329+54</b><div id="psrLine"></div></span>
+      </button>
+      <button class="ico" id="infoBtn" type="button" aria-haspopup="true" aria-expanded="false" title="About this pulsar" aria-label="About this pulsar"></button>
+      <button class="ico" id="psrBtn" type="button" title="Choose a pulsar" aria-label="Choose a pulsar"></button>
+      <div class="pop info-pop" id="infoPop"></div>
+    </div>
     <div class="mode-wrap">
-      <button class="mode-btn" id="modeBtn" type="button" aria-haspopup="true" aria-expanded="false"></button>
-      <div class="mode-pop" id="modePop">
+      <button class="sq tile" id="modeBtn" type="button" aria-haspopup="true" aria-expanded="false"></button>
+      <div class="pop mode-pop" id="modePop">
         <div class="modes" id="modes">
-          <button data-mode="live" class="on">Na żywo</button>
-          <button data-mode="replay">Zapis 3 h</button>
-          <button data-mode="storm" class="dev-only">Burza</button>
+          <button data-mode="live" class="on">Live</button>
+          <button data-mode="replay">Replay 3 h</button>
+          <button data-mode="storm" class="dev-only">Storm</button>
         </div>
+      </div>
+    </div>
+    <div class="style-wrap">
+      <button class="sq tile" id="styleBtn" type="button" aria-haspopup="true" aria-expanded="false"></button>
+      <div class="pop style-pop" id="stylePop">
+        <div class="styles" id="styles">
+          <button data-style="ridges" class="on">Ridges</button>
+          <button data-style="waves">Waves</button>
+          <button data-style="cymatics">Cymatics</button>
+          <button data-style="color">Colour</button>
+          <button data-style="bauhaus">Bauhaus</button>
+          <button data-style="scope">Oscilloscope</button>
+        </div>
+        <div class="note" id="styleNote"></div>
       </div>
     </div>
   </div>
 
-  <div class="stats">
-    <div class="stat" title="Ostatnie 16 minut wiatru wyznacza nuty melodii i akordy"><div class="v"><span id="vWind">–</span><small>km/s</small></div><div class="k">Wiatr</div><div class="r">melodia</div></div>
-    <div class="stat" title="Im gęściej, tym więcej nut w melodii i więcej drobnych uderzeń perkusji"><div class="v" id="vDens">–</div><div class="k">Gęstość</div><div class="r">rytm</div></div>
-    <div class="stat" title="Bz poniżej −2 nT: mroczna skala i niski bas; powyżej 0: jasna skala"><div class="v"><span id="vBz">–</span><small>nT</small></div><div class="k">Bz</div><div class="r" id="rBz">skala</div></div>
-    <div class="stat" title="Od Kp 4 nad akordami grają ciche wysokie tony, tym głośniej, im wyższe Kp"><div class="v" id="vKp">–</div><div class="k">Kp</div><div class="r" id="rKp"><span class="long">wysokie tony</span><span class="short">sopran</span></div></div>
-    <div class="stat" title="Nowy rozbłysk od klasy C: wybuch jak w zwiastunie filmu (wielki bęben, niskie buum, przy M i X akord braam)"><div class="v" id="vX">–</div><div class="k">Rozbłysk</div><div class="r" id="rX">wybuch</div></div>
-  </div>
-
-  <div class="more dev-only">
-    <button class="ghost" id="flare">Wywołaj rozbłysk</button>
-    <button class="ghost" id="toggleSliders">Steruj ręcznie</button>
-    <div id="layers"></div>
-  </div>
-
-  <div class="sliders dev-only" id="sliders">
-    <label>Wiatr <input type="range" id="sWind" min="280" max="900" step="5"><output id="oWind"></output></label>
-    <label>Gęstość <input type="range" id="sDens" min="0.5" max="30" step="0.5"><output id="oDens"></output></label>
-    <label>Bz <input type="range" id="sBz" min="-25" max="15" step="0.5"><output id="oBz"></output></label>
-    <label>Kp <input type="range" id="sKp" min="0" max="9" step="0.33"><output id="oKp"></output></label>
+  <div class="devbox tile dev-only">
+    <div class="more">
+      <button class="ghost" id="flare">Wywołaj rozbłysk</button>
+      <button class="ghost" id="toggleSliders">Steruj ręcznie</button>
+      <div id="layers"></div>
+    </div>
+    <div class="sliders" id="sliders">
+      <label>Wiatr <input type="range" id="sWind" min="280" max="900" step="5"><output id="oWind"></output></label>
+      <label>Gęstość <input type="range" id="sDens" min="0.5" max="30" step="0.5"><output id="oDens"></output></label>
+      <label>Bz <input type="range" id="sBz" min="-25" max="15" step="0.5"><output id="oBz"></output></label>
+      <label>Kp <input type="range" id="sKp" min="0" max="9" step="0.33"><output id="oKp"></output></label>
+    </div>
   </div>
 </div>
 
 <div class="sheet" id="sheet">
   <div class="sheet-head">
-    <div>
-      <b>Wybierz pulsar</b>
-      <div class="sub">Mapa całego nieba. Każdy pulsar miga w swoim prawdziwym rytmie. Wolne nadają tempo, szybkie są tak szybkie, że stają się dźwiękiem i nadają tonację.</div>
-    </div>
+    <b>Choose a pulsar</b>
     <div class="sheet-actions">
-      <button class="auto-toggle" id="autoPulsar" type="button" aria-pressed="false">Auto: nie</button>
-      <button id="sheetClose">Gotowe</button>
+      <button class="auto-toggle tile" id="autoPulsar" type="button" aria-pressed="false" title="Pick the pulsar highest above you">Auto</button>
+      <button class="sq tile" id="sheetClose" type="button" title="Close" aria-label="Close"></button>
     </div>
   </div>
-  <div class="auto-status" id="autoStatus" aria-live="polite">Automatyczny wybór wyłączony.</div>
+  <div class="sr" id="autoStatus" aria-live="polite">Auto choice off.</div>
   <div class="skywrap"><canvas id="sky"></canvas></div>
   <div class="card" id="card"></div>
 </div>
@@ -195,29 +234,50 @@
 <script src="https://cdn.jsdelivr.net/npm/tone@14.8.49/build/Tone.js"></script>
 <script src="data/sky.js"></script>
 <script>
+// Ikony z projektu autora (docs/*24.svg): źródła 24 px, rysowane 18 px.
+const ICON_PATHS = {
+  play: "M22.5 12C22.5006 12.2546 22.4353 12.5051 22.3105 12.727C22.1856 12.949 22.0055 13.1348 21.7875 13.2665L8.28 21.5297C8.05227 21.6691 7.79144 21.7452 7.52445 21.7502C7.25746 21.7551 6.99399 21.6887 6.76125 21.5578C6.53073 21.4289 6.3387 21.2409 6.2049 21.0132C6.07111 20.7855 6.00039 20.5263 6 20.2622V3.73779C6.00039 3.47368 6.07111 3.21445 6.2049 2.98673C6.3387 2.75902 6.53073 2.57106 6.76125 2.44217C6.99399 2.31124 7.25746 2.24482 7.52445 2.24977C7.79144 2.25471 8.05227 2.33084 8.28 2.47029L21.7875 10.7334C22.0055 10.8651 22.1856 11.051 22.3105 11.2729C22.4353 11.4949 22.5006 11.7453 22.5 12Z",
+  info: "M10.125 7.875C10.125 7.57833 10.213 7.28832 10.3778 7.04165C10.5426 6.79497 10.7769 6.60271 11.051 6.48918C11.3251 6.37565 11.6267 6.34594 11.9176 6.40382C12.2086 6.4617 12.4759 6.60456 12.6857 6.81434C12.8954 7.02412 13.0383 7.29139 13.0962 7.58236C13.1541 7.87334 13.1244 8.17494 13.0108 8.44903C12.8973 8.72311 12.705 8.95738 12.4584 9.1222C12.2117 9.28703 11.9217 9.375 11.625 9.375C11.2272 9.375 10.8456 9.21696 10.5643 8.93566C10.283 8.65436 10.125 8.27282 10.125 7.875ZM22.125 12C22.125 14.0025 21.5312 15.9601 20.4186 17.6251C19.3061 19.2902 17.7248 20.5879 15.8747 21.3543C14.0246 22.1206 11.9888 22.3211 10.0247 21.9305C8.06066 21.5398 6.25656 20.5755 4.84055 19.1595C3.42454 17.7435 2.46023 15.9393 2.06955 13.9753C1.67888 12.0112 1.87939 9.97543 2.64572 8.12533C3.41206 6.27523 4.70981 4.69392 6.37486 3.58137C8.0399 2.46882 9.99747 1.875 12 1.875C14.6844 1.87798 17.258 2.94567 19.1562 4.84383C21.0543 6.74199 22.122 9.3156 22.125 12ZM19.875 12C19.875 10.4425 19.4131 8.91992 18.5478 7.62488C17.6825 6.32985 16.4526 5.32049 15.0136 4.72445C13.5747 4.12841 11.9913 3.97246 10.4637 4.27632C8.93607 4.58017 7.53288 5.3302 6.43154 6.43153C5.3302 7.53287 4.58018 8.93606 4.27632 10.4637C3.97246 11.9913 4.12841 13.5747 4.72445 15.0136C5.32049 16.4526 6.32985 17.6825 7.62489 18.5478C8.91993 19.4131 10.4425 19.875 12 19.875C14.0879 19.8728 16.0896 19.0424 17.566 17.566C19.0424 16.0896 19.8728 14.0879 19.875 12ZM13.125 15.4387V12.375C13.125 11.8777 12.9275 11.4008 12.5758 11.0492C12.2242 10.6975 11.7473 10.5 11.25 10.5C10.9843 10.4996 10.7271 10.5932 10.5238 10.7643C10.3206 10.9354 10.1844 11.173 10.1395 11.4348C10.0946 11.6967 10.1438 11.966 10.2784 12.195C10.413 12.4241 10.6244 12.5981 10.875 12.6863V15.75C10.875 16.2473 11.0725 16.7242 11.4242 17.0758C11.7758 17.4275 12.2527 17.625 12.75 17.625C13.0157 17.6254 13.2729 17.5318 13.4762 17.3607C13.6794 17.1896 13.8156 16.952 13.8605 16.6902C13.9054 16.4283 13.8562 16.159 13.7216 15.93C13.587 15.7009 13.3756 15.5269 13.125 15.4387Z",
+  map: "M7.3125 3.375C6.53374 3.375 5.77246 3.60593 5.12494 4.03859C4.47743 4.47125 3.97275 5.0862 3.67473 5.80569C3.37671 6.52517 3.29873 7.31687 3.45066 8.08067C3.60259 8.84447 3.9776 9.54607 4.52827 10.0967C5.07894 10.6474 5.78053 11.0224 6.54433 11.1743C7.30813 11.3263 8.09983 11.2483 8.81932 10.9503C9.5388 10.6523 10.1538 10.1476 10.5864 9.50006C11.0191 8.85254 11.25 8.09127 11.25 7.3125C11.25 6.26821 10.8352 5.26669 10.0967 4.52827C9.35831 3.78984 8.35679 3.375 7.3125 3.375ZM7.3125 9C6.97875 9 6.65249 8.90103 6.37498 8.71561C6.09747 8.53018 5.88118 8.26663 5.75346 7.95828C5.62573 7.64993 5.59231 7.31063 5.65743 6.98329C5.72254 6.65594 5.88326 6.35526 6.11926 6.11926C6.35526 5.88326 6.65594 5.72254 6.98329 5.65743C7.31063 5.59231 7.64993 5.62573 7.95828 5.75346C8.26663 5.88118 8.53018 6.09747 8.71561 6.37498C8.90103 6.65249 9 6.97875 9 7.3125C9 7.76006 8.82221 8.18928 8.50574 8.50574C8.18928 8.82221 7.76006 9 7.3125 9ZM16.6875 11.25C17.4663 11.25 18.2275 11.0191 18.8751 10.5864C19.5226 10.1538 20.0273 9.5388 20.3253 8.81932C20.6233 8.09983 20.7013 7.30813 20.5493 6.54433C20.3974 5.78053 20.0224 5.07894 19.4717 4.52827C18.9211 3.9776 18.2195 3.60259 17.4557 3.45066C16.6919 3.29873 15.9002 3.37671 15.1807 3.67473C14.4612 3.97275 13.8462 4.47743 13.4136 5.12494C12.9809 5.77246 12.75 6.53374 12.75 7.3125C12.75 8.35679 13.1648 9.35831 13.9033 10.0967C14.6417 10.8352 15.6432 11.25 16.6875 11.25ZM16.6875 5.625C17.0213 5.625 17.3475 5.72397 17.625 5.9094C17.9025 6.09482 18.1188 6.35837 18.2466 6.66672C18.3743 6.97507 18.4077 7.31437 18.3426 7.64172C18.2775 7.96906 18.1167 8.26974 17.8807 8.50574C17.6447 8.74175 17.3441 8.90247 17.0167 8.96758C16.6894 9.03269 16.3501 8.99927 16.0417 8.87155C15.7334 8.74383 15.4698 8.52754 15.2844 8.25003C15.099 7.97252 15 7.64626 15 7.3125C15 6.86495 15.1778 6.43573 15.4943 6.11926C15.8107 5.80279 16.24 5.625 16.6875 5.625ZM7.3125 12.75C6.53374 12.75 5.77246 12.9809 5.12494 13.4136C4.47743 13.8462 3.97275 14.4612 3.67473 15.1807C3.37671 15.9002 3.29873 16.6919 3.45066 17.4557C3.60259 18.2195 3.9776 18.9211 4.52827 19.4717C5.07894 20.0224 5.78053 20.3974 6.54433 20.5493C7.30813 20.7013 8.09983 20.6233 8.81932 20.3253C9.5388 20.0273 10.1538 19.5226 10.5864 18.8751C11.0191 18.2275 11.25 17.4663 11.25 16.6875C11.25 15.6432 10.8352 14.6417 10.0967 13.9033C9.35831 13.1648 8.35679 12.75 7.3125 12.75ZM7.3125 18.375C6.97875 18.375 6.65249 18.276 6.37498 18.0906C6.09747 17.9052 5.88118 17.6416 5.75346 17.3333C5.62573 17.0249 5.59231 16.6856 5.65743 16.3583C5.72254 16.0309 5.88326 15.7303 6.11926 15.4943C6.35526 15.2583 6.65594 15.0975 6.98329 15.0324C7.31063 14.9673 7.64993 15.0007 7.95828 15.1285C8.26663 15.2562 8.53018 15.4725 8.71561 15.75C8.90103 16.0275 9 16.3537 9 16.6875C9 17.1351 8.82221 17.5643 8.50574 17.8807C8.18928 18.1972 7.76006 18.375 7.3125 18.375ZM16.6875 12.75C15.9087 12.75 15.1475 12.9809 14.4999 13.4136C13.8524 13.8462 13.3477 14.4612 13.0497 15.1807C12.7517 15.9002 12.6737 16.6919 12.8257 17.4557C12.9776 18.2195 13.3526 18.9211 13.9033 19.4717C14.4539 20.0224 15.1555 20.3974 15.9193 20.5493C16.6831 20.7013 17.4748 20.6233 18.1943 20.3253C18.9138 20.0273 19.5288 19.5226 19.9614 18.8751C20.3941 18.2275 20.625 17.4663 20.625 16.6875C20.625 15.6432 20.2102 14.6417 19.4717 13.9033C18.7333 13.1648 17.7318 12.75 16.6875 12.75ZM16.6875 18.375C16.3537 18.375 16.0275 18.276 15.75 18.0906C15.4725 17.9052 15.2562 17.6416 15.1285 17.3333C15.0007 17.0249 14.9673 16.6856 15.0324 16.3583C15.0975 16.0309 15.2583 15.7303 15.4943 15.4943C15.7303 15.2583 16.0309 15.0975 16.3583 15.0324C16.6856 14.9673 17.0249 15.0007 17.3333 15.1285C17.6416 15.2562 17.9052 15.4725 18.0906 15.75C18.276 16.0275 18.375 16.3537 18.375 16.6875C18.375 17.1351 18.1972 17.5643 17.8807 17.8807C17.5643 18.1972 17.1351 18.375 16.6875 18.375Z",
+  live: "M12 7.87492C11.1842 7.87492 10.3867 8.11685 9.70831 8.57011C9.02995 9.02337 8.50124 9.66761 8.18903 10.4214C7.87682 11.1751 7.79513 12.0045 7.9543 12.8047C8.11346 13.6048 8.50633 14.3398 9.08322 14.9167C9.66011 15.4936 10.3951 15.8865 11.1953 16.0457C11.9955 16.2048 12.8249 16.1231 13.5786 15.8109C14.3323 15.4987 14.9766 14.97 15.4298 14.2916C15.8831 13.6133 16.125 12.8158 16.125 11.9999C16.1238 10.9063 15.6888 9.85779 14.9155 9.08448C14.1422 8.31116 13.0937 7.87616 12 7.87492ZM12 13.8749C11.6292 13.8749 11.2667 13.765 10.9583 13.5589C10.65 13.3529 10.4097 13.0601 10.2678 12.7175C10.1258 12.3748 10.0887 11.9978 10.1611 11.6341C10.2334 11.2704 10.412 10.9363 10.6742 10.6741C10.9364 10.4119 11.2705 10.2333 11.6342 10.1609C11.998 10.0886 12.375 10.1257 12.7176 10.2676C13.0602 10.4096 13.353 10.6499 13.559 10.9582C13.7651 11.2666 13.875 11.6291 13.875 11.9999C13.875 12.4972 13.6775 12.9741 13.3259 13.3257C12.9742 13.6774 12.4973 13.8749 12 13.8749ZM19.2553 15.0655C18.9171 15.8651 18.4489 16.6032 17.8697 17.2499C17.6708 17.4723 17.3917 17.6066 17.0938 17.6232C16.7959 17.6398 16.5035 17.5374 16.2811 17.3385C16.0587 17.1396 15.9244 16.8605 15.9078 16.5626C15.8912 16.2646 15.9936 15.9723 16.1925 15.7499C17.1165 14.7194 17.6275 13.384 17.6275 11.9999C17.6275 10.6158 17.1165 9.28046 16.1925 8.24992C15.9936 8.02751 15.8912 7.7352 15.9078 7.43728C15.9244 7.13936 16.0587 6.86024 16.2811 6.66133C16.5035 6.46242 16.7959 6.36 17.0938 6.37662C17.3917 6.39323 17.6708 6.52751 17.8697 6.74992C18.8643 7.86261 19.5225 9.23481 19.7678 10.7069C20.0131 12.179 19.8354 13.6905 19.2553 15.0655ZM7.80754 15.7499C8.00645 15.9723 8.10886 16.2646 8.09225 16.5626C8.07563 16.8605 7.94135 17.1396 7.71894 17.3385C7.49653 17.5374 7.20422 17.6398 6.9063 17.6232C6.60838 17.6066 6.32926 17.4723 6.13035 17.2499C4.83781 15.8067 4.1231 13.9373 4.1231 11.9999C4.1231 10.0625 4.83781 8.19316 6.13035 6.74992C6.32926 6.52751 6.60838 6.39323 6.9063 6.37662C7.20422 6.36 7.49653 6.46242 7.71894 6.66133C7.94135 6.86024 8.07563 7.13936 8.09225 7.43728C8.10886 7.7352 8.00645 8.02751 7.80754 8.24992C6.88358 9.28046 6.37259 10.6158 6.37259 11.9999C6.37259 13.384 6.88358 14.7194 7.80754 15.7499ZM23.625 11.9999C23.6287 15.0427 22.4356 17.9648 20.3035 20.1355C20.2016 20.2469 20.0783 20.3366 19.9411 20.3993C19.8038 20.462 19.6553 20.4965 19.5044 20.5006C19.3536 20.5047 19.2034 20.4785 19.0629 20.4234C18.9224 20.3683 18.7944 20.2855 18.6865 20.1799C18.5787 20.0743 18.4932 19.9481 18.4351 19.8088C18.3771 19.6695 18.3476 19.52 18.3486 19.369C18.3495 19.2181 18.3808 19.0689 18.4406 18.9304C18.5004 18.7918 18.5874 18.6667 18.6966 18.5624C20.417 16.8114 21.381 14.4547 21.381 11.9999C21.381 9.54511 20.417 7.18848 18.6966 5.43742C18.4877 5.22434 18.3721 4.93701 18.3751 4.63865C18.3781 4.34029 18.4995 4.05534 18.7125 3.84648C18.9256 3.63763 19.2129 3.52197 19.5113 3.52496C19.8097 3.52795 20.0946 3.64934 20.3035 3.86242C22.4361 6.03363 23.6292 8.95653 23.625 11.9999ZM5.30347 18.5624C5.51233 18.7755 5.62799 19.0628 5.625 19.3612C5.62201 19.6595 5.50062 19.9445 5.28754 20.1534C5.07445 20.3622 4.78712 20.4779 4.48877 20.4749C4.19041 20.4719 3.90546 20.3505 3.6966 20.1374C1.56526 17.9658 0.371216 15.0446 0.371216 12.0018C0.371216 8.95903 1.56526 6.03777 3.6966 3.86617C3.90834 3.66944 4.18769 3.56175 4.4767 3.56543C4.76571 3.56912 5.04222 3.68391 5.24887 3.88598C5.45553 4.08806 5.57648 4.36192 5.58665 4.65077C5.59681 4.93963 5.49541 5.22132 5.30347 5.43742C3.58304 7.18848 2.61905 9.54511 2.61905 11.9999C2.61905 14.4547 3.58304 16.8114 5.30347 18.5624Z",
+  style: "M22.7682 12.4781C20.6119 17.0719 18.7369 19.125 16.6913 19.125C14.1 19.125 12.585 15.8963 10.9819 12.4781C10.3125 11.0419 9.61222 9.5625 8.89879 8.50594C8.2866 7.60219 7.73722 7.125 7.31254 7.125C6.95441 7.125 5.60254 7.51125 3.27285 12.4781C3.14604 12.7483 2.91711 12.957 2.63642 13.0583C2.49744 13.1085 2.34993 13.1308 2.20232 13.124C2.05472 13.1172 1.90989 13.0814 1.77613 13.0186C1.50598 12.8918 1.29727 12.6629 1.19592 12.3822C1.09456 12.1015 1.10886 11.792 1.23566 11.5219C3.39191 6.92813 5.26691 4.875 7.31254 4.875C9.90378 4.875 11.4188 8.10375 13.0219 11.5219C13.696 12.9581 14.3916 14.4422 15.105 15.4941C15.7172 16.3978 16.2666 16.875 16.6988 16.875C17.0569 16.875 18.4088 16.4888 20.7385 11.5219C20.8653 11.2517 21.0942 11.043 21.3749 10.9417C21.6556 10.8403 21.965 10.8546 22.2352 10.9814C22.5053 11.1082 22.714 11.3371 22.8154 11.6178C22.9168 11.8985 22.9025 12.208 22.7757 12.4781H22.7682Z",
+  close: "M19.546 17.954C19.7573 18.1653 19.876 18.452 19.876 18.7509C19.876 19.0497 19.7573 19.3364 19.546 19.5477C19.3346 19.7591 19.048 19.8778 18.7491 19.8778C18.4502 19.8778 18.1636 19.7591 17.9522 19.5477L12 13.5937L6.04596 19.5459C5.83461 19.7572 5.54797 19.8759 5.24908 19.8759C4.9502 19.8759 4.66355 19.7572 4.45221 19.5459C4.24086 19.3345 4.12213 19.0479 4.12213 18.749C4.12213 18.4501 4.24086 18.1635 4.45221 17.9521L10.4063 11.9999L4.45408 6.04586C4.24274 5.83451 4.12401 5.54787 4.12401 5.24898C4.12401 4.9501 4.24274 4.66345 4.45408 4.45211C4.66543 4.24076 4.95207 4.12203 5.25096 4.12203C5.54984 4.12203 5.83649 4.24076 6.04783 4.45211L12 10.4062L17.9541 4.45117C18.1654 4.23983 18.4521 4.12109 18.751 4.12109C19.0498 4.12109 19.3365 4.23983 19.5478 4.45117C19.7592 4.66251 19.8779 4.94916 19.8779 5.24805C19.8779 5.54693 19.7592 5.83358 19.5478 6.04492L13.5938 11.9999L19.546 17.954Z",
+};
+const ICONS = Object.fromEntries(Object.entries(ICON_PATHS).map(([k, d]) => [k, `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}" fill="currentColor"/></svg>`]));
+ICONS.stop = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="2.5" fill="currentColor"/></svg>';
+document.getElementById("play").innerHTML = ICONS.play;
 "use strict";
 
 // ---------- Pulsary ----------
 // Okresy i położenia z literatury (katalog ATNF). ra w godzinach, dec w stopniach.
 const PULSARS = [
   { id: "B0329", genre: "ambient", lab: [0, -24, "center"], name: "PSR B0329+54", short: "B0329+54", P: 0.714520, ra: 3.550, dec: 54.58,
-    desc: "Jeden z najjaśniejszych pulsarów nieba północnego. Spokojny, równy marsz." },
-  { id: "B1919", genre: "choral", lab: [0, -15, "center"], name: "PSR B1919+21", short: "B1919+21 · pierwszy", P: 1.337302, ra: 19.362, dec: 21.88,
-    desc: "Pierwszy odkryty pulsar (Jocelyn Bell Burnell, 1967). Powolny i uroczysty." },
-  { id: "J2144", genre: "drone", lab: [0, 24, "center"], name: "PSR J2144−3933", short: "J2144 · najwolniejszy", P: 8.509827, ra: 21.737, dec: -39.57,
-    desc: "Jeden z najwolniejszych znanych pulsarów: jeden błysk co 8,5 s. Prawie cisza między uderzeniami." },
+    tag: "One of the brightest pulsars in the northern sky.",
+    about: "A calm, steady march." },
+  { id: "B1919", genre: "choral", lab: [0, -15, "center"], name: "PSR B1919+21", short: "B1919+21 · first", P: 1.337302, ra: 19.362, dec: 21.88,
+    tag: "The first pulsar ever found (Jocelyn Bell Burnell, 1967).",
+    about: "Slow and solemn." },
+  { id: "J2144", genre: "drone", lab: [0, 24, "center"], name: "PSR J2144−3933", short: "J2144 · slowest", P: 8.509827, ra: 21.737, dec: -39.57,
+    tag: "One of the slowest pulsars known: one flash every 8.5 s.",
+    about: "Near silence between the beats." },
   { id: "Geminga", genre: "techno", lab: [-9, 15, "right"], name: "Geminga", short: "Geminga", P: 0.237099, ra: 6.565, dec: 17.77,
-    desc: "Bliski pulsar świecący w promieniach gamma. Cztery błyski na sekundę: szybka, nerwowa pulsacja." },
+    tag: "A nearby pulsar that shines in gamma rays.",
+    about: "Four flashes a second: a quick, nervous pulse." },
   { id: "B0950", genre: "deep", lab: [0, 20, "center"], name: "PSR B0950+08", short: "B0950+08", P: 0.253065, ra: 9.886, dec: 7.93,
-    desc: "Jasny, bliski pulsar, błyska cztery razy na sekundę." },
-  { id: "Vela", genre: "glitch", lab: [0, -15, "center"], name: "Pulsar Vela", short: "Vela", P: 0.089328, ra: 8.589, dec: -45.18,
-    desc: "Pozostałość supernowej w gwiazdozbiorze Żagla. 11 błysków na sekundę to już warkot, nie rytm." },
-  { id: "Crab", genre: "dub", lab: [11, -7, "left"], name: "Pulsar w Krabie", short: "Krab", P: 0.03374, ra: 5.576, dec: 22.01,
-    desc: "Serce Mgławicy Kraba, po supernowej z 1054 roku. 30 obrotów na sekundę: najniższy bas." },
+    tag: "A bright, nearby pulsar.",
+    about: "It flashes four times a second." },
+  { id: "Vela", genre: "glitch", lab: [0, -15, "center"], name: "Vela Pulsar", short: "Vela", P: 0.089328, ra: 8.589, dec: -45.18,
+    tag: "What is left of a supernova in the constellation Vela.",
+    about: "11 flashes a second is already a hum, not a rhythm." },
+  { id: "Crab", genre: "dub", lab: [11, -7, "left"], name: "Crab Pulsar", short: "Crab", P: 0.03374, ra: 5.576, dec: 22.01,
+    tag: "The heart of the Crab Nebula, left by the supernova of 1054.",
+    about: "30 turns a second: the deepest bass." },
   { id: "J0437", genre: "glass", lab: [0, 26, "center"], name: "PSR J0437−4715", short: "J0437", P: 0.005757452, ra: 4.621, dec: -47.25,
-    desc: "Najbliższy i najjaśniejszy pulsar milisekundowy. Obraca się 174 razy na sekundę." },
-  { id: "Ter5", genre: "musicbox", lab: [0, -17, "center"], name: "PSR J1748−2446ad", short: "Terzan 5 · najszybszy", P: 0.00139595, ra: 17.810, dec: -24.77,
-    desc: "Najszybszy znany pulsar, 716 obrotów na sekundę, w gromadzie kulistej Terzan 5." },
+    tag: "The nearest and brightest millisecond pulsar.",
+    about: "It spins 174 times a second." },
+  { id: "Ter5", genre: "musicbox", lab: [0, -17, "center"], name: "PSR J1748−2446ad", short: "Terzan 5 · fastest", P: 0.00139595, ra: 17.810, dec: -24.77,
+    tag: "The fastest pulsar known, in the globular cluster Terzan 5.",
+    about: "716 turns a second." },
 ];
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 const NOTE_PL = { "C#": "Cis", "D#": "Dis", "F#": "Fis", "G#": "Gis", "A#": "B", B: "H" };
@@ -244,17 +304,18 @@ function bpmFor(p) {
 // Wszystko, co pulsar ustala w muzyce, opisane tak samo dla każdego. Liczby idą z tego, co naprawdę gra.
 function psrFacts(p) {
   const m = musicFor(p), bpm = bpmFor(p), perMin = 60 / p.P, ratio = perMin / bpm;
-  const per = p.P >= 1 ? fmt(p.P, 2) + " s" : p.P >= 0.01 ? fmt(p.P * 1000, 1) + " ms" : fmt(p.P * 1000, 2) + " ms";
+  const per = p.P >= 0.5 ? fmt(p.P, 2) + " s" : p.P >= 0.01 ? fmt(p.P * 1000, 1) + " ms" : fmt(p.P * 1000, 2) + " ms";
   const each = Math.round(ratio), hits = Math.round(1 / ratio);
-  const beat = ratio < 0.75 ? `${hits} ${hits < 5 ? "uderzenia" : "uderzeń"} na błysk` : each === 1 ? "co błysk" : `co ${each}. błysk`;
-  const tempoWhy = ratio < 0.75 ? `na jeden błysk ${hits < 5 ? "przypadają" : "przypada"} ${hits} ${hits < 5 ? "uderzenia" : "uderzeń"}` : each === 1 ? "każdy błysk to uderzenie" : `co ${each}. błysk to uderzenie`;
+  const nth = (n) => n + ([11, 12, 13].includes(n % 100) ? "th" : ["th", "st", "nd", "rd"][n % 10] || "th");
+  const beat = ratio < 0.75 ? `${hits} beats per flash` : each === 1 ? "every flash is a beat" : `every ${nth(each)} flash is a beat`;
+  const bpmTxt = (Math.round(bpm * 10) / 10) % 1 ? fmt(bpm, 1) : fmt(bpm, 0);
   const rate = fmt(1 / p.P, p.P >= 0.01 ? 1 : 0);
-  const key = m.kind === "tempo" ? "D" : m.note.replace(/\d/, ""), c = Math.round(m.cents);
-  const keySub = m.kind === "tempo" ? "stała" : `${fmt(m.f, 1)} Hz, ${c >= 0 ? "+" : "−"}${Math.abs(c)} c`;
-  const keyWhy = m.kind === "tempo" ? `Tonacja D jest stała: pulsar błyska ${rate} razy na sekundę, to rytm, a nie dźwięk.`
-    : m.f < 20 ? `Pulsar błyska ${rate} razy na sekundę, to za nisko, żeby usłyszeć dźwięk, ale o kilka oktaw wyżej najbliższa nuta to ${m.note}: stąd tonacja.`
-    : `Pulsar błyska ${rate} razy na sekundę, czyli brzmi jak dźwięk ${fmt(m.f, 1)} Hz. Najbliższa nuta to ${m.note}: stąd tonacja, dostrojona o ${c >= 0 ? "+" : "−"}${Math.abs(c)} centów.`;
-  return { per, bpm: fmt(bpm, 1), beat, key, keySub, why: `Tempo ${fmt(bpm, 1)} BPM: ${tempoWhy}. ${keyWhy}` };
+  const key = m.kind === "tempo" ? "D" : m.note.replace(/\d/, ""), c = Math.round(m.cents), cents = `${c >= 0 ? "+" : "−"}${Math.abs(c)}`;
+  const keySub = m.kind === "tempo" ? "fixed" : `${fmt(m.f, 1)} Hz, ${cents} c`;
+  const keyWhy = m.kind === "tempo" ? `The key stays D: at ${rate} flashes per second the pulsar is a rhythm, not a pitch.`
+    : m.f < 20 ? `It flashes ${rate} times a second, too low to hear as a pitch, but a few octaves up the nearest note is ${m.note.replace(/\d/, "")}, so that's the key.`
+    : `The pulsar flashes ${rate} times a second, so it sounds like a ${fmt(m.f, 1)} Hz tone. The nearest note is ${m.note}, so that's the key, tuned ${cents} cents.`;
+  return { per, bpm: bpmTxt, beat, key, keySub, why: `${bpmTxt} BPM: ${beat}. ${keyWhy}` };
 }
 let psr = PULSARS[0];
 
@@ -359,13 +420,16 @@ function applyLive(d) {
 
 function setStatus() {
   const s = $("status");
-  const hh = (d) => d.toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" });
-  if (mode === "live" && liveOK && lastLive) s.textContent = `Na żywo · NOAA, sonda w L1 · pomiar ${hh(lastLive.time)}`;
-  else if (mode === "live" && lastLive) s.innerHTML = `<span class="err">Brak nowych danych NOAA.</span> Trzymam pomiar z ${hh(lastLive.time)}.`;
-  else if (mode === "live") s.innerHTML = `<span class="err">Brak dostępu do NOAA.</span> Gram zapis z 18.10.2026.`;
-  else if (mode === "replay") s.textContent = "Zapis z 18.10.2026, 3 godziny w 3 minuty";
-  else if (mode === "storm") s.textContent = "Symulacja burzy geomagnetycznej (dane umowne)";
-  else s.textContent = "Sterowanie ręczne";
+  const hh = (d) => d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  if (mode === "live" && liveOK && lastLive) s.textContent = `Live · NOAA, L1 spacecraft · measured ${hh(lastLive.time)}`;
+  else if (mode === "live" && lastLive) s.innerHTML = `<span class="err">No new NOAA data.</span> Holding the ${hh(lastLive.time)} reading.`;
+  else if (mode === "live") s.innerHTML = `<span class="err">Can't reach NOAA.</span> Playing the 18 Oct 2026 recording.`;
+  else if (mode === "replay") s.textContent = "Recording from 18 Oct 2026, 3 hours in 3 minutes";
+  else if (mode === "storm") s.textContent = "Geomagnetic storm simulation (made-up data)";
+  else s.textContent = "Manual control";
+  // Pod tytułem tylko kłopoty; zwykły stan jest w podpowiedzi ikony trybu.
+  s.classList.toggle("show", !!s.querySelector(".err"));
+  $("modeBtn").title = s.textContent;
 }
 
 let liveTimer = null;
@@ -542,7 +606,7 @@ const GENRES = {
 
   // B1919+21: chorał. Organy i chór, akord co uderzenie pulsara, melodia w sopranie.
   choral: {
-    label: "Chorał", scales: ["major", "aeolian"],
+    label: "Chorale", scales: ["major", "aeolian"],
     make(B) {
       const organ = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "custom", partials: [1, 0.55, 0.35, 0.22, 0.12, 0.08, 0.05] }, envelope: { attack: 0.25, decay: 0.2, sustain: 0.9, release: 2.2 } }), -28).connect(B.rev);
       const vf = new Tone.Filter({ frequency: 1000, type: "bandpass", Q: 0.9 }).connect(B.rev);
@@ -882,7 +946,7 @@ const GENRES = {
 
   // Terzan 5: 716 obrotów na sekundę, wysoki pisk. Pozytywka w metrum na trzy.
   musicbox: {
-    label: "Pozytywka", barSteps: 12, scales: ["major", "aeolian"],
+    label: "Music box", barSteps: 12, scales: ["major", "aeolian"],
     make(B) {
       const box = vol(new Tone.PolySynth(Tone.FMSynth, { harmonicity: 8, modulationIndex: 2.5, envelope: { attack: 0.001, decay: 1.4, sustain: 0, release: 1.2 }, modulationEnvelope: { attack: 0.001, decay: 0.4, sustain: 0, release: 0.3 } }), -9).connect(B.rev);
       const lowF = new Tone.Filter(1200, "lowpass").connect(B.rev);
@@ -1390,7 +1454,9 @@ function drawScope(L, dt, time) {
 // Miejsce na obraz: między przełącznikiem stylów a panelem.
 function stage() {
   const top = document.querySelector(".top").offsetHeight + 10;
-  const bottom = $("panel").classList.contains("hidden") ? H - 14 : H - $("panel").offsetHeight - 24;
+  // Na telefonie dane leżą nad paskiem, na komputerze po lewej, więc dół obrazu wyznacza wyższy z nich.
+  const low = document.querySelector(window.innerWidth <= 640 ? ".stats" : ".bar").getBoundingClientRect().top;
+  const bottom = $("panel").classList.contains("hidden") ? H - 14 : low - 14;
   const h = Math.max(80, bottom - top);
   return { y: top, w: W, h, cx: W / 2, cy: top + h / 2 };
 }
@@ -1600,11 +1666,11 @@ function drawColor(L, dt, time) {
 }
 
 const STYLE_NOTES = {
-  ridges: "Jedna linia na obrót pulsara: kształt dźwięku w tej chwili. Kolor: Bz, drżenie: wiatr, wysoka góra: rozbłysk.",
-  waves: "Fale ze Słońca we wszystkie strony. Prędkość i kształt: wiatr, grubość: gęstość, kolor: Bz i Kp, jasna i szybka fala: rozbłysk.",
-  cymatics: "Piasek układa się w figurę aktualnego akordu. Ilość: gęstość wiatru, drgania: prędkość, kolor: Bz.",
-  color: "Górne pole: zorza, dolne: wiatr i Bz. Granica przesuwa się z ciśnieniem wiatru, całość oddycha z pulsarem.",
-};
+  ridges: "One line per pulsar turn: the shape of the sound right now. Colour: Bz, tremble: wind, tall peak: flare.",
+  waves: "Waves from the Sun in every direction. Speed and shape: wind, thickness: density, colour: Bz and Kp, bright fast wave: flare.",
+  cymatics: "Sand settles into the figure of the current chord. Amount: wind density, shaking: speed, colour: Bz.",
+  color: "Top field: aurora, bottom: wind and Bz. The border moves with wind pressure, everything breathes with the pulsar.",
+}
 const STYLES = { ridges: drawRidges, waves: drawWaves, cymatics: drawCymatics, color: drawColor, bauhaus: drawBauhaus, scope: drawScope };
 
 // ---------- Mapa pulsarów ----------
@@ -1703,7 +1769,7 @@ function sizeSky() {
   const wrap = sky.parentElement.getBoundingClientRect();
   SW = wrap.width; SH = wrap.height;
   // Pulsary leżą w pasie do ±55°: ±65° mieści się między nagłówkiem a kartą, reszta nieba idzie pod nie.
-  const top = $("autoStatus").getBoundingClientRect().bottom - wrap.top, bottom = $("card").getBoundingClientRect().top - wrap.top;
+  const top = document.querySelector(".sheet-head").getBoundingClientRect().bottom + 12 - wrap.top, bottom = $("card").getBoundingClientRect().top - 8 - wrap.top;
   skyMid = (top + bottom) / 2; skyScale = (bottom - top) / 130;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   sky.width = SW * dpr; sky.height = SH * dpr; sky.style.width = SW + "px"; sky.style.height = SH + "px";
@@ -1738,7 +1804,7 @@ function renderSkyBase(dpr) {
   sctx.restore();
   const gc = skyXY(17.761, -29.0);
   sctx.fillStyle = "rgba(238,240,246,0.35)"; sctx.font = "10.5px -apple-system, sans-serif"; sctx.textAlign = "center";
-  if (SW >= 560) sctx.fillText("środek Galaktyki", gc.x, gc.y + 30);
+  if (SW >= 560) sctx.fillText("galactic centre", gc.x, gc.y + 30);
 }
 
 function drawSky(time) {
@@ -1773,14 +1839,19 @@ function drawSky(time) {
   }
 }
 
-function renderCard() {
+function infoHTML(close) {
   const f = psrFacts(psr), label = GENRES[psr.genre].label;
-  $("card").innerHTML = `<div class="name">${psr.name}</div>
-    <div class="facts"><div><b>${label}</b>gatunek</div><div><b>${f.per}</b>okres obrotu</div><div><b>${f.bpm} BPM</b>${f.beat}</div><div><b>${f.key}</b>tonacja, ${f.keySub}</div></div>
-    <div class="desc">${psr.desc}</div>
-    <div class="why">${f.why}</div>`;
+  return `<div class="info"><div class="info-head"><div><b>${psr.name}</b><div class="tag">${psr.tag}</div></div>${close ? `<button class="ico" type="button" data-close title="Close" aria-label="Close">${ICONS.close}</button>` : ""}</div>
+    <dl><dt>Genre</dt><dd>${label}</dd><dt>Tempo</dt><dd>${f.bpm} BPM · ${f.beat}</dd><dt>Rotation</dt><dd>${f.per}</dd><dt>Key</dt><dd>${f.key} · ${f.keySub}</dd></dl>
+    <p class="about">${psr.about}</p>
+    <div class="how"><span>How it plays</span>${f.why}</div></div>`;
+}
+function renderCard() {
+  const f = psrFacts(psr);
+  $("card").innerHTML = infoHTML(false);
+  $("infoPop").innerHTML = infoHTML(true);
   $("psrName").textContent = psr.name;
-  $("psrLine").textContent = `${label} · ${f.bpm} BPM · tonacja ${f.key}`;
+  $("psrLine").textContent = `${GENRES[psr.genre].label} · ${f.bpm} BPM`;
 }
 
 function selectPulsar(p, manual = false) {
@@ -1793,17 +1864,17 @@ function refreshAutoPulsar() {
   if (!autoPulsar || !autoLocation) return;
   const best = highestPulsarAboveHorizon(autoLocation);
   if (!best) {
-    $("autoStatus").textContent = `${autoLocationNote} Żaden z pulsarów nie jest teraz nad horyzontem; zachowuję wybór.`;
+    $("autoStatus").textContent = `${autoLocationNote} None of the pulsars is above the horizon right now; keeping your choice.`; updateAutoButton();
     return;
   }
   if (best.pulsar !== psr) selectPulsar(best.pulsar);
-  $("autoStatus").textContent = `${autoLocationNote} Najwyżej nad horyzontem: ${best.pulsar.short} (${fmt(best.altitude, 0)}°).`;
+  $("autoStatus").textContent = `${autoLocationNote} Highest above the horizon: ${best.pulsar.short} (${fmt(best.altitude, 0)}°).`; updateAutoButton();
 }
 function updateAutoButton() {
   const button = $("autoPulsar");
   button.classList.toggle("on", autoPulsar);
   button.setAttribute("aria-pressed", String(autoPulsar));
-  button.textContent = autoPulsar ? "Auto: tak" : "Auto: nie";
+  button.title = autoPulsar ? $("autoStatus").textContent : "Pick the pulsar highest above you";
 }
 function disableAutoPulsar() {
   autoPulsar = false;
@@ -1811,40 +1882,40 @@ function disableAutoPulsar() {
   autoLocation = null;
   autoLocationNote = "";
   updateAutoButton();
-  $("autoStatus").textContent = "Automatyczny wybór wyłączony.";
+  $("autoStatus").textContent = "Auto choice off.";
 }
 function enableAutoPulsar() {
   autoPulsar = true;
   autoLocation = DEFAULT_LOCATION;
-  autoLocationNote = "Używam Szczecina jako lokalizacji zastępczej.";
+  autoLocationNote = "Using Szczecin as a fallback location.";
   updateAutoButton();
   refreshAutoPulsar();
   const request = ++locationRequest;
   if (!navigator.geolocation) {
-    autoLocationNote = "Geolokalizacja jest niedostępna. Używam Szczecina.";
+    autoLocationNote = "Geolocation is unavailable. Using Szczecin.";
     refreshAutoPulsar();
     return;
   }
-  $("autoStatus").textContent = "Pytam o lokalizację; tymczasowo używam Szczecina.";
+  $("autoStatus").textContent = "Asking for your location; using Szczecin for now.";
   navigator.geolocation.getCurrentPosition((position) => {
     if (!autoPulsar || request !== locationRequest) return;
     const { latitude, longitude } = position.coords;
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
-      autoLocationNote = "Otrzymana lokalizacja jest nieprawidłowa; używam Szczecina.";
+      autoLocationNote = "The location received is invalid; using Szczecin.";
     } else {
       autoLocation = { lat: latitude, lon: longitude };
-      autoLocationNote = "Używam Twojej lokalizacji.";
+      autoLocationNote = "Using your location.";
     }
     refreshAutoPulsar();
   }, (error) => {
     if (!autoPulsar || request !== locationRequest) return;
     const reason = error.code === error.PERMISSION_DENIED
-      ? "Brak zgody na lokalizację."
+      ? "Location permission denied."
       : error.code === error.TIMEOUT
-        ? "Przekroczono czas oczekiwania na lokalizację."
-        : "Lokalizacja jest niedostępna.";
+        ? "Location request timed out."
+        : "Location is unavailable.";
     autoLocation = DEFAULT_LOCATION;
-    autoLocationNote = `${reason} Używam Szczecina.`;
+    autoLocationNote = `${reason} Using Szczecin.`;
     refreshAutoPulsar();
   }, { enableHighAccuracy: false, maximumAge: 600000, timeout: 10000 });
 }
@@ -1856,13 +1927,19 @@ sky.addEventListener("click", (e) => {
 });
 function openSheet() { sheetOpen = true; $("sheet").classList.add("open"); renderCard(); sizeSky(); }
 function closeSheet() { sheetOpen = false; $("sheet").classList.remove("open"); }
-$("psrBtn").onclick = openSheet;
+$("psrBtn").innerHTML = ICONS.map; $("infoBtn").innerHTML = ICONS.info; $("sheetClose").innerHTML = ICONS.close;
+const toggleInfoPop = (open) => { $("infoPop").classList.toggle("open", open); $("infoBtn").setAttribute("aria-expanded", open); };
+$("psrBtn").onclick = () => { toggleInfoPop(false); openSheet(); };
+$("stMain").onclick = () => { toggleInfoPop(false); openSheet(); };
+$("infoBtn").onclick = (e) => { e.stopPropagation(); toggleInfoPop(!$("infoPop").classList.contains("open")); };
+$("infoPop").onclick = (e) => { e.stopPropagation(); if (e.target.closest("[data-close]")) toggleInfoPop(false); };
+document.addEventListener("click", () => toggleInfoPop(false));
 $("sheetClose").onclick = closeSheet;
 $("autoPulsar").onclick = () => autoPulsar ? disableAutoPulsar() : enableAutoPulsar();
 setInterval(refreshAutoPulsar, 60000);
 
 // ---------- Interfejs ----------
-function fmt(v, d = 0) { return Number.isFinite(v) ? v.toFixed(d).replace(".", ",").replace("-", "−") : "–"; }
+function fmt(v, d = 0) { return Number.isFinite(v) ? v.toFixed(d).replace("-", "−") : "–"; }
 setInterval(() => {
   stepData();
   emitWave();
@@ -1871,8 +1948,8 @@ setInterval(() => {
   $("vDens").textContent = fmt(cur.dens, 1);
   $("vBz").textContent = fmt(cur.bz, 1);
   $("vKp").textContent = fmt(cur.kp, 1);
-  const bzWord = cur.bz < -2 || (cur.bz <= 0 && mood === "dark") ? "mroczna " : "jasna ";
-  if ($("rBz").dataset.w !== bzWord) { $("rBz").dataset.w = bzWord; $("rBz").innerHTML = `<span class="long">${bzWord}</span>skala`; } // na telefonie samo „skala”, stan mówi kolor
+  const bzWord = cur.bz < -2 || (cur.bz <= 0 && mood === "dark") ? "Dark" : "Bright";
+  if ($("rBz").dataset.w !== bzWord) { $("rBz").dataset.w = bzWord; $("rBz").innerHTML = `<span class="long">${bzWord} scale</span><span class="short">Scale</span>`; } // na telefonie samo „Scale”, stan mówi kolor
   $("rKp").classList.toggle("off", !(cur.kp >= 4));
   // Kolory podpisów takie jak w wizualizacji: Bz na południe różowieje, Kp zielenieje jak zorza, rozbłysk to jasny błysk.
   $("rBz").style.color = mix(BONE, ROSE, southward());
@@ -1885,7 +1962,7 @@ setInterval(() => {
 
 $("play").onclick = async () => {
   try {
-    if (!window.Tone) throw new Error("Nie wczytała się biblioteka dźwięku (Tone.js).");
+    if (!window.Tone) throw new Error("The sound library (Tone.js) didn't load.");
     if (!A) await initAudio();
     if (!playing) {
       clearTimeout(suspendTimer);
@@ -1893,11 +1970,11 @@ $("play").onclick = async () => {
       stepCount = 0; schedulePulse(); A.master.volume.rampTo(0, 0.1); Tone.Transport.start("+0.1"); playing = true;
       if (M.kind === "tone") if (!G?.pulseBurst) A.starVol.volume.rampTo(M.f < 20 ? -28 : M.f < 100 ? -33 : M.f < 400 ? -32 : -40, 1.5);
     } else { stopAudio(); playing = false; }
-    $("play").innerHTML = `<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">${playing ? '<rect x="6.5" y="6.5" width="11" height="11" rx="2" fill="currentColor"/>' : '<path d="M8 5.5v13l11-6.5z" fill="currentColor"/>'}</svg>`;
-    $("play").title = $("play").ariaLabel = playing ? "Stop" : "Posłuchaj";
+    $("play").innerHTML = playing ? ICONS.stop : ICONS.play;
+    $("play").title = $("play").ariaLabel = playing ? "Stop" : "Play";
     $("play").classList.toggle("on", playing);
   } catch (e) {
-    $("status").innerHTML = `<span class="err">${e.message}</span>`;
+    $("status").innerHTML = `<span class="err">${e.message}</span>`; $("status").classList.add("show");
   }
 };
 // iOS przerywa dźwięk (telefon, blokada) i sam go nie wznawia. Wznowienie po powrocie lub po dotknięciu ekranu.
@@ -1910,11 +1987,11 @@ const MODE_ICONS = {
   replay: '<path d="M3.5 12a8.5 8.5 0 1 0 2.5-6L3.5 8.5"/><path d="M3.5 4v4.5H8"/><path d="M12 7.5V12l3 2"/>',
   storm: '<path d="M13 2 5 13.5h6L10 22l9-12h-6z"/>',
 };
-const modeIcon = (m) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${MODE_ICONS[m] || MODE_ICONS.live}</svg>`;
+const modeIcon = (m) => m === "live" || !MODE_ICONS[m] ? ICONS.live : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${MODE_ICONS[m] || MODE_ICONS.live}</svg>`;
 function showMode() {
   const b = document.querySelector(`#modes button[data-mode="${mode}"]`);
   $("modeBtn").innerHTML = modeIcon(b ? mode : "live");
-  $("modeBtn").title = $("modeBtn").ariaLabel = "Dane: " + (b ? b.textContent.trim() : "ręcznie");
+  $("modeBtn").ariaLabel = "Data: " + (b ? b.textContent.trim() : "manual");
 }
 const toggleModePop = (open) => { $("modePop").classList.toggle("open", open); $("modeBtn").setAttribute("aria-expanded", open); };
 document.querySelectorAll("#modes button").forEach((b) => {
@@ -1936,8 +2013,8 @@ const STYLE_ICONS = {
 const icon = (st) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${STYLE_ICONS[st]}</svg>`;
 function showStyle() {
   const b = document.querySelector(`#styles button[data-style="${vis.style}"]`);
-  $("styleBtn").innerHTML = icon(vis.style);
-  $("styleBtn").title = $("styleBtn").ariaLabel = "Wizualizacja: " + b.textContent.trim();
+  $("styleBtn").innerHTML = ICONS.style;
+  $("styleBtn").title = $("styleBtn").ariaLabel = "Visual style: " + b.textContent.trim();
   $("styleNote").textContent = STYLE_NOTES[vis.style] || "";
   document.querySelectorAll("#styles button").forEach((x) => x.classList.toggle("on", x === b));
 }
@@ -1954,6 +2031,7 @@ $("toggleSliders").onclick = () => { $("sliders").classList.toggle("open"); sync
 canvas.addEventListener("click", (e) => {
   const L = layout();
   if ((vis.style === "bauhaus" || vis.style === "scope") && Math.hypot(e.clientX - L.pulsar.x, e.clientY - L.pulsar.y) < 40) return openSheet();
+  if (document.querySelector(".pop.open")) return; // pierwszy klik obok tylko zamyka okienko
   $("panel").classList.toggle("hidden");
 });
 

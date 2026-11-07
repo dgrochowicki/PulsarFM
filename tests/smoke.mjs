@@ -39,7 +39,7 @@ await page.evaluate(() => Object.defineProperty(navigator, "geolocation", {
 await page.click("#autoPulsar");
 const autoSelection = await page.evaluate(() => ({
   enabled: document.querySelector("#autoPulsar").getAttribute("aria-pressed") === "true",
-  fallback: document.querySelector("#autoStatus").textContent.includes("Używam Szczecina."),
+  fallback: document.querySelector("#autoStatus").textContent.includes("Using Szczecin."),
   selected: psr === highestPulsarAboveHorizon(DEFAULT_LOCATION)?.pulsar,
 }));
 if (!autoSelection.enabled || !autoSelection.fallback || !autoSelection.selected) {
@@ -155,7 +155,7 @@ const offline = await page.evaluate(async () => {
   window.fetch = realFetch; Object.assign(target, saved);
   return result;
 });
-check(offline.kept && offline.status.includes("Brak nowych danych"), `awaria sieci: ${offline.status}`);
+check(offline.kept && offline.status.includes("No new NOAA data"), `awaria sieci: ${offline.status}`);
 
 const race = await page.evaluate(async () => {
   enterMode("live");

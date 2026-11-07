@@ -12,7 +12,7 @@ Osobny projekt od Aurora Now (`dgrochowicki/Aurora`, prognoza zorzy). Ten sam au
 
 ## Technika
 
-- Jeden plik `index.html` plus próbki w `audio/` (CC0, opis w `audio/README.md`), bez kroku budowania. Język interfejsu: polski.
+- Jeden plik `index.html` plus próbki w `audio/` (CC0, opis w `audio/README.md`), bez kroku budowania. Język interfejsu: **angielski** (decyzja autora, 8.11.2026); rozmowa z autorem, komentarze w kodzie, narzędzia pod `?dev` i dokumenty zostają po polsku. W interfejsie Chorał to „Chorale”, Pozytywka to „Music box”.
 - Dźwięk: **Tone.js 14.8.49** z jsDelivr (`Tone.Transport`, `Tone.Draw`; nie przechodzić na v15 bez potrzeby, tam zmieniło się API).
 - Obraz: Canvas 2D, własne rysowanie, bez bibliotek.
 - Hosting: GitHub Pages z gałęzi `main` (plik `.nojekyll` jest w repo).
@@ -79,6 +79,15 @@ Pełny opis syntezy i instrumentów: `docs/DZWIEK.md` (aktualizować przy zmiana
 Przełącznik u góry ma najpierw szkice nowych kierunków z `docs/WIZUALIZACJE.md`: **Grzbiety** (domyślny), **Fale** (dawne Słoje: Słońce w środku, fale we wszystkie strony; pomysł autora), **Cymatyka**, **Kolor** (kod w sekcjach „Kierunek” w `index.html`, numeracja jak w `docs/WIZUALIZACJE.md`). Potem stare style: **Bauhaus** (płaskie koła i łuki), **Oscyloskop** (jedna świecąca linia; Słońce to kształt fali dźwięku z `Tone.Waveform`). Autor: Słońce i Ziemia w wersji dosłownej były „zbyt dosłowne”; szuka abstrakcji, z której nadal wiadomo, o co chodzi. Kierunek graficzny **niezdecydowany**; obecne style autor uznał za „dość łopatologiczne”. Nowe propozycje z opisem i rekomendacją: `docs/WIZUALIZACJE.md`. Linie pola, Partytura i Kosmos usunięte na prośbę autora (2.11.2026).
 
 Wybór pulsara: mapa całego nieba na cały ekran, prostokątna (RA 12h w środku, rośnie w lewo). Tło z danych, nie ze zdjęcia: `data/sky.js` (z d3-celestial, źródła i licencja w `data/README.md`). Autor wybrał wariant „Płaty” (7.11.2026): Droga Mleczna jako płaty w 5 odcieniach i gwiazdy do 5,8 mag. Pozostałe warianty zostają na później, do łączenia: `?dev&niebo=b` (płaty i gwiazdozbiory), `c` (kontury Drogi Mlecznej), `d` (gwiazdy w kolorach z B−V i gwiazdozbiory). Każdy pulsar miga w swoim prawdziwym rytmie (złote światło); szybkie mają drgający pierścień. **Autor nie chce listy, tylko wybór z grafiki.**
+
+## Interfejs (projekt autora z Figmy, 8.11.2026)
+
+Ekrany wzorcowe: `docs/Pulsar 1600_01.png` (główny) i `docs/Pulsar 1600_02.png` (okienko informacji); ikony z `docs/*24.svg` (źródła 24 px, rysowane 18 px, biały 70%). Te pliki to materiały autora, nie commitować.
+- Komputer: „Pulsar.fm” w lewym górnym rogu, dane w kolumnie po lewej, na dole jeden pasek: Play (biały kwadrat), stacja (kropka 12 px migająca z pulsarem, nazwa, „gatunek · BPM”, (i) = informacja o pulsarze, cztery kółka = mapa), tryb danych (ikona nadawania), styl obrazu (ikona sinusa).
+- Telefon (≤640 px): dane w jednym rzędzie nad paskiem, styl obrazu w prawym górnym rogu, krótkie podpisy („Scale”, „Highs”).
+- Kafelki: tło #C4DDFF 10% (na lekko przyciemnionej podkładce, bez rozmycia ze względu na koszt), zaokrąglenie 18 px. Podpis roli w kolorze z obrazu (Bz różowy, Kp zielony).
+- Okienko informacji (`infoHTML()`): nazwa, jedno zdanie (`tag`), tabelka Genre/Tempo/Rotation/Key, opis (`about`), „How it plays” z `psrFacts()`. To samo na mapie zamiast dawnej karty; na mapie poza tym tylko „Choose a pulsar”, Auto i zamknięcie.
+- Stan danych (NOAA, godzina pomiaru) jest w podpowiedzi ikony trybu; pod tytułem pokazują się tylko kłopoty.
 
 ## Tylko prawdziwe dane
 
