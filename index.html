@@ -145,7 +145,7 @@
     .devbox { top: auto; bottom: 150px; left: 10px; right: 10px; width: auto; max-height: 40vh; }
     .sheet { padding-left: 10px; padding-right: 10px; }
     .sheet-head { padding-left: 10px; }
-    body.map .style-wrap { display: none; }
+    body.map .sheet-actions { margin-right: 52px; } /* miejsce na ikonę stylu, która zostaje w rogu */
   }
   @media (max-width: 360px) { .stats { gap: 4px; } .stat { padding: 8px 4px 7px; } .stat .k, .stat .r { font-size: 9.5px; } .stat .v small { display: none; } }
 </style>
@@ -2026,7 +2026,7 @@ function showStyle() {
 const toggleStylePop = (open) => { $("stylePop").classList.toggle("open", open); $("styleBtn").setAttribute("aria-expanded", open); };
 document.querySelectorAll("#styles button").forEach((b) => {
   b.insertAdjacentHTML("afterbegin", icon(b.dataset.style));
-  b.onclick = () => { vis.style = b.dataset.style; vis.clear = true; showStyle(); toggleStylePop(false); };
+  b.onclick = () => { vis.style = b.dataset.style; vis.clear = true; showStyle(); toggleStylePop(false); if (sheetOpen) closeSheet(); }; // wybór obrazu z mapy od razu go pokazuje
 });
 $("styleBtn").onclick = (e) => { e.stopPropagation(); toggleStylePop(!$("stylePop").classList.contains("open")); };
 document.addEventListener("click", (e) => { if (!$("stylePop").contains(e.target)) toggleStylePop(false); });
@@ -2060,6 +2060,7 @@ document.body.classList.toggle("dev", new URLSearchParams(location.search).has("
 resize();
 renderCard();
 enterMode("live");
+openSheet(); // start od mapy: najpierw wybierasz stację, Play jest w pasku
 requestAnimationFrame(frame);
 </script>
 </body>

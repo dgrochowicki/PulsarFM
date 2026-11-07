@@ -31,7 +31,7 @@ page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
 await page.goto("http://localhost:4174/");
 await page.waitForTimeout(6000);
 console.log("status:", await page.textContent("#status"));
-await page.click("#psrBtn");
+if (!(await page.evaluate(() => sheetOpen))) throw new Error("Aplikacja nie startuje od mapy.");
 await page.evaluate(() => Object.defineProperty(navigator, "geolocation", {
   configurable: true,
   value: { getCurrentPosition(success, error) { error({ code: 1, PERMISSION_DENIED: 1 }); } },
