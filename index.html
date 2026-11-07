@@ -40,7 +40,7 @@
   .panel.hidden { transform: translate(-50%, calc(100% + 30px)); opacity: 0; pointer-events: none; }
 
   .row { display: flex; gap: 8px; align-items: center; }
-  .play { flex: 0 0 auto; height: 48px; padding: 0 20px; border-radius: 24px; border: 0;
+  .play { flex: 0 0 auto; width: 48px; height: 48px; padding: 0; border-radius: 50%; border: 0; display: grid; place-items: center;
     background: var(--accent); color: #241703; font-weight: 700; font-size: 16px; cursor: pointer; }
   .play.on { background: rgba(255,255,255,0.12); color: var(--text); }
   .seg { flex: 1; display: flex; background: rgba(255,255,255,0.06); border-radius: 14px; padding: 3px; }
@@ -122,7 +122,7 @@
 
 <div class="panel" id="panel">
   <div class="row">
-    <button class="play" id="play">▶ Posłuchaj</button>
+    <button class="play" id="play" type="button" aria-label="Posłuchaj" title="Posłuchaj"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg></button>
     <div class="seg" id="modes">
       <button data-mode="live" class="on">Na żywo</button>
       <button data-mode="replay">Zapis 3 h</button>
@@ -1814,7 +1814,8 @@ $("play").onclick = async () => {
       stepCount = 0; schedulePulse(); A.master.volume.rampTo(0, 0.1); Tone.Transport.start("+0.1"); playing = true;
       if (M.kind === "tone") if (!G?.pulseBurst) A.starVol.volume.rampTo(M.f < 20 ? -28 : M.f < 100 ? -33 : M.f < 400 ? -32 : -40, 1.5);
     } else { stopAudio(); playing = false; }
-    $("play").textContent = playing ? "■ Stop" : "▶ Posłuchaj";
+    $("play").innerHTML = `<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">${playing ? '<rect x="6.5" y="6.5" width="11" height="11" rx="2" fill="currentColor"/>' : '<path d="M8 5.5v13l11-6.5z" fill="currentColor"/>'}</svg>`;
+    $("play").title = $("play").ariaLabel = playing ? "Stop" : "Posłuchaj";
     $("play").classList.toggle("on", playing);
   } catch (e) {
     $("status").innerHTML = `<span class="err">${e.message}</span>`;
