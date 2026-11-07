@@ -1163,11 +1163,11 @@ function stepParticles(L, dt) {
   if (particles.length > 2500) particles.splice(0, particles.length - 2500);
 }
 
-// 30 klatek wystarcza do tych animacji, a zużywa o połowę mniej procesora.
-const FRAME_MS = 1000 / 30;
+// 30 klatek wystarcza do tych animacji, a zużywa o połowę mniej procesora. Bez grania 15: obraz tylko miga z pulsarem.
+const frameMs = () => 1000 / (playing ? 30 : 15);
 let lastT = performance.now();
 function frame(t) {
-  if (t - lastT < FRAME_MS - 2) { requestAnimationFrame(frame); return; }
+  if (t - lastT < frameMs() - 2) { nextFrame(t); return; }
   const dt = Math.min(0.05, (t - lastT) / 1000);
   lastT = t;
   stepData();
@@ -1188,7 +1188,13 @@ function frame(t) {
     if (vis.style === "bauhaus") stepParticles(L, dt);
     STYLES[vis.style](L, dt, t / 1000);
   }
-  requestAnimationFrame(frame);
+  nextFrame(t);
+}
+// Czekamy do następnej klatki zwykłym zegarem, zamiast budzić przeglądarkę 60 razy na sekundę.
+function nextFrame(t) {
+  const wait = lastT + frameMs() - t - 8;
+  if (wait > 0) setTimeout(() => requestAnimationFrame(frame), wait);
+  else requestAnimationFrame(frame);
 }
 
 // ---------- Styl: Bauhaus ----------
