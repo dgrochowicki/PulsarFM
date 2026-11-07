@@ -85,7 +85,7 @@
   body:not(.dev) .dev-only { display: none !important; }
 
   /* Mapa pulsarów */
-  .sheet { position: fixed; inset: 0; background: #04050a;
+  .sheet { position: fixed; inset: 0; background: #05060b;
     display: flex; flex-direction: column; padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px);
     opacity: 0; pointer-events: none; transition: opacity .3s ease; }
   .sheet.open { opacity: 1; pointer-events: auto; }
@@ -1714,7 +1714,6 @@ function renderSkyBase(dpr) {
   sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   // Kontur i siatka.
   sctx.save();
-  sctx.fillStyle = "rgba(20,26,44,0.55)"; sctx.fillRect(0, 0, SW, SH);
   sctx.strokeStyle = "rgba(255,255,255,0.06)"; sctx.lineWidth = 1;
   for (let dec = -60; dec <= 60; dec += 30) { sctx.beginPath(); for (let ra = 0; ra <= 24.01; ra += 0.25) { const p = skyXY(ra === 24 ? 23.999 : ra, dec); ra === 0 ? sctx.moveTo(p.x, p.y) : sctx.lineTo(p.x, p.y); } sctx.stroke(); }
   for (let ra = 0; ra < 24; ra += 3) { sctx.beginPath(); for (let dec = -90; dec <= 90; dec += 3) { const p = skyXY(ra + 0.0001, dec); dec === -90 ? sctx.moveTo(p.x, p.y) : sctx.lineTo(p.x, p.y); } sctx.stroke(); }
