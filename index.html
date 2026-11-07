@@ -1060,7 +1060,11 @@ function triggerFlare(level) {
   if (level >= 3) A.swellEnv.triggerAttackRelease(level === 4 ? 4 : 2, now);
 }
 
+// Po Stop wstrzymujemy cały kontekst dźwięku: samo wyciszenie zostawiało pogłos i oscylatory liczące w tle (około połowy rdzenia).
+let suspendTimer = null;
 function stopAudio() {
+  clearTimeout(suspendTimer);
+  suspendTimer = setTimeout(() => { if (!playing) Tone.getContext().rawContext.suspend(); }, 600);
   Tone.Transport.stop();
   if (G) G.inst.nodes.forEach((n) => n.releaseAll && n.releaseAll());
   A.shimmer.releaseAll();
@@ -1792,6 +1796,8 @@ $("play").onclick = async () => {
     if (!window.Tone) throw new Error("Nie wczytała się biblioteka dźwięku (Tone.js).");
     if (!A) await initAudio();
     if (!playing) {
+      clearTimeout(suspendTimer);
+      if (Tone.getContext().rawContext.state !== "running") await Tone.getContext().rawContext.resume();
       stepCount = 0; schedulePulse(); A.master.volume.rampTo(0, 0.1); Tone.Transport.start("+0.1"); playing = true;
       if (M.kind === "tone") if (!G?.pulseBurst) A.starVol.volume.rampTo(M.f < 20 ? -28 : M.f < 100 ? -33 : M.f < 400 ? -32 : -40, 1.5);
     } else { stopAudio(); playing = false; }
