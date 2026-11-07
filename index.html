@@ -188,6 +188,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/tone@14.8.49/build/Tone.js"></script>
+<script src="data/sky.js"></script>
 <script>
 "use strict";
 
@@ -1644,6 +1645,55 @@ const MILKY = (() => {
 })();
 const BGSTARS = Array.from({ length: 260 }, () => ({ ra: Math.random() * 24, dec: Math.asin(Math.random() * 2 - 1) / RAD, r: Math.random() * 0.9 + 0.2 }));
 
+// Niebo z danych (data/sky.js, z d3-celestial). Domyślnie wariant A: Droga Mleczna jako płaty i gwiazdy.
+// Pozostałe warianty tylko pod ?dev&niebo=b|c|d, do późniejszego łączenia.
+const SKY_VARIANTS = {
+  a: { mw: "fill", lines: false, color: false },
+  b: { mw: "fill", lines: true, color: false },
+  c: { mw: "contour", lines: false, color: false },
+  d: { mw: "none", lines: true, color: true },
+};
+const skyVariant = (() => { const v = (new URLSearchParams(location.search).get("niebo") || "").toLowerCase(); return devMode && SKY_VARIANTS[v] ? v : "a"; })();
+// Ścieżka bez skoku na krawędzi 0h: x „rozwijamy”, a całość rysujemy trzy razy z przesunięciem o szerokość.
+// Pierścień, który obiega całe niebo, domykamy przez biegun poza ekranem.
+function traceSky(g, pts, dx, close, pole = close) {
+  let px = null, x0 = 0;
+  for (let i = 0; i < pts.length; i++) {
+    let { x, y } = skyXY(pts[i][0], pts[i][1]);
+    if (px !== null) { while (x - px > SW / 2) x -= SW; while (px - x > SW / 2) x += SW; } else x0 = x;
+    px = x;
+    i ? g.lineTo(x + dx, y) : g.moveTo(x + dx, y);
+  }
+  if (pole && Math.abs(px - x0) > SW / 2) { const yp = skyMid - 95 * skyScale; g.lineTo(px + dx, yp); g.lineTo(x0 + dx, yp); }
+  if (close && (pole || Math.abs(px - x0) <= SW / 2)) g.closePath();
+}
+function starColor(bv) {
+  // B−V → przybliżony kolor gwiazdy, od niebieskiej do pomarańczowej.
+  const t = clamp((bv + 0.3) / 2, 0, 1), st = [[155,176,255],[202,215,255],[248,247,255],[255,244,234],[255,210,161],[255,180,120]];
+  const f = t * (st.length - 1), i = Math.min(st.length - 2, Math.floor(f)), k = f - i;
+  return st[i].map((v, j) => Math.round(v + (st[i + 1][j] - v) * k));
+}
+function drawSkyData(g, v) {
+  const shifts = [-SW, 0, SW];
+  if (v.mw !== "none") SKYDATA.mw.forEach((polys, li) => {
+    g.beginPath();
+    for (const dx of shifts) for (const rings of polys) for (const ring of rings) traceSky(g, ring, dx, true, v.mw === "fill");
+    if (v.mw === "fill") { g.fillStyle = `rgba(150,170,255,${0.045 + li * 0.012})`; g.fill("evenodd"); }
+    else { g.strokeStyle = `rgba(160,180,255,${0.16 + li * 0.08})`; g.lineWidth = 0.8; g.stroke(); }
+  });
+  if (v.lines) {
+    g.strokeStyle = v.color ? "rgba(255,207,110,0.22)" : "rgba(200,215,255,0.16)"; g.lineWidth = 0.8;
+    g.beginPath(); for (const dx of shifts) for (const l of SKYDATA.lines) traceSky(g, l, dx, false); g.stroke();
+  }
+  const k = clamp(SW / 1200, 0.7, 1.4) * (v.mw === "contour" ? 0.7 : 1);
+  for (const [ra, dec, mag, bv] of SKYDATA.stars) {
+    const { x, y } = skyXY(ra, dec);
+    const [R, G, B] = v.color ? starColor(bv) : [235, 240, 255];
+    g.fillStyle = `rgba(${R},${G},${B},${Math.min(0.95, 0.25 + (6 - mag) * 0.14)})`;
+    g.beginPath(); g.arc(x, y, Math.max(0.35, (6.2 - mag) * 0.38) * k, 0, 6.283); g.fill();
+  }
+}
+
 function sizeSky() {
   const wrap = sky.parentElement.getBoundingClientRect();
   SW = wrap.width; SH = wrap.height;
@@ -1668,16 +1718,19 @@ function renderSkyBase(dpr) {
   sctx.strokeStyle = "rgba(255,255,255,0.06)"; sctx.lineWidth = 1;
   for (let dec = -60; dec <= 60; dec += 30) { sctx.beginPath(); for (let ra = 0; ra <= 24.01; ra += 0.25) { const p = skyXY(ra === 24 ? 23.999 : ra, dec); ra === 0 ? sctx.moveTo(p.x, p.y) : sctx.lineTo(p.x, p.y); } sctx.stroke(); }
   for (let ra = 0; ra < 24; ra += 3) { sctx.beginPath(); for (let dec = -90; dec <= 90; dec += 3) { const p = skyXY(ra + 0.0001, dec); dec === -90 ? sctx.moveTo(p.x, p.y) : sctx.lineTo(p.x, p.y); } sctx.stroke(); }
-  // Droga Mleczna jako rozmyte pasmo.
-  const MW = Math.min(SW, 900) * 0.035;
-  for (const m of MILKY) {
-    const p = skyXY(m.ra, m.dec);
-    const core = Math.cos(((m.l > 180 ? m.l - 360 : m.l) * RAD) / 2);
-    const g = sctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, MW);
-    g.addColorStop(0, `rgba(170,190,255,${0.05 + 0.08 * core * core})`); g.addColorStop(1, "rgba(170,190,255,0)");
-    sctx.fillStyle = g; sctx.beginPath(); sctx.arc(p.x, p.y, MW, 0, 6.283); sctx.fill();
+  if (typeof SKYDATA !== "undefined") drawSkyData(sctx, SKY_VARIANTS[skyVariant]);
+  else {
+    // Zapas, gdyby data/sky.js się nie wczytał: rozmyte pasmo i losowe gwiazdy.
+    const MW = Math.min(SW, 900) * 0.035;
+    for (const m of MILKY) {
+      const p = skyXY(m.ra, m.dec);
+      const core = Math.cos(((m.l > 180 ? m.l - 360 : m.l) * RAD) / 2);
+      const g = sctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, MW);
+      g.addColorStop(0, `rgba(170,190,255,${0.05 + 0.08 * core * core})`); g.addColorStop(1, "rgba(170,190,255,0)");
+      sctx.fillStyle = g; sctx.beginPath(); sctx.arc(p.x, p.y, MW, 0, 6.283); sctx.fill();
+    }
+    for (const s of BGSTARS) { const p = skyXY(s.ra, s.dec); sctx.fillStyle = "rgba(255,255,255,0.35)"; sctx.fillRect(p.x, p.y, s.r, s.r); }
   }
-  for (const s of BGSTARS) { const p = skyXY(s.ra, s.dec); sctx.fillStyle = "rgba(255,255,255,0.35)"; sctx.fillRect(p.x, p.y, s.r, s.r); }
   sctx.restore();
   const gc = skyXY(17.761, -29.0);
   sctx.fillStyle = "rgba(238,240,246,0.35)"; sctx.font = "10.5px -apple-system, sans-serif"; sctx.textAlign = "center";
@@ -1697,12 +1750,12 @@ function drawSky(time) {
     else glow = 0.55 + 0.25 * Math.sin(time * 40 + p.ra);
     const rad = 3 + glow * 6;
     const g = sctx.createRadialGradient(q.x, q.y, 0, q.x, q.y, rad * 3.2);
-    g.addColorStop(0, `rgba(200,220,255,${0.25 + glow * 0.6})`); g.addColorStop(1, "rgba(200,220,255,0)");
+    g.addColorStop(0, `rgba(255,214,140,${0.25 + glow * 0.6})`); g.addColorStop(1, "rgba(255,214,140,0)");
     sctx.fillStyle = g; sctx.beginPath(); sctx.arc(q.x, q.y, rad * 3.2, 0, 6.283); sctx.fill();
-    sctx.fillStyle = "#eef3ff"; sctx.beginPath(); sctx.arc(q.x, q.y, 2.5 + glow * 1.5, 0, 6.283); sctx.fill();
+    sctx.fillStyle = "#fff4dc"; sctx.beginPath(); sctx.arc(q.x, q.y, 2.5 + glow * 1.5, 0, 6.283); sctx.fill();
     if (p.P < 0.2) {
       // Drgający pierścień: im szybszy pulsar, tym ciaśniejsze drgania.
-      sctx.strokeStyle = "rgba(200,220,255,0.45)"; sctx.lineWidth = 1;
+      sctx.strokeStyle = "rgba(255,214,140,0.45)"; sctx.lineWidth = 1;
       sctx.beginPath();
       const n = Math.round(clamp(Math.log2(1 / p.P) * 3, 8, 40));
       for (let i = 0; i <= 120; i++) { const a = (i / 120) * 6.283; const rr = 11 + 1.6 * Math.sin(a * n + time * 25); i ? sctx.lineTo(q.x + Math.cos(a) * rr, q.y + Math.sin(a) * rr) : sctx.moveTo(q.x + Math.cos(a) * rr, q.y + Math.sin(a) * rr); }
