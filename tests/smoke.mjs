@@ -226,6 +226,7 @@ const listener = await page.evaluate(() => ["[data-mode=storm]", "#flare", "#tog
 check(listener.every(Boolean), `bez Burzy, rozbłysku i suwaków: ${listener}`);
 const devPage = await browser.newPage();
 await devPage.goto("http://localhost:4174/?dev");
+await devPage.click("#modeBtn");
 const devTools = await devPage.isVisible("[data-mode=storm]") && await devPage.isVisible("#flare");
 await devPage.close();
 check(devTools, "narzędzia widoczne pod ?dev");
