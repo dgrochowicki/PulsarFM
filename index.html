@@ -52,7 +52,8 @@
   .psr .t div { font-size: 12px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .psr .chev { color: var(--dim); font-size: 13px; white-space: nowrap; }
   .row .psr { flex: 1; min-width: 0; margin-top: 0; }
-  @media (max-width: 480px) { .psr .chev .long { display: none; } }
+  @media (max-width: 480px) { .psr .chev .long, .stat .long { display: none; } }
+  @media (min-width: 481px) { .stat .short { display: none; } }
   /* Tryb danych: jedna ikona, wybór w okienku nad panelem. */
   .mode-wrap { position: relative; flex: 0 0 auto; }
   .mode-btn { width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--line); background: rgba(255,255,255,0.06);
@@ -157,7 +158,7 @@
     <div class="stat" title="Ostatnie 16 minut wiatru wyznacza nuty melodii i akordy"><div class="v"><span id="vWind">–</span><small>km/s</small></div><div class="k">Wiatr</div><div class="r">melodia</div></div>
     <div class="stat" title="Im gęściej, tym więcej nut w melodii i więcej drobnych uderzeń perkusji"><div class="v" id="vDens">–</div><div class="k">Gęstość</div><div class="r">rytm</div></div>
     <div class="stat" title="Bz poniżej −2 nT: mroczna skala i niski bas; powyżej 0: jasna skala"><div class="v"><span id="vBz">–</span><small>nT</small></div><div class="k">Bz</div><div class="r" id="rBz">skala</div></div>
-    <div class="stat" title="Od Kp 4 nad akordami grają ciche wysokie tony, tym głośniej, im wyższe Kp"><div class="v" id="vKp">–</div><div class="k">Kp</div><div class="r" id="rKp">wysokie tony</div></div>
+    <div class="stat" title="Od Kp 4 nad akordami grają ciche wysokie tony, tym głośniej, im wyższe Kp"><div class="v" id="vKp">–</div><div class="k">Kp</div><div class="r" id="rKp"><span class="long">wysokie tony</span><span class="short">sopran</span></div></div>
     <div class="stat" title="Nowy rozbłysk od klasy C: wybuch jak w zwiastunie filmu (wielki bęben, niskie buum, przy M i X akord braam)"><div class="v" id="vX">–</div><div class="k">Rozbłysk</div><div class="r" id="rX">wybuch</div></div>
   </div>
 
@@ -1870,7 +1871,8 @@ setInterval(() => {
   $("vDens").textContent = fmt(cur.dens, 1);
   $("vBz").textContent = fmt(cur.bz, 1);
   $("vKp").textContent = fmt(cur.kp, 1);
-  $("rBz").textContent = cur.bz < -2 || (cur.bz <= 0 && mood === "dark") ? "mroczna skala" : "jasna skala";
+  const bzWord = cur.bz < -2 || (cur.bz <= 0 && mood === "dark") ? "mroczna " : "jasna ";
+  if ($("rBz").dataset.w !== bzWord) { $("rBz").dataset.w = bzWord; $("rBz").innerHTML = `<span class="long">${bzWord}</span>skala`; } // na telefonie samo „skala”, stan mówi kolor
   $("rKp").classList.toggle("off", !(cur.kp >= 4));
   // Kolory podpisów takie jak w wizualizacji: Bz na południe różowieje, Kp zielenieje jak zorza, rozbłysk to jasny błysk.
   $("rBz").style.color = mix(BONE, ROSE, southward());
