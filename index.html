@@ -66,11 +66,14 @@
   .modes button.on { background: rgba(255,255,255,0.12); color: var(--text); }
 
   .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 10px; }
-  .stat { background: rgba(255,255,255,0.04); border-radius: 12px; padding: 8px 4px 7px; text-align: center; min-width: 0; }
+  .stat { background: rgba(255,255,255,0.04); border-radius: 12px; padding: 8px 9px 7px; text-align: left; min-width: 0; }
   .stat .v { font-size: 17px; font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .stat .k { font-size: 10.5px; color: var(--dim); margin-top: 1px; text-transform: uppercase; letter-spacing: .4px; }
+  .stat .v small { font-size: 10px; font-weight: 500; color: var(--dim); margin-left: 3px; }
+  @media (max-width: 480px) { .stats { gap: 5px; } .stat { padding: 8px 5px 7px; } .stat .v { font-size: 14px; } .stat .v small { margin-left: 1px; font-size: 9px; } .stat.wide .v small { display: none; } }
+  @media (max-width: 360px) { .stats { gap: 4px; } .stat { padding: 8px 4px 7px; } .stat .k, .stat .r { font-size: 9.5px; } .stat .v small { display: none; } }
+  .stat .k { font-size: 11px; color: var(--dim); margin-top: 1px; }
   .stat .r.off { opacity: .35; }
-  .stat .r { font-size: 11px; line-height: 1.2; color: var(--accent); opacity: .85; margin-top: 3px; overflow-wrap: break-word; }
+  .stat .r { font-size: 11px; line-height: 1.2; color: rgb(239,230,210); opacity: .9; margin-top: 3px; hyphens: manual; }
 
   .more { display: flex; gap: 8px; margin-top: 10px; }
   .ghost { flex: 1; height: 38px; border-radius: 12px; border: 1px solid var(--line); background: none;
@@ -151,11 +154,11 @@
   </div>
 
   <div class="stats">
-    <div class="stat" title="Ostatnie 16 minut wiatru wyznacza nuty melodii i akordy"><div class="v" id="vWind">–</div><div class="k">Wiatr km/s</div><div class="r">melodia</div></div>
+    <div class="stat" title="Ostatnie 16 minut wiatru wyznacza nuty melodii i akordy"><div class="v"><span id="vWind">–</span><small>km/s</small></div><div class="k">Wiatr</div><div class="r">melodia</div></div>
     <div class="stat" title="Im gęściej, tym więcej nut w melodii i więcej drobnych uderzeń perkusji"><div class="v" id="vDens">–</div><div class="k">Gęstość</div><div class="r">rytm</div></div>
-    <div class="stat" title="Bz poniżej −2 nT: mroczna skala i niski bas; powyżej 0: jasna skala"><div class="v" id="vBz">–</div><div class="k">Bz nT</div><div class="r" id="rBz">skala</div></div>
+    <div class="stat" title="Bz poniżej −2 nT: mroczna skala i niski bas; powyżej 0: jasna skala"><div class="v"><span id="vBz">–</span><small>nT</small></div><div class="k">Bz</div><div class="r" id="rBz">skala</div></div>
     <div class="stat" title="Od Kp 4 nad akordami grają ciche wysokie tony, tym głośniej, im wyższe Kp"><div class="v" id="vKp">–</div><div class="k">Kp</div><div class="r" id="rKp">wysokie tony</div></div>
-    <div class="stat" title="Nowy rozbłysk od klasy C: wybuch jak w zwiastunie filmu (wielki bęben, niskie buum, przy M i X akord braam)"><div class="v" id="vX">–</div><div class="k">Rozbłysk</div><div class="r">wybuch</div></div>
+    <div class="stat" title="Nowy rozbłysk od klasy C: wybuch jak w zwiastunie filmu (wielki bęben, niskie buum, przy M i X akord braam)"><div class="v" id="vX">–</div><div class="k">Rozbłysk</div><div class="r" id="rX">wybuch</div></div>
   </div>
 
   <div class="more dev-only">
@@ -1863,11 +1866,16 @@ setInterval(() => {
   stepData();
   emitWave();
   $("vWind").textContent = fmt(cur.wind);
+  $("vWind").closest(".stat").classList.toggle("wide", cur.wind >= 999.5); // czterocyfrowy wiatr na telefonie bez jednostki
   $("vDens").textContent = fmt(cur.dens, 1);
   $("vBz").textContent = fmt(cur.bz, 1);
   $("vKp").textContent = fmt(cur.kp, 1);
   $("rBz").textContent = cur.bz < -2 || (cur.bz <= 0 && mood === "dark") ? "mroczna skala" : "jasna skala";
   $("rKp").classList.toggle("off", !(cur.kp >= 4));
+  // Kolory podpisów takie jak w wizualizacji: Bz na południe różowieje, Kp zielenieje jak zorza, rozbłysk to jasny błysk.
+  $("rBz").style.color = mix(BONE, ROSE, southward());
+  $("rKp").style.color = mix(BONE, [95, 211, 141], map(cur.kp, 3, 8, 0, 1) * 0.7);
+  $("rX").style.color = mix([239, 230, 210], [255, 242, 196], vis.flareT);
   $("vX").textContent = mode === "storm" ? "X2.1" : mode === "live" && target.xray ? xrayClass(target.xray).letter : "–";
   $("psrDot").style.opacity = 0.35 + 0.65 * vis.pulseT;
   updateAudioParams();
