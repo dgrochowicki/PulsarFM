@@ -36,7 +36,7 @@
   .panel { transition: opacity .35s ease; }
   .panel.hidden { opacity: 0; pointer-events: none; }
   .panel.hidden * { pointer-events: none !important; }
-  .bar { position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 20px); display: flex; justify-content: center; gap: 8px; pointer-events: none; }
+  .bar { position: fixed; z-index: 10; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 20px); display: flex; justify-content: center; gap: 8px; pointer-events: none; }
   .bar > * { pointer-events: auto; }
   .play { flex: 0 0 auto; width: 52px; height: 52px; padding: 0; border: 0; border-radius: var(--r); background: #fff; color: #000; display: grid; place-items: center; cursor: pointer; }
   .play svg { width: 18px; height: 18px; }
@@ -106,7 +106,7 @@
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
   /* Mapa pulsarów */
-  .sheet { position: fixed; inset: 0; background: #05060b;
+  .sheet { position: fixed; inset: 0; z-index: 5; background: #05060b;
     display: flex; flex-direction: column; padding: calc(env(safe-area-inset-top) + 24px) 20px calc(env(safe-area-inset-bottom) + 20px);
     opacity: 0; pointer-events: none; transition: opacity .3s ease; }
   .sheet.open { opacity: 1; pointer-events: auto; }
@@ -116,11 +116,12 @@
   .auto-toggle { height: 36px; padding: 0 14px; border: 0; border-radius: 12px; color: var(--icon); font-size: 13px; cursor: pointer; }
   .auto-toggle.on { background: #fff; color: #000; }
   .sheet-head .sq { width: 36px; height: 36px; border-radius: 12px; }
-  .sheet-head, .card { position: relative; z-index: 1; }
+  .sheet-head { position: relative; z-index: 1; }
+  /* Na mapie zostaje pasek, okienko informacji stoi nad nim, dane się chowają. */
+  body.map .stats { display: none; }
+  .ico.on { background: rgba(255,255,255,0.12); color: #fff; }
   .skywrap { position: absolute; inset: 0; }
   #sky { display: block; touch-action: manipulation; cursor: pointer; }
-  .card { width: 360px; max-width: 100%; margin: auto auto 0; background: var(--pop); border: 1px solid var(--line); border-radius: var(--r);
-    -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
 
   /* Telefon: dane w jednym rzędzie nad paskiem, styl obrazu w prawym górnym rogu. */
   @media (max-width: 640px) {
@@ -144,7 +145,7 @@
     .devbox { top: auto; bottom: 150px; left: 10px; right: 10px; width: auto; max-height: 40vh; }
     .sheet { padding-left: 10px; padding-right: 10px; }
     .sheet-head { padding-left: 10px; }
-    .card { width: auto; }
+    body.map .style-wrap { display: none; }
   }
   @media (max-width: 360px) { .stats { gap: 4px; } .stat { padding: 8px 4px 7px; } .stat .k, .stat .r { font-size: 9.5px; } .stat .v small { display: none; } }
 </style>
@@ -223,12 +224,10 @@
     <b>Choose a pulsar</b>
     <div class="sheet-actions">
       <button class="auto-toggle tile" id="autoPulsar" type="button" aria-pressed="false" title="Pick the pulsar highest above you">Auto</button>
-      <button class="sq tile" id="sheetClose" type="button" title="Close" aria-label="Close"></button>
     </div>
   </div>
   <div class="sr" id="autoStatus" aria-live="polite">Auto choice off.</div>
   <div class="skywrap"><canvas id="sky"></canvas></div>
-  <div class="card" id="card"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/tone@14.8.49/build/Tone.js"></script>
@@ -1769,7 +1768,9 @@ function sizeSky() {
   const wrap = sky.parentElement.getBoundingClientRect();
   SW = wrap.width; SH = wrap.height;
   // Pulsary leżą w pasie do ±55°: ±65° mieści się między nagłówkiem a kartą, reszta nieba idzie pod nie.
-  const top = document.querySelector(".sheet-head").getBoundingClientRect().bottom + 12 - wrap.top, bottom = $("card").getBoundingClientRect().top - 8 - wrap.top;
+  const top = document.querySelector(".sheet-head").getBoundingClientRect().bottom + 12 - wrap.top;
+  const below = $("infoPop").classList.contains("open") ? $("infoPop") : document.querySelector(".bar .station");
+  const bottom = below.getBoundingClientRect().top - 8 - wrap.top;
   skyMid = (top + bottom) / 2; skyScale = (bottom - top) / 130;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   sky.width = SW * dpr; sky.height = SH * dpr; sky.style.width = SW + "px"; sky.style.height = SH + "px";
@@ -1848,7 +1849,6 @@ function infoHTML(close) {
 }
 function renderCard() {
   const f = psrFacts(psr);
-  $("card").innerHTML = infoHTML(false);
   $("infoPop").innerHTML = infoHTML(true);
   $("psrName").textContent = psr.name;
   $("psrLine").textContent = `${GENRES[psr.genre].label} · ${f.bpm} BPM`;
@@ -1925,16 +1925,21 @@ sky.addEventListener("click", (e) => {
   for (const p of PULSARS) { const q = skyXY(p.ra, p.dec), d = Math.hypot(q.x - x, q.y - y); if (d < bd) { bd = d; best = p; } }
   if (best) selectPulsar(best, true);
 });
-function openSheet() { sheetOpen = true; $("sheet").classList.add("open"); renderCard(); sizeSky(); }
-function closeSheet() { sheetOpen = false; $("sheet").classList.remove("open"); }
-$("psrBtn").innerHTML = ICONS.map; $("infoBtn").innerHTML = ICONS.info; $("sheetClose").innerHTML = ICONS.close;
-const toggleInfoPop = (open) => { $("infoPop").classList.toggle("open", open); $("infoBtn").setAttribute("aria-expanded", open); };
-$("psrBtn").onclick = () => { toggleInfoPop(false); openSheet(); };
-$("stMain").onclick = () => { toggleInfoPop(false); openSheet(); };
+function openSheet() { sheetOpen = true; document.body.classList.add("map"); $("sheet").classList.add("open"); $("psrBtn").classList.add("on"); $("psrBtn").title = "Back to the music"; renderCard(); $("infoPop").classList.add("open"); $("infoBtn").setAttribute("aria-expanded", true); sizeSky(); }
+function closeSheet() { sheetOpen = false; document.body.classList.remove("map"); $("sheet").classList.remove("open"); $("psrBtn").classList.remove("on"); $("psrBtn").title = "Choose a pulsar"; toggleInfoPop(false); }
+$("psrBtn").innerHTML = ICONS.map; $("infoBtn").innerHTML = ICONS.info;
+// Na mapie zmiana okienka zmienia miejsce na niebo, więc mapę trzeba przeliczyć.
+function toggleInfoPop(open) {
+  const was = $("infoPop").classList.contains("open");
+  $("infoPop").classList.toggle("open", open); $("infoBtn").setAttribute("aria-expanded", open);
+  if (sheetOpen && was !== open) sizeSky();
+}
+$("psrBtn").onclick = (e) => { e.stopPropagation(); sheetOpen ? closeSheet() : openSheet(); };
+$("stMain").onclick = (e) => { e.stopPropagation(); sheetOpen ? closeSheet() : openSheet(); };
 $("infoBtn").onclick = (e) => { e.stopPropagation(); toggleInfoPop(!$("infoPop").classList.contains("open")); };
 $("infoPop").onclick = (e) => { e.stopPropagation(); if (e.target.closest("[data-close]")) toggleInfoPop(false); };
-document.addEventListener("click", () => toggleInfoPop(false));
-$("sheetClose").onclick = closeSheet;
+document.addEventListener("click", () => { if (!sheetOpen) toggleInfoPop(false); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && sheetOpen) closeSheet(); });
 $("autoPulsar").onclick = () => autoPulsar ? disableAutoPulsar() : enableAutoPulsar();
 setInterval(refreshAutoPulsar, 60000);
 

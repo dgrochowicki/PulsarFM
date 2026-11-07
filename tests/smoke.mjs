@@ -52,7 +52,7 @@ await page.evaluate(() => {
 });
 const manualSelection = await page.evaluate(() => document.querySelector("#autoPulsar").getAttribute("aria-pressed") === "false");
 if (!manualSelection) throw new Error("Ręczny wybór pulsara nie wyłącza trybu automatycznego.");
-await page.click("#sheetClose");
+await page.click("#psrBtn");
 await page.click("#play");
 
 const rms = () => page.evaluate(async () => {
@@ -239,7 +239,7 @@ const mapCost = await page.evaluate(async () => {
   window.renderSkyBase = (...args) => { bases++; base(...args); };
   document.querySelector("#psrBtn").click();
   await new Promise((r) => setTimeout(r, 1000));
-  document.querySelector("#sheetClose").click();
+  document.querySelector("#psrBtn").click();
   STYLES[vis.style] = style; window.renderSkyBase = base;
   return { scene, bases };
 });
@@ -247,7 +247,7 @@ check(mapCost.scene === 0 && mapCost.bases === 1, `koszt mapy: ${JSON.stringify(
 await page.click("#psrBtn");
 await page.waitForTimeout(600);
 await page.screenshot({ path: join(out, "map.png") });
-await page.click("#sheetClose");
+await page.click("#psrBtn");
 
 // Dane mają płynąć do muzyki także bez klatek, czyli w ukrytej karcie.
 const hidden = await page.evaluate(async () => {

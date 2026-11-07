@@ -86,7 +86,7 @@ Ekrany wzorcowe: `docs/Pulsar 1600_01.png` (główny) i `docs/Pulsar 1600_02.png
 - Komputer: „Pulsar.fm” w lewym górnym rogu, dane w kolumnie po lewej, na dole jeden pasek: Play (biały kwadrat), stacja (kropka 12 px migająca z pulsarem, nazwa, „gatunek · BPM”, (i) = informacja o pulsarze, cztery kółka = mapa), tryb danych (ikona nadawania), styl obrazu (ikona sinusa).
 - Telefon (≤640 px): dane w jednym rzędzie nad paskiem, styl obrazu w prawym górnym rogu, krótkie podpisy („Scale”, „Highs”).
 - Kafelki: tło #C4DDFF 10% (na lekko przyciemnionej podkładce, bez rozmycia ze względu na koszt), zaokrąglenie 18 px. Podpis roli w kolorze z obrazu (Bz różowy, Kp zielony).
-- Okienko informacji (`infoHTML()`): nazwa, jedno zdanie (`tag`), tabelka Genre/Tempo/Rotation/Key, opis (`about`), „How it plays” z `psrFacts()`. To samo na mapie zamiast dawnej karty; na mapie poza tym tylko „Choose a pulsar”, Auto i zamknięcie.
+- Okienko informacji (`infoHTML()`): nazwa, jedno zdanie (`tag`), tabelka Genre/Tempo/Rotation/Key, opis (`about`), „How it plays” z `psrFacts()`. Na mapie (pomysł autora) zostaje dolny pasek, okienko informacji jest otwarte nad nim, kafelki danych są schowane; ikona mapy jest podświetlona i zamyka mapę (też Esc). U góry tylko „Choose a pulsar” i Auto.
 - Stan danych (NOAA, godzina pomiaru) jest w podpowiedzi ikony trybu; pod tytułem pokazują się tylko kłopoty.
 
 ## Tylko prawdziwe dane
