@@ -20,13 +20,18 @@
   .top { position: fixed; left: 0; right: 0; top: 0; padding: calc(env(safe-area-inset-top) + 14px) 18px 0; pointer-events: none; }
   .top h1 { margin: 0; font-size: 20px; font-weight: 650; letter-spacing: 0.2px; }
   .top .status { color: var(--dim); font-size: 12.5px; margin-top: 3px; max-width: 80vw; }
-  .styles { display: inline-flex; gap: 4px; margin-top: 10px; pointer-events: auto; background: rgba(255,255,255,0.06);
-    border-radius: 12px; padding: 3px; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
-  .styles::-webkit-scrollbar { display: none; }
-  .styles .sep { flex: 0 0 1px; margin: 5px 3px; background: var(--line); }
-  .top .note { color: var(--dim); font-size: 12px; margin-top: 7px; max-width: 560px; }
-  .styles button { flex: 0 0 auto; border: 0; background: none; color: var(--dim); font-size: 12.5px; font-weight: 600; padding: 6px 10px; border-radius: 9px; cursor: pointer; }
+  /* Wizualizacja: jedna ikona, po kliknięciu wybór w okienku. */
+  .style-btn { margin-top: 10px; pointer-events: auto; width: 44px; height: 44px; border-radius: 14px; border: 1px solid var(--line);
+    background: rgba(255,255,255,0.06); color: var(--text); display: grid; place-items: center; cursor: pointer; }
+  .style-btn svg, .styles svg { width: 26px; height: 26px; }
+  .style-pop { position: absolute; margin-top: 8px; pointer-events: auto; background: rgba(14,17,28,0.96); border: 1px solid var(--line);
+    border-radius: 18px; padding: 10px; width: 300px; max-width: calc(100vw - 36px); display: none; }
+  .style-pop.open { display: block; }
+  .styles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .styles button { border: 0; background: rgba(255,255,255,0.04); color: var(--dim); font-size: 12px; font-weight: 600; padding: 10px 4px 8px;
+    border-radius: 12px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; }
   .styles button.on { background: rgba(255,255,255,0.14); color: var(--text); }
+  .style-pop .note { color: var(--dim); font-size: 12px; margin: 10px 4px 2px; }
 
   .panel { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom) + 12px);
     width: min(560px, calc(100% - 20px)); background: var(--panel); border: 1px solid var(--line);
@@ -101,16 +106,18 @@
 <div class="top">
   <h1>Pulsar FM</h1>
   <div class="status" id="status">Ładuję dane…</div>
-  <div class="styles" id="styles">
-    <button data-style="ridges" class="on">Grzbiety</button>
-    <button data-style="waves">Fale</button>
-    <button data-style="cymatics">Cymatyka</button>
-    <button data-style="color">Kolor</button>
-    <span class="sep"></span>
-    <button data-style="bauhaus">Bauhaus</button>
-    <button data-style="scope">Oscyloskop</button>
+  <button class="style-btn" id="styleBtn" type="button" aria-haspopup="true" aria-expanded="false"></button>
+  <div class="style-pop" id="stylePop">
+    <div class="styles" id="styles">
+      <button data-style="ridges" class="on">Grzbiety</button>
+      <button data-style="waves">Fale</button>
+      <button data-style="cymatics">Cymatyka</button>
+      <button data-style="color">Kolor</button>
+      <button data-style="bauhaus">Bauhaus</button>
+      <button data-style="scope">Oscyloskop</button>
+    </div>
+    <div class="note" id="styleNote"></div>
   </div>
-  <div class="note" id="styleNote"></div>
 </div>
 
 <div class="panel" id="panel">
@@ -1818,11 +1825,31 @@ function resumeAudio() { if (playing && Tone.context.state !== "running") Tone.c
 document.addEventListener("visibilitychange", () => { if (!document.hidden) resumeAudio(); });
 addEventListener("pointerdown", resumeAudio);
 document.querySelectorAll("#modes button").forEach((b) => (b.onclick = () => enterMode(b.dataset.mode)));
-document.querySelectorAll("#styles button").forEach((b) => (b.onclick = () => {
-  vis.style = b.dataset.style; vis.clear = true;
+// Ikony wizualizacji: mały obrazek tego, co rysuje dany styl.
+const STYLE_ICONS = {
+  ridges: '<path d="M2 8c3 0 4-4 7-4s4 4 7 4 4-2 6-2M2 13c3 0 4-4 7-4s4 4 7 4 4-2 6-2M2 18c3 0 4-4 7-4s4 4 7 4 4-2 6-2"/>',
+  waves: '<circle cx="12" cy="12" r="2.2" fill="currentColor"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="10"/>',
+  cymatics: '<circle cx="12" cy="12" r="10"/><path d="M12 2c4 5 4 15 0 20c-4-5-4-15 0-20M2 12c5-4 15-4 20 0c-5 4-15 4-20 0"/>',
+  color: '<defs><linearGradient id="icoGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7aa2ff"/><stop offset="1" stop-color="#ff7ab6"/></linearGradient></defs><circle cx="12" cy="12" r="10" fill="url(#icoGrad)" stroke="none"/>',
+  bauhaus: '<circle cx="8" cy="9" r="5" fill="currentColor" stroke="none"/><path d="M13 21a8 8 0 0 1 8-8"/><rect x="14" y="3" width="6" height="6"/>',
+  scope: '<path d="M2 12c2.5-7 5-7 7.5 0s5 7 7.5 0 3-5 5-3"/>',
+};
+const icon = (st) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${STYLE_ICONS[st]}</svg>`;
+function showStyle() {
+  const b = document.querySelector(`#styles button[data-style="${vis.style}"]`);
+  $("styleBtn").innerHTML = icon(vis.style);
+  $("styleBtn").title = $("styleBtn").ariaLabel = "Wizualizacja: " + b.textContent.trim();
   $("styleNote").textContent = STYLE_NOTES[vis.style] || "";
   document.querySelectorAll("#styles button").forEach((x) => x.classList.toggle("on", x === b));
-}));
+}
+const toggleStylePop = (open) => { $("stylePop").classList.toggle("open", open); $("styleBtn").setAttribute("aria-expanded", open); };
+document.querySelectorAll("#styles button").forEach((b) => {
+  b.insertAdjacentHTML("afterbegin", icon(b.dataset.style));
+  b.onclick = () => { vis.style = b.dataset.style; vis.clear = true; showStyle(); toggleStylePop(false); };
+});
+$("styleBtn").onclick = (e) => { e.stopPropagation(); toggleStylePop(!$("stylePop").classList.contains("open")); };
+document.addEventListener("click", (e) => { if (!$("stylePop").contains(e.target)) toggleStylePop(false); });
+showStyle();
 $("flare").onclick = () => triggerFlare(mode === "storm" ? 4 : 3);
 $("toggleSliders").onclick = () => { $("sliders").classList.toggle("open"); syncSliders(); };
 canvas.addEventListener("click", (e) => {
@@ -1849,7 +1876,6 @@ addEventListener("resize", resize);
 // Słuchacz dostaje tylko prawdziwe dane. Burza, rozbłysk i suwaki zostają pod ?dev, do dopracowywania obrazu.
 document.body.classList.toggle("dev", new URLSearchParams(location.search).has("dev"));
 resize();
-$("styleNote").textContent = STYLE_NOTES[vis.style];
 renderCard();
 enterMode("live");
 requestAnimationFrame(frame);
