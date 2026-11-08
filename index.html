@@ -110,11 +110,10 @@
   .stat .r { font-size: 11px; line-height: 1.2; color: rgb(239,230,210); opacity: .9; margin-top: 1px; }
   .stat .r.off { opacity: .35; }
   .stat .short { display: none; }
-  /* Klik w kafelek zmniejsza wszystkie: zostaje wartość i nazwa, rola się chowa. Drugi klik przywraca. */
-  .stat { cursor: pointer; transition: padding .2s ease; }
-  .stat .r { max-height: 2.6em; overflow: hidden; transition: max-height .2s ease, opacity .2s ease, margin .2s ease; }
-  .stats.compact .stat { padding-top: 9px; padding-bottom: 8px; }
-  .stats.compact .stat .r { max-height: 0; opacity: 0; margin-top: 0; }
+  /* Wciśnięcie jak w Aurora Now: kafelek i przycisk lekko się zmniejszają. */
+  .stat, .play, .sq, .station, .auto-toggle, .brand, .ico, .modes button, .styles button { transition: transform .2s cubic-bezier(0.2, 0.8, 0.2, 1), background-color .2s; }
+  .stat:active, .play:active, .sq:active, .station:has(.st-main:active), .auto-toggle:active, .brand:active, .modes button:active, .styles button:active { transform: scale(0.94); }
+  .ico:active { transform: scale(0.88); }
 
   .devbox { position: fixed; right: 16px; top: calc(env(safe-area-inset-top) + 80px); width: 260px; max-height: 70vh; overflow: auto; padding: 10px; }
   .more { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -163,7 +162,6 @@
     .info-pop { position: fixed; left: 10px; right: 10px; width: auto; bottom: calc(env(safe-area-inset-bottom) + 66px); }
     .stats { left: 10px; right: 10px; top: auto; bottom: calc(env(safe-area-inset-bottom) + 64px); transform: none; width: auto; grid-template-columns: repeat(5, 1fr); gap: 5px; }
     .stat { padding: 8px 6px 7px; border-radius: 14px; }
-    .stats.compact .stat { padding-top: 6px; padding-bottom: 5px; }
     .stat .v { font-size: 14px; }
     .stat .v small { margin-left: 1px; font-size: 9px; }
     .stat.wide .v small { display: none; }
@@ -2009,13 +2007,10 @@ sky.addEventListener("click", (e) => {
   document.addEventListener("pointerdown", hide, true);
   addEventListener("keydown", hide);
 })();
-// Mniejsze kafelki: klik w dowolny przełącza; wybór zapamiętany w przeglądarce.
-try { if (localStorage.getItem("pfm.compact") === "1") $("stats").classList.add("compact"); } catch (e) {}
-$("stats").onclick = (e) => {
-  e.stopPropagation();
-  const on = $("stats").classList.toggle("compact");
-  try { localStorage.setItem("pfm.compact", on ? "1" : "0"); } catch (e) {}
-};
+// Klik w kafelek danych nie chowa panelu (kafelek tylko się wciska).
+$("stats").onclick = (e) => e.stopPropagation();
+// Safari na iPhonie włącza :active (wciśnięcie) tylko, gdy strona słucha dotyku.
+document.addEventListener("touchstart", () => {}, { passive: true });
 function openSheet() { sheetOpen = true; document.body.classList.add("map"); $("sheet").classList.add("open"); $("psrBtn").classList.add("on"); $("psrBtn").title = "Back to the music"; renderCard(); sizeSky(); }
 function closeSheet() { sheetOpen = false; document.body.classList.remove("map"); $("sheet").classList.remove("open"); $("psrBtn").classList.remove("on"); $("psrBtn").title = "Choose a pulsar"; toggleInfoPop(false); }
 $("psrBtn").innerHTML = ICONS.map; $("infoBtn").innerHTML = ICONS.info;
