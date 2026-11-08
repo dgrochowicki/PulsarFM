@@ -189,9 +189,9 @@
     .station { flex: 1; width: auto; min-width: 0; height: 64px; padding-right: 8px; }
     .st-main { padding-left: 18px; gap: 18px; }
     :root { --player-w: auto; }
-    .livebar { left: 24px; transform: none; top: calc(env(safe-area-inset-top) + 52px); justify-content: flex-start; font-size: 12px; gap: 8px; }
+    .livebar { left: 24px; transform: none; top: calc(env(safe-area-inset-top) + 64px); /* pod przyciskami w rogu, żeby na siebie nie wchodziły */ justify-content: flex-start; font-size: 12px; gap: 8px; }
     .livebar .lb-r { color: var(--dim); }
-    .side { left: auto; right: 24px; bottom: auto; top: calc(env(safe-area-inset-top) + 12px); }
+    .side { left: auto; right: 24px; bottom: auto; top: calc(env(safe-area-inset-top) + 14px); }
     .side .sq { width: 44px; height: 44px; border-radius: 14px; }
     .style-pop, .mode-pop { top: calc(100% + 8px); bottom: auto; left: auto; right: 0; transform-origin: 100% 0; }
     .style-pop:not(.open) { transform: translateY(-6px) scale(.98); }
@@ -1568,7 +1568,7 @@ function drawScope(L, dt, time) {
 // ---------- Wspólne dla nowych kierunków (docs/WIZUALIZACJE.md) ----------
 // Miejsce na obraz: między przełącznikiem stylów a panelem.
 function stage() {
-  const top = document.querySelector(".top").offsetHeight + 10;
+  const top = Math.max(document.querySelector(".top").offsetHeight, $("livebar").getBoundingClientRect().bottom) + 10;
   // Na telefonie dane leżą nad paskiem, na komputerze po lewej, więc dół obrazu wyznacza wyższy z nich.
   const low = document.querySelector(window.innerWidth <= 640 && document.body.classList.contains("data-on") ? ".stats" : ".bar").getBoundingClientRect().top;
   const bottom = $("panel").classList.contains("hidden") ? H - 14 : low - 14;
