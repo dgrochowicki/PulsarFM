@@ -229,6 +229,7 @@
         <div class="styles" id="styles">
           <button data-style="ridges" class="on">Ridges</button>
           <button data-style="waves">Waves</button>
+          <button data-style="rings">Rings</button>
           <button data-style="cymatics">Cymatics</button>
           <button data-style="color">Colour</button>
           <button data-style="bauhaus">Bauhaus</button>
@@ -1637,7 +1638,7 @@ function drawRidges(L, dt, time) {
 // Słońce w środku, fale rozchodzą się we wszystkie strony. Każdy takt rodzi jedną i dostaje dane z tej chwili;
 // prędkość fali to prędkość wiatru, więc szybki strumień dogania wolniejszy. Rozbłysk biegnie szybciej od reszty.
 const WAVE_CROSSING = 75; // sekundy na dojście do brzegu przy 450 km/s
-const WAVES = { list: [], seeded: false, flare: 0, nextAt: 0 };
+const WAVES = { list: [], seeded: false, flare: 0, nextAt: 0, seq: 0 };
 const waveSpeed = (wind) => wind / 450 / WAVE_CROSSING; // części drogi do brzegu na sekundę
 function seedWaves(history) {
   if (WAVES.seeded) return;
@@ -1646,7 +1647,7 @@ function seedWaves(history) {
   const now = performance.now() / 1000;
   WAVES.list.unshift(...history.map((h, i) => {
     const speed = waveSpeed(h.wind);
-    return { ...h, speed, born: now - (1 - i / history.length) / speed };
+    return { ...h, speed, id: WAVES.seq++, born: now - (1 - i / history.length) / speed };
   }));
 }
 function snapHistory() {
@@ -1661,7 +1662,7 @@ function emitWave() {
   const def = GENRES[psr.genre];
   WAVES.nextAt = now + (def.barSteps || 16) / 4 * 60 / bpmFor(psr);
   const flare = WAVES.flare;
-  WAVES.list.push({ wind: cur.wind, dens: cur.dens, bz: cur.bz, kp: cur.kp, flare, speed: waveSpeed(cur.wind) * (flare ? 3 : 1), born: now });
+  WAVES.list.push({ wind: cur.wind, dens: cur.dens, bz: cur.bz, kp: cur.kp, flare, speed: waveSpeed(cur.wind) * (flare ? 3 : 1), id: WAVES.seq++, born: now });
   WAVES.flare = 0;
 }
 function waveColor(w, alpha) {
@@ -1699,6 +1700,51 @@ function drawWaves(L, dt, time) {
   }
   ctx.closePath();
   ctx.fillStyle = waveColor({ bz: cur.bz, kp: 0, wind: 800 }, 1); ctx.fill();
+}
+
+// ---------- Pierścienie (wzór autora z 8.11.2026: grube, faliste pasy koloru i czerni) ----------
+// Te same fale co w „Falach” (jedna na takt, z pomiarem z chwili wyjścia), ale jako pełne pasy.
+// Pas grubieje ku brzegom, środki pasów lekko dryfują, więc koła nie są współśrodkowe.
+const RING_TOP = { north: [178, 140, 255], south: [226, 72, 214] }, RING_LOW = { north: [255, 150, 88], south: [255, 84, 112] };
+function ringColors(so, kp, wind) {
+  const glow = map(kp, 3, 8, 0, 1), light = map(wind, 300, 800, 0.7, 1);
+  const top = RING_TOP.north.map((v, i) => lerp(lerp(v, RING_TOP.south[i], so), [95, 211, 141][i], glow * 0.6) * light);
+  const low = RING_LOW.north.map((v, i) => lerp(v, RING_LOW.south[i], so) * light);
+  return [top, low];
+}
+function drawRings(L, dt, time) {
+  ctx.fillStyle = INK; ctx.fillRect(0, 0, W, H);
+  const S = stage(), now = performance.now() / 1000, core = Math.min(S.w, S.h) * 0.07;
+  const reach = Math.hypot(Math.max(S.cx, W - S.cx), Math.max(S.cy, H - S.cy)) * 1.15;
+  WAVES.list = WAVES.list.filter((w) => (now - w.born) * w.speed < 1);
+  const [top, low] = ringColors(southward(), cur.kp, cur.wind);
+  const grad = ctx.createLinearGradient(S.cx + S.w * 0.4, S.y, S.cx - S.w * 0.4, S.y + S.h);
+  grad.addColorStop(0, mix(top, top, 0)); grad.addColorStop(1, mix(low, low, 0));
+  ctx.lineJoin = "round";
+  // Promień każdej fali, potem pas na połowie drogi do następnej (grubość zależy od gęstości).
+  // Co czwarta fala (stały numer, więc pasy nie migają), rozbłyski zawsze: kilkanaście szerokich pasów jak we wzorze.
+  const rs = WAVES.list.filter((w) => w.flare || w.id % 4 === 0).map((w) => { const t = (now - w.born) * w.speed; return { w, t, r: core + Math.pow(t, 1.45) * (reach - core) }; }).sort((a, b) => a.r - b.r);
+  rs.forEach((o, i) => {
+    const { w, t, r } = o;
+    const gap = i + 1 < rs.length ? rs[i + 1].r - r : (i ? (r - rs[i - 1].r) * 1.1 : core);
+    const band = gap * map(w.dens, 1, 15, 0.42, 0.62), mid = r + gap * 0.5;
+    const wobble = 0.02 + 0.1 * map(w.wind, 300, 800, 0, 1);
+    const ox = Math.sin(w.born * 0.37) * S.w * 0.06 * t, oy = Math.cos(w.born * 0.29) * S.h * 0.05 * t;
+    ctx.beginPath();
+    for (let k = 0; k <= 96; k++) {
+      const a = k / 96 * 6.2832, rr = mid * (1 + wobble * Math.min(1, t * 2.5) * waveShape(a + time * 0.05, w.born));
+      const x = S.cx + ox + Math.cos(a) * rr, y = S.cy + oy + Math.sin(a) * rr;
+      k ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    }
+    ctx.closePath();
+    ctx.lineWidth = Math.max(1, band);
+    ctx.strokeStyle = w.flare ? "rgba(255,236,200,0.95)" : grad;
+    ctx.globalAlpha = Math.min(1, t * 12);
+    ctx.stroke();
+  });
+  ctx.globalAlpha = 1;
+  // Środek: czarne koło, które oddycha z pulsarem.
+  ctx.beginPath(); ctx.arc(S.cx, S.cy, core * (0.8 + vis.pulseT * 0.08 + vis.flareT * 0.3), 0, 6.2832); ctx.fillStyle = INK; ctx.fill();
 }
 
 // ---------- Kierunek 3: Cymatyka ----------
@@ -1751,10 +1797,11 @@ function drawColor(L, dt, time) {
 const STYLE_NOTES = {
   ridges: "One line per pulsar turn: the shape of the sound right now. Colour: Bz, tremble: wind, tall peak: flare.",
   waves: "Waves from the Sun in every direction. Speed and shape: wind, thickness: density, colour: Bz and Kp, bright fast wave: flare.",
+  rings: "Bands of colour from the centre, one per bar. Shape: wind, thickness: density, colours: Bz and Kp, bright band: flare.",
   cymatics: "Sand settles into the figure of the current chord. Amount: wind density, shaking: speed, colour: Bz.",
   color: "Top field: aurora, bottom: wind and Bz. The border moves with wind pressure, everything breathes with the pulsar.",
 }
-const STYLES = { ridges: drawRidges, waves: drawWaves, cymatics: drawCymatics, color: drawColor, bauhaus: drawBauhaus, scope: drawScope };
+const STYLES = { ridges: drawRidges, waves: drawWaves, rings: drawRings, cymatics: drawCymatics, color: drawColor, bauhaus: drawBauhaus, scope: drawScope };
 
 // ---------- Mapa pulsarów ----------
 // Całe niebo jako prostokąt na cały ekran. Rektascensja rośnie w lewo, jak na mapach nieba; środek mapy to 12h.
@@ -2136,6 +2183,7 @@ showMode();
 const STYLE_ICONS = {
   ridges: '<path d="M2 8c3 0 4-4 7-4s4 4 7 4 4-2 6-2M2 13c3 0 4-4 7-4s4 4 7 4 4-2 6-2M2 18c3 0 4-4 7-4s4 4 7 4 4-2 6-2"/>',
   waves: '<circle cx="12" cy="12" r="2.2" fill="currentColor"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="10"/>',
+  rings: '<path d="M12 4.5c4.5 0 7.5 3 7.5 7.3s-3.2 7.7-7.6 7.7S4.5 16 4.5 11.9 7.6 4.5 12 4.5z" stroke-width="2.6"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/>',
   cymatics: '<circle cx="12" cy="12" r="10"/><path d="M12 2c4 5 4 15 0 20c-4-5-4-15 0-20M2 12c5-4 15-4 20 0c-5 4-15 4-20 0"/>',
   color: '<defs><linearGradient id="icoGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7aa2ff"/><stop offset="1" stop-color="#ff7ab6"/></linearGradient></defs><circle cx="12" cy="12" r="10" fill="url(#icoGrad)" stroke="none"/>',
   bauhaus: '<circle cx="8" cy="9" r="5" fill="currentColor" stroke="none"/><path d="M13 21a8 8 0 0 1 8-8"/><rect x="14" y="3" width="6" height="6"/>',
