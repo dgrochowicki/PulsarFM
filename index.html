@@ -229,7 +229,6 @@
         <div class="styles" id="styles">
           <button data-style="ridges" class="on">Ridges</button>
           <button data-style="waves">Waves</button>
-          <button data-style="rings">Rings</button>
           <button data-style="cymatics">Cymatics</button>
           <button data-style="color">Colour</button>
           <button data-style="bauhaus">Bauhaus</button>
@@ -1671,39 +1670,9 @@ function waveColor(w, alpha) {
 }
 // Wspólny, wolno zmieniający się kształt: sąsiednie fale są podobne, jak fronty jednego strumienia.
 const waveShape = (a, born) => 0.5 * Math.sin(3 * a + 1.1 + born * 0.03) + 0.3 * Math.sin(5 * a + 2.7 - born * 0.05) + 0.2 * Math.sin(9 * a + 0.4 + born * 0.08);
-function drawWaves(L, dt, time) {
-  ctx.fillStyle = INK; ctx.fillRect(0, 0, W, H);
-  const S = stage(), now = performance.now() / 1000, sunR = Math.min(S.w, S.h) * 0.055;
-  const reach = Math.hypot(Math.max(S.cx, W - S.cx), Math.max(S.cy, H - S.cy));
-  WAVES.list = WAVES.list.filter((w) => (now - w.born) * w.speed < 1);
-  ctx.lineJoin = "round";
-  for (const w of WAVES.list) {
-    const t = (now - w.born) * w.speed, r = sunR + t * (reach - sunR), wobble = 0.012 + 0.075 * map(w.wind, 300, 800, 0, 1);
-    ctx.beginPath();
-    for (let k = 0; k <= 72; k++) {
-      const a = k / 72 * 6.2832, rr = r * (1 + wobble * t * waveShape(a, w.born));
-      k ? ctx.lineTo(S.cx + Math.cos(a) * rr, S.cy + Math.sin(a) * rr) : ctx.moveTo(S.cx + Math.cos(a) * rr, S.cy + Math.sin(a) * rr);
-    }
-    ctx.closePath();
-    const fade = Math.pow(1 - t, 0.7);
-    if (w.flare) { ctx.strokeStyle = `rgba(255,242,196,${fade})`; ctx.lineWidth = 2 + w.flare * 1.4; }
-    else { ctx.strokeStyle = waveColor(w, 0.9 * fade); ctx.lineWidth = map(w.dens, 1, 15, 0.8, 7); }
-    ctx.stroke();
-  }
-  // Słońce: brzeg drga falą dźwięku, błyska z pulsarem i przy rozbłysku.
-  const sound = A && playing ? A.wave.getValue() : null;
-  ctx.beginPath();
-  for (let k = 0; k <= 96; k++) {
-    const a = k / 96 * 6.2832, v = sound ? sound[Math.floor(k / 96 * (sound.length - 1))] : 0;
-    const rr = sunR * (1 + vis.pulseT * 0.06 + vis.flareT * 0.5) + v * sunR * 0.9;
-    k ? ctx.lineTo(S.cx + Math.cos(a) * rr, S.cy + Math.sin(a) * rr) : ctx.moveTo(S.cx + Math.cos(a) * rr, S.cy + Math.sin(a) * rr);
-  }
-  ctx.closePath();
-  ctx.fillStyle = waveColor({ bz: cur.bz, kp: 0, wind: 800 }, 1); ctx.fill();
-}
 
-// ---------- Pierścienie: Fale, które niosą dźwięk (wariant C, autor 8.11.2026) ----------
-// Te same fale co w „Falach”, ale grubsze, a grubość wzdłuż linii to kształt dźwięku, jak linia w „Grzbietach”,
+// ---------- Fale (dawniej Pierścienie/Rings; zastąpiły stare Fale, autor 8.11.2026) ----------
+// Fale ze Słońca (jedna na takt, z pomiarem z chwili wyjścia), grube, a grubość wzdłuż linii to kształt dźwięku, jak linia w „Grzbietach”,
 // tylko owinięty dookoła: basy na dole, wysokie tony u góry, lewa i prawa strona lustrzane.
 // Fala przy Słońcu żyje z tym, co gra teraz; odpływając zastyga, więc dalej od środka widać zapis ostatnich taktów.
 // Uderzenie lekko pogrubia wszystkie linie naraz.
@@ -1753,7 +1722,7 @@ function drawRings(L, dt, time) {
     ctx.fillStyle = w.flare ? `rgba(255,242,196,${fade})` : waveColor(w, 0.92 * fade);
     ctx.fill();
   }
-  // Słońce jak w Falach.
+  // Słońce: brzeg drga falą dźwięku, błyska z pulsarem i przy rozbłysku.
   const sound = A && playing ? A.wave.getValue() : null;
   ctx.beginPath();
   for (let k = 0; k <= 96; k++) {
@@ -1814,12 +1783,11 @@ function drawColor(L, dt, time) {
 
 const STYLE_NOTES = {
   ridges: "One line per pulsar turn: the shape of the sound right now. Colour: Bz, tremble: wind, tall peak: flare.",
-  waves: "Waves from the Sun in every direction. Speed and shape: wind, thickness: density, colour: Bz and Kp, bright fast wave: flare.",
-  rings: "Waves that carry the sound: the newest wave swells with the music (bass at the bottom, highs at the top) and keeps that shape as it travels out. Shape: wind, thickness: density, colour: Bz and Kp.",
+  waves: "Waves that carry the sound: the newest wave swells with the music (bass at the bottom, highs at the top) and keeps that shape as it travels out. Shape: wind, thickness: density, colour: Bz and Kp.",
   cymatics: "Sand settles into the figure of the current chord. Amount: wind density, shaking: speed, colour: Bz.",
   color: "Top field: aurora, bottom: wind and Bz. The border moves with wind pressure, everything breathes with the pulsar.",
 }
-const STYLES = { ridges: drawRidges, waves: drawWaves, rings: drawRings, cymatics: drawCymatics, color: drawColor, bauhaus: drawBauhaus, scope: drawScope };
+const STYLES = { ridges: drawRidges, waves: drawRings, cymatics: drawCymatics, color: drawColor, bauhaus: drawBauhaus, scope: drawScope };
 
 // ---------- Mapa pulsarów ----------
 // Całe niebo jako prostokąt na cały ekran. Rektascensja rośnie w lewo, jak na mapach nieba; środek mapy to 12h.
@@ -2201,7 +2169,6 @@ showMode();
 const STYLE_ICONS = {
   ridges: '<path d="M2 8c3 0 4-4 7-4s4 4 7 4 4-2 6-2M2 13c3 0 4-4 7-4s4 4 7 4 4-2 6-2M2 18c3 0 4-4 7-4s4 4 7 4 4-2 6-2"/>',
   waves: '<circle cx="12" cy="12" r="2.2" fill="currentColor"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="10"/>',
-  rings: '<path d="M12 4.5c4.5 0 7.5 3 7.5 7.3s-3.2 7.7-7.6 7.7S4.5 16 4.5 11.9 7.6 4.5 12 4.5z" stroke-width="2.6"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/>',
   cymatics: '<circle cx="12" cy="12" r="10"/><path d="M12 2c4 5 4 15 0 20c-4-5-4-15 0-20M2 12c5-4 15-4 20 0c-5 4-15 4-20 0"/>',
   color: '<defs><linearGradient id="icoGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7aa2ff"/><stop offset="1" stop-color="#ff7ab6"/></linearGradient></defs><circle cx="12" cy="12" r="10" fill="url(#icoGrad)" stroke="none"/>',
   bauhaus: '<circle cx="8" cy="9" r="5" fill="currentColor" stroke="none"/><path d="M13 21a8 8 0 0 1 8-8"/><rect x="14" y="3" width="6" height="6"/>',
