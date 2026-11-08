@@ -45,7 +45,7 @@
 
   .station { position: relative; width: 320px; height: 52px; display: flex; align-items: center; gap: 2px; padding: 0 10px 0 0; }
   .st-main { flex: 1; min-width: 0; height: 100%; display: flex; align-items: center; gap: 12px; padding: 0 8px 0 18px; border: 0; background: none; text-align: left; cursor: pointer; }
-  .st-main .dot { width: 12px; height: 12px; border-radius: 50%; background: #cfe0ff; box-shadow: 0 0 10px #9fc2ff; flex: 0 0 auto; }
+  .st-main .dot { width: 12px; height: 12px; border-radius: 50%; background: #fff4dc; flex: 0 0 auto; }
   .st-main .t { min-width: 0; }
   .st-main b { display: block; font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .st-main .t div { font-size: 11.5px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -53,8 +53,15 @@
   /* Okienka nad paskiem: informacja o pulsarze, tryb danych, styl obrazu. */
   /* Okienka półprzezroczyste: pod spodem widać mapę albo obraz, rozmyte. */
   .pop { position: absolute; bottom: calc(100% + 8px); background: var(--pop); border: 1px solid var(--line); border-radius: var(--r);
-    -webkit-backdrop-filter: blur(16px) saturate(1.2); backdrop-filter: blur(16px) saturate(1.2); display: none; z-index: 5; }
-  .pop.open { display: block; }
+    -webkit-backdrop-filter: blur(16px) saturate(1.2); backdrop-filter: blur(16px) saturate(1.2); z-index: 5;
+    visibility: hidden; opacity: 0; transform: translateY(6px) scale(.98); transform-origin: 50% 100%;
+    transition: opacity .18s ease, transform .18s ease, visibility 0s linear .18s; }
+  .pop.open { visibility: visible; opacity: 1; transform: none; transition: opacity .18s ease, transform .18s ease; }
+  /* Podpowiedź do ikon: jedna, rysowana przez nas zamiast systemowej. */
+  .tip { position: fixed; left: 0; top: 0; z-index: 30; max-width: 240px; padding: 6px 10px; border-radius: 10px;
+    background: rgba(28,31,40,0.92); border: 1px solid var(--line); color: var(--text); font-size: 12px; line-height: 1.35;
+    pointer-events: none; opacity: 0; transform: translateY(3px); transition: opacity .14s ease, transform .14s ease; }
+  .tip.show { opacity: 1; transform: none; }
   .info-pop { left: 0; width: 100%; }
   .mode-wrap, .style-wrap { position: relative; flex: 0 0 auto; }
   .mode-pop { right: 0; padding: 6px; }
@@ -119,7 +126,8 @@
   .sheet-head .sq { width: 36px; height: 36px; border-radius: 12px; }
   .sheet-head { position: relative; z-index: 1; }
   /* Na mapie zostaje pasek, okienko informacji stoi nad nim, dane się chowają. */
-  body.map .stats { display: none; }
+  .stats { transition: opacity .25s ease, visibility 0s; }
+  body.map .stats { opacity: 0; visibility: hidden; transition: opacity .25s ease, visibility 0s linear .25s; }
   .ico.on { background: rgba(255,255,255,0.12); color: #fff; }
   .skywrap { position: absolute; inset: 0; }
   #sky { display: block; touch-action: manipulation; cursor: pointer; }
@@ -133,7 +141,8 @@
     .st-main { padding-left: 14px; gap: 10px; }
     .style-wrap { position: fixed; top: calc(env(safe-area-inset-top) + 8px); right: 10px; }
     .style-wrap .sq { width: 44px; height: 44px; }
-    .style-pop { top: calc(100% + 8px); bottom: auto; }
+    .style-pop { top: calc(100% + 8px); bottom: auto; transform-origin: 50% 0; }
+    .style-pop:not(.open) { transform: translateY(-6px) scale(.98); }
     .info-pop { position: fixed; left: 10px; right: 10px; width: auto; bottom: calc(env(safe-area-inset-bottom) + 66px); }
     .stats { left: 10px; right: 10px; top: auto; bottom: calc(env(safe-area-inset-bottom) + 64px); transform: none; width: auto; grid-template-columns: repeat(5, 1fr); gap: 5px; }
     .stat { padding: 8px 6px 7px; border-radius: 14px; }
@@ -222,7 +231,7 @@
 
 <div class="sheet" id="sheet">
   <div class="sheet-head">
-    <b>Choose a pulsar</b>
+    <b>Pulsar.fm</b>
     <div class="sheet-actions">
       <button class="auto-toggle tile" id="autoPulsar" type="button" aria-pressed="false" title="Pick the pulsar highest above you">Auto</button>
     </div>
@@ -1193,7 +1202,7 @@ function layout() {
 const vis = {
   style: "ridges", pulses: 0, chordPc: null, beatT: 0, pulseT: 0, flareT: 0, flareLevel: 0, hue: 220, hueTarget: 220, fast: false, clear: true,
   beat() { this.beatT = 1; },
-  pulse() { this.pulses++; this.pulseT = 1; },
+  pulse() { this.pulses++; this.pulseT = 1; this.pulseAt = performance.now() / 1000; },
   note(n) {
     const s = stars[Math.floor(Math.random() * stars.length)]; if (s) s.f = 1;
   },
@@ -1257,6 +1266,14 @@ function stepParticles(L, dt) {
 // 30 klatek wystarcza do tych animacji, a zużywa o połowę mniej procesora. Bez grania 15: obraz tylko miga z pulsarem.
 const frameMs = () => 1000 / (playing ? 30 : 15);
 let lastT = performance.now();
+// Kropka w pasku miga jak pulsar na mapie: wolny błyska i gaśnie w swoim okresie, szybki drga.
+// Błysk liczony od ostatniego impulsu, więc przy grze zgadza się z dźwiękiem.
+const dotEl = document.getElementById("psrDot");
+function dotGlow(now) {
+  const glow = psr.P < 0.2 ? 0.55 + 0.25 * Math.sin(now * 40) : Math.exp(-Math.max(0, now - (vis.pulseAt || 0)) / psr.P * 9);
+  dotEl.style.opacity = (0.45 + 0.55 * glow).toFixed(2);
+  dotEl.style.boxShadow = `0 0 ${(4 + glow * 10).toFixed(1)}px rgba(255,214,140,${(0.25 + glow * 0.6).toFixed(2)})`;
+}
 function frame(t) {
   if (t - lastT < frameMs() - 2) { nextFrame(t); return; }
   const dt = Math.min(0.05, (t - lastT) / 1000);
@@ -1272,6 +1289,7 @@ function frame(t) {
     if (ph < vis._lastPh) vis.pulse();
     vis._lastPh = ph;
   }
+  dotGlow(t / 1000);
   // Mapa zakrywa scenę, więc nie ma po co jej rysować.
   if (sheetOpen) drawSky(t / 1000);
   else {
@@ -1930,6 +1948,31 @@ sky.addEventListener("click", (e) => {
   for (const p of PULSARS) { const q = skyXY(p.ra, p.dec), d = Math.hypot(q.x - x, q.y - y); if (d < bd) { bd = d; best = p; } }
   if (best) selectPulsar(best, true);
 });
+// Podpowiedzi: zamiast systemowego dymka z title pokazujemy własny, po krótkiej chwili. Tylko z myszką.
+(() => {
+  if (!matchMedia("(hover: hover)").matches) return;
+  const tip = document.createElement("div"); tip.className = "tip"; tip.setAttribute("aria-hidden", "true"); document.body.appendChild(tip);
+  let el = null, timer = 0;
+  const hide = () => { clearTimeout(timer); tip.classList.remove("show"); if (el && el.dataset.tip !== undefined) { if (!el.title) el.title = el.dataset.tip; delete el.dataset.tip; } el = null; };
+  const place = () => {
+    const r = el.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight, m = 8;
+    let x, y;
+    if (el.matches(".stat") && innerWidth > 640) { x = r.right + m; y = r.top + (r.height - h) / 2; }
+    else { const box = (el.closest(".station") || el).getBoundingClientRect(); x = r.left + (r.width - w) / 2; y = box.top - h - m; if (y < 8) y = box.bottom + m; }
+    tip.style.left = Math.round(clamp(x, 8, innerWidth - w - 8)) + "px"; tip.style.top = Math.round(y) + "px";
+  };
+  document.addEventListener("pointerover", (e) => {
+    const t = e.target.closest("[title]"); if (!t || t === el || e.pointerType !== "mouse") return;
+    hide(); el = t; el.dataset.tip = el.title; el.removeAttribute("title");
+    timer = setTimeout(() => {
+      if (!el || el.getAttribute("aria-expanded") === "true" || el.closest(".panel.hidden")) return;
+      tip.textContent = el.dataset.tip; place(); tip.classList.add("show");
+    }, 350);
+  });
+  document.addEventListener("pointerout", (e) => { if (el && !el.contains(e.relatedTarget)) hide(); });
+  document.addEventListener("pointerdown", hide, true);
+  addEventListener("keydown", hide);
+})();
 function openSheet() { sheetOpen = true; document.body.classList.add("map"); $("sheet").classList.add("open"); $("psrBtn").classList.add("on"); $("psrBtn").title = "Back to the music"; renderCard(); sizeSky(); }
 function closeSheet() { sheetOpen = false; document.body.classList.remove("map"); $("sheet").classList.remove("open"); $("psrBtn").classList.remove("on"); $("psrBtn").title = "Choose a pulsar"; toggleInfoPop(false); }
 $("psrBtn").innerHTML = ICONS.map; $("infoBtn").innerHTML = ICONS.info;
@@ -1964,7 +2007,6 @@ setInterval(() => {
   $("rKp").style.color = mix(BONE, [95, 211, 141], map(cur.kp, 3, 8, 0, 1) * 0.7);
   $("rX").style.color = mix([239, 230, 210], [255, 242, 196], vis.flareT);
   $("vX").textContent = mode === "storm" ? "X2.1" : mode === "live" && target.xray ? xrayClass(target.xray).letter : "–";
-  $("psrDot").style.opacity = 0.35 + 0.65 * vis.pulseT;
   updateAudioParams();
 }, 100);
 
