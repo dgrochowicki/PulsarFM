@@ -29,6 +29,17 @@
 
   .top { position: fixed; left: 0; right: 0; top: 0; padding: calc(env(safe-area-inset-top) + 34px) 38px 0; pointer-events: none; }
   .top h1 { margin: 0; font-size: 16px; font-weight: 500; letter-spacing: 0.1px; }
+  .top .brand { pointer-events: auto; }
+  .brand { padding: 4px 8px; margin: -4px -8px; border: 0; border-radius: 10px; background: none; font-size: 16px; font-weight: 500; cursor: pointer; }
+  .brand:hover, .brand[aria-expanded="true"] { background: rgba(255,255,255,0.08); }
+  /* Okienko „czym to jest”: pod nazwą w lewym górnym rogu, nad mapą i nad obrazem. */
+  .pop.about-pop { position: fixed; z-index: 20; left: 30px; top: calc(env(safe-area-inset-top) + 66px); bottom: auto; width: 360px; max-width: calc(100vw - 20px);
+    transform-origin: 0 0; transform: translateY(-6px) scale(.98); }
+  .pop.about-pop.open { transform: none; }
+  .about-pop .info p { margin: 10px 0 0; color: rgba(238,240,246,0.8); }
+  .about-pop .info ul { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; color: rgba(238,240,246,0.8); }
+  .about-pop .info li b { font-weight: 500; color: var(--text); }
+  .about-pop .info .src { margin-top: 12px; color: var(--dim); font-size: 11px; }
   .top .status { display: none; color: var(--dim); font-size: 12.5px; margin-top: 4px; max-width: 80vw; }
   .top .status.show { display: block; }
 
@@ -134,6 +145,7 @@
 
   /* Telefon: dane w jednym rzędzie nad paskiem, styl obrazu w prawym górnym rogu. */
   @media (max-width: 640px) {
+    .pop.about-pop { left: 10px; right: 10px; width: auto; top: calc(env(safe-area-inset-top) + 50px); max-height: calc(100dvh - 140px); overflow: auto; }
     .top { padding: calc(env(safe-area-inset-top) + 18px) 20px 0; }
     .bar { left: 10px; right: 10px; bottom: calc(env(safe-area-inset-bottom) + 10px); gap: 6px; }
     .play, .sq { width: 48px; height: 48px; }
@@ -164,7 +176,7 @@
 <canvas id="c"></canvas>
 
 <div class="top">
-  <h1>Pulsar.fm</h1>
+  <h1><button class="brand" type="button" data-about aria-haspopup="true" aria-expanded="false">Pulsar.fm</button></h1>
   <div class="status" id="status" aria-live="polite">Loading data…</div>
 </div>
 
@@ -229,9 +241,27 @@
   </div>
 </div>
 
+<div class="pop about-pop" id="aboutPop" role="dialog" aria-label="About Pulsar.fm">
+  <div class="info">
+    <div class="info-head"><div><b>Pulsar.fm</b><div class="tag">A radio that plays space weather and pulsars, live.</div></div><button class="ico" type="button" data-close title="Close" aria-label="Close"></button></div>
+    <p>There is no sound in space, so we make it. Nothing here is a recording: the music is written right now from real measurements.</p>
+    <p><b>Pulsars are the stations.</b> Each one sets the tempo with its real flashes; the fastest also set the key. Pick one on the map, or press Auto for the pulsar highest above you.</p>
+    <p><b>The Sun plays the music.</b> NOAA data, every minute:</p>
+    <ul>
+      <li><b>Solar wind</b> writes the melody</li>
+      <li><b>Density</b> sets how busy the rhythm is</li>
+      <li><b>Bz</b> turns the scale dark or bright</li>
+      <li><b>Kp</b> adds high tones in a storm</li>
+      <li><b>A solar flare</b> hits like a film trailer</li>
+    </ul>
+    <p>When the Sun changes, the music changes.</p>
+    <div class="src">Data: NOAA SWPC. Sky: d3-celestial. Samples: CC0.</div>
+  </div>
+</div>
+
 <div class="sheet" id="sheet">
   <div class="sheet-head">
-    <b>Pulsar.fm</b>
+    <button class="brand" type="button" data-about aria-haspopup="true" aria-expanded="false">Pulsar.fm</button>
     <div class="sheet-actions">
       <button class="auto-toggle tile" id="autoPulsar" type="button" aria-pressed="false" title="Pick the pulsar highest above you">Auto</button>
     </div>
@@ -1985,7 +2015,19 @@ $("stMain").onclick = (e) => { e.stopPropagation(); sheetOpen ? closeSheet() : o
 $("infoBtn").onclick = (e) => { e.stopPropagation(); toggleInfoPop(!$("infoPop").classList.contains("open")); };
 $("infoPop").onclick = (e) => { e.stopPropagation(); if (e.target.closest("[data-close]")) toggleInfoPop(false); };
 document.addEventListener("click", () => { if (!sheetOpen) toggleInfoPop(false); });
-document.addEventListener("keydown", (e) => { if (e.key === "Escape" && sheetOpen) closeSheet(); });
+// Okienko „czym to jest” po kliknięciu nazwy (na ekranie głównym i na mapie).
+function toggleAbout(open) {
+  $("aboutPop").classList.toggle("open", open);
+  document.querySelectorAll("[data-about]").forEach(b => b.setAttribute("aria-expanded", open));
+}
+$("aboutPop").querySelector("[data-close]").innerHTML = ICONS.close;
+document.querySelectorAll("[data-about]").forEach(b => b.onclick = (e) => { e.stopPropagation(); toggleAbout(!$("aboutPop").classList.contains("open")); });
+$("aboutPop").onclick = (e) => { e.stopPropagation(); if (e.target.closest("[data-close]")) toggleAbout(false); };
+document.addEventListener("click", () => toggleAbout(false));
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if ($("aboutPop").classList.contains("open")) toggleAbout(false); else if (sheetOpen) closeSheet();
+});
 $("autoPulsar").onclick = () => autoPulsar ? disableAutoPulsar() : enableAutoPulsar();
 setInterval(refreshAutoPulsar, 60000);
 
