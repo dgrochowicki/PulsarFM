@@ -24,7 +24,9 @@
   /* Kafelek w kolorze z projektu (#C4DDFF, 10%) na lekko przyciemnionym tle, żeby był czytelny nad obrazem. Bez rozmycia: ono kosztuje przy każdej klatce. */
   .tile { background: linear-gradient(var(--tile), var(--tile)), var(--base); border-radius: var(--r); }
   .ico { width: 32px; height: 32px; padding: 0; border: 0; background: none; border-radius: 10px; color: var(--icon); display: grid; place-items: center; cursor: pointer; flex: 0 0 auto; }
-  .ico:hover, .ico[aria-expanded="true"] { background: rgba(255,255,255,0.08); color: #fff; }
+  /* Najechanie tylko z myszką: na telefonie :hover zostawał po dotknięciu na stałe. */
+  @media (hover: hover) { .ico:hover { background: rgba(255,255,255,0.08); color: #fff; } }
+  .ico[aria-expanded="true"] { background: rgba(255,255,255,0.08); color: #fff; }
   .ico svg, .sq svg { width: 18px; height: 18px; }
 
   .top { position: fixed; z-index: 12; left: 0; top: 0; padding: calc(env(safe-area-inset-top) + 26px) 42px 0; pointer-events: none; }
@@ -42,7 +44,8 @@
   @keyframes onair { 50% { opacity: .4; } }
   @media (prefers-reduced-motion: reduce) { .livebar.on svg { animation: none; } }
   .brand { padding: 4px 8px; margin: -4px -8px; border: 0; border-radius: 10px; background: none; font-size: 16px; font-weight: 500; cursor: pointer; }
-  .brand:hover, .brand[aria-expanded="true"] { background: rgba(255,255,255,0.08); }
+  @media (hover: hover) { .brand:hover { background: rgba(255,255,255,0.08); } }
+  .brand[aria-expanded="true"] { background: rgba(255,255,255,0.08); }
   /* Okienko „czym to jest”: pod nazwą w lewym górnym rogu, nad mapą i nad obrazem. */
   .pop.about-pop { position: fixed; z-index: 20; left: 30px; top: calc(env(safe-area-inset-top) + 66px); bottom: auto; width: 360px; max-width: calc(100vw - 20px);
     transform-origin: 0 0; transform: translateY(-6px) scale(.98); }
@@ -64,7 +67,8 @@
   .play { flex: 0 0 auto; width: 54px; height: 54px; padding: 0; border: 0; border-radius: 14px; background: #e8e9ec; color: #000; display: grid; place-items: center; cursor: pointer; }
   .play svg { width: 18px; height: 18px; }
   .sq { width: 70px; height: 70px; padding: 0; border: 0; color: var(--icon); display: grid; place-items: center; cursor: pointer; }
-  .sq:hover, .sq[aria-expanded="true"] { color: #fff; }
+  @media (hover: hover) { .sq:hover { color: #fff; } }
+  .sq[aria-expanded="true"] { color: #fff; }
   .sq[aria-pressed="true"] { color: #ffcf6e; }
 
   .station { position: relative; width: var(--player-w); height: 70px; display: flex; align-items: center; gap: 4px; padding: 0 8px 0 0; }
@@ -171,7 +175,8 @@
   .sheet-head .sq { width: 36px; height: 36px; border-radius: 12px; }
   .sheet-head { position: relative; z-index: 1; }
   /* Na mapie zostaje odtwarzacz i przyciski; dane pokazują się tak samo jak na obrazie. */
-  .ico.on { color: #fff; }
+  /* Mapa otwarta: przycisk czterech kółek wciśnięty; drugi klik zamyka mapę i go zwalnia. */
+  .ico.on, .ico.on:hover { background: rgba(255,255,255,0.14); color: #fff; }
   .skywrap { position: absolute; inset: 0; }
   #sky { display: block; touch-action: manipulation; cursor: pointer; }
 
@@ -2102,8 +2107,8 @@ sky.addEventListener("click", (e) => {
 $("stats").onclick = (e) => e.stopPropagation();
 // Safari na iPhonie włącza :active (wciśnięcie) tylko, gdy strona słucha dotyku.
 document.addEventListener("touchstart", () => {}, { passive: true });
-function openSheet() { sheetOpen = true; document.body.classList.add("map"); $("sheet").classList.add("open"); $("psrBtn").classList.add("on"); $("psrBtn").title = "Back to the music"; renderCard(); sizeSky(); }
-function closeSheet() { sheetOpen = false; document.body.classList.remove("map"); $("sheet").classList.remove("open"); $("psrBtn").classList.remove("on"); $("psrBtn").title = "Choose a pulsar"; toggleInfoPop(false); }
+function openSheet() { sheetOpen = true; document.body.classList.add("map"); $("sheet").classList.add("open"); $("psrBtn").classList.add("on"); $("psrBtn").setAttribute("aria-pressed", "true"); $("psrBtn").title = "Back to the music"; renderCard(); sizeSky(); }
+function closeSheet() { sheetOpen = false; document.body.classList.remove("map"); $("sheet").classList.remove("open"); $("psrBtn").classList.remove("on"); $("psrBtn").setAttribute("aria-pressed", "false"); $("psrBtn").title = "Choose a pulsar"; toggleInfoPop(false); }
 $("psrBtn").innerHTML = ICONS.map; $("lbIco").innerHTML = ICONS.live; $("sunBtn").innerHTML = ICONS.sun;
 // Okienko leży na mapie, mapa pod nim ma stały rozmiar.
 function toggleInfoPop(open) {
