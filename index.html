@@ -29,7 +29,15 @@
 
   .top { position: fixed; left: 0; right: 0; top: 0; padding: calc(env(safe-area-inset-top) + 34px) 38px 0; pointer-events: none; }
   .top h1 { margin: 0; font-size: 16px; font-weight: 500; letter-spacing: 0.1px; }
-  .top .brand { pointer-events: auto; }
+  .top .brand, .top .live-badge { pointer-events: auto; }
+  /* Znak „Live” obok nazwy: kropka pulsuje, gdy dane przychodzą; szara przy przerwie i nagraniu. */
+  .brandline { display: flex; align-items: center; gap: 14px; }
+  .live-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--dim); white-space: nowrap; cursor: default; }
+  .live-badge i { width: 6px; height: 6px; border-radius: 50%; background: rgba(238,240,246,0.4); flex: 0 0 auto; }
+  .live-badge.on i { background: #ff6b5e; box-shadow: 0 0 6px rgba(255,107,94,0.7); animation: onair 2s ease-in-out infinite; }
+  .live-badge.on .lt { color: rgba(238,240,246,0.8); }
+  @keyframes onair { 50% { opacity: .35; } }
+  @media (prefers-reduced-motion: reduce) { .live-badge.on i { animation: none; } }
   .brand { padding: 4px 8px; margin: -4px -8px; border: 0; border-radius: 10px; background: none; font-size: 16px; font-weight: 500; cursor: pointer; }
   .brand:hover, .brand[aria-expanded="true"] { background: rgba(255,255,255,0.08); }
   /* Okienko „czym to jest”: pod nazwą w lewym górnym rogu, nad mapą i nad obrazem. */
@@ -40,8 +48,8 @@
   .about-pop .info ul { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; color: rgba(238,240,246,0.8); }
   .about-pop .info li b { font-weight: 500; color: var(--text); }
   .about-pop .info .src { margin-top: 12px; color: var(--dim); font-size: 11px; }
-  .top .status { display: none; color: var(--dim); font-size: 12.5px; margin-top: 4px; max-width: 80vw; }
-  .top .status.show { display: block; }
+  /* Pełne zdanie o stanie danych tylko dla czytnika ekranu; na ekranie jest znak „Live”. */
+  .top .status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
   /* Panel: dane po lewej i pasek na dole. Kliknięcie w obraz chowa całość. */
   .panel { transition: opacity .35s ease; }
@@ -180,7 +188,7 @@
 <canvas id="c"></canvas>
 
 <div class="top">
-  <h1><button class="brand" type="button" data-about aria-haspopup="true" aria-expanded="false">Pulsar.fm</button></h1>
+  <div class="brandline"><h1><button class="brand" type="button" data-about aria-haspopup="true" aria-expanded="false">Pulsar.fm</button></h1><span class="live-badge" title=""><i></i><span class="lt">Live</span></span></div>
   <div class="status" id="status" aria-live="polite">Loading data…</div>
 </div>
 
@@ -204,7 +212,7 @@
       <button class="ico" id="psrBtn" type="button" title="Choose a pulsar" aria-label="Choose a pulsar"></button>
       <div class="pop info-pop" id="infoPop"></div>
     </div>
-    <div class="mode-wrap">
+    <div class="mode-wrap dev-only">
       <button class="sq tile" id="modeBtn" type="button" aria-haspopup="true" aria-expanded="false"></button>
       <div class="pop mode-pop" id="modePop">
         <div class="modes" id="modes">
@@ -265,7 +273,7 @@
 
 <div class="sheet" id="sheet">
   <div class="sheet-head">
-    <button class="brand" type="button" data-about aria-haspopup="true" aria-expanded="false">Pulsar.fm</button>
+    <div class="brandline"><button class="brand" type="button" data-about aria-haspopup="true" aria-expanded="false">Pulsar.fm</button><span class="live-badge" title=""><i></i><span class="lt">Live</span></span></div>
     <div class="sheet-actions">
       <button class="auto-toggle tile" id="autoPulsar" type="button" aria-pressed="false" title="Pick the pulsar highest above you">Auto</button>
     </div>
@@ -374,7 +382,7 @@ const $ = (id) => document.getElementById(id);
 
 const target = { wind: 420, dens: 4, bz: 0, kp: 2, xray: null };
 const cur = { ...target };
-let windTail = [], mode = "live", liveOK = false, lastLive = null, replayIdx = 0, xrayTag = null, modeRequest = 0;
+let windTail = [], mode = "live", liveOK = false, lastLive = null, lastOkAt = 0, replayIdx = 0, xrayTag = null, modeRequest = 0;
 
 function xrayClass(flux) {
   if (!(flux > 0)) return { letter: "–", level: 0 };
@@ -439,7 +447,7 @@ async function fetchLive() {
         out.xray = Number(last.flux); out.xrayTag = last.time_tag; out.flareLevel = newFlareLevel(long);
       }
     }
-    liveOK = true; lastLive = out;
+    liveOK = true; lastLive = out; lastOkAt = Date.now();
     const tail = wind.value.filter((r) => r.active && r.proton_speed != null).slice(0, 17).reverse().map((r) => Number(r.proton_speed));
     if (tail.length === 17) windTail = tail;
     if (!WAVES.seeded) {
@@ -461,18 +469,38 @@ function applyLive(d) {
   }
 }
 
+// Nagranie gra w trybie Replay (dev), gdy danych na żywo nigdy nie było albo nie ma ich od 10 minut.
+const STALE_MS = 10 * 60 * 1000;
+function onRecording() {
+  return mode === "replay" || (mode === "live" && (!lastLive || (lastOkAt > 0 && !liveOK && Date.now() - lastOkAt > STALE_MS)));
+}
 function setStatus() {
   const s = $("status");
   const hh = (d) => d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
   if (mode === "live" && liveOK && lastLive) s.textContent = `Live · NOAA, L1 spacecraft · measured ${hh(lastLive.time)}`;
-  else if (mode === "live" && lastLive) s.innerHTML = `<span class="err">No new NOAA data.</span> Holding the ${hh(lastLive.time)} reading.`;
+  else if (mode === "live" && lastLive && !onRecording()) s.innerHTML = `<span class="err">No new NOAA data.</span> Holding the ${hh(lastLive.time)} reading.`;
   else if (mode === "live") s.innerHTML = `<span class="err">Can't reach NOAA.</span> Playing the 18 Oct 2026 recording.`;
   else if (mode === "replay") s.textContent = "Recording from 18 Oct 2026, 3 hours in 3 minutes";
   else if (mode === "storm") s.textContent = "Geomagnetic storm simulation (made-up data)";
   else s.textContent = "Manual control";
-  // Pod tytułem tylko kłopoty; zwykły stan jest w podpowiedzi ikony trybu.
-  s.classList.toggle("show", !!s.querySelector(".err"));
+  // Stan danych widać w znaku obok nazwy; pełne zdanie zostaje dla czytnika ekranu i w podpowiedzi ikony trybu (dev).
   $("modeBtn").title = s.textContent;
+  let cls = "", text, tip;
+  if (mode === "live" && !onRecording() && liveOK && lastLive) {
+    cls = "on"; text = `Live · ${hh(lastLive.time)}`;
+    tip = `Real-time NOAA data from the spacecraft at L1, 1.5 million km towards the Sun. New every minute; last measured at ${hh(lastLive.time)}.`;
+  } else if (mode === "live" && !onRecording()) {
+    text = "Live · waiting for NOAA";
+    tip = `No new NOAA data since ${hh(lastLive.time)}. Holding that reading and trying again every minute.`;
+  } else if (onRecording()) {
+    text = "Recording · 18 Oct 2026";
+    tip = mode === "live" ? "No live NOAA data right now, so this is a real recording from 18 Oct 2026. Live data comes back on its own." : "A real recording from 18 Oct 2026.";
+  } else if (mode === "storm") { text = "Simulation"; tip = "Made-up storm data (dev)."; }
+  else { text = "Manual"; tip = "Manual control (dev)."; }
+  document.querySelectorAll(".live-badge").forEach((b) => {
+    b.className = "live-badge " + cls; b.querySelector(".lt").textContent = text;
+    if (b.dataset.tip !== undefined) b.dataset.tip = tip; else b.title = tip;
+  });
 }
 
 let liveTimer = null;
@@ -495,9 +523,11 @@ async function enterMode(m) {
   syncSliders(); setStatus();
 }
 
+let snapTick = 0;
 setInterval(() => {
-  if (mode === "replay" || (mode === "live" && !lastLive)) {
-    if (mode === "replay") replayIdx = (replayIdx + 1) % SNAP.wind.length;
+  if (onRecording()) {
+    // Replay (dev): minuta nagrania na sekundę. Zastępstwo za Live: minuta na minutę, jak prawdziwe dane.
+    if (mode === "replay" || ++snapTick % 60 === 0) replayIdx = (replayIdx + 1) % SNAP.wind.length;
     const i = replayIdx, j = Math.round((i / SNAP.wind.length) * (SNAP.bz.length - 1));
     target.wind = SNAP.wind[i]; target.dens = SNAP.dens[i]; target.bz = SNAP.bz[j]; target.kp = SNAP.kp;
   }
@@ -543,8 +573,8 @@ const rhythm = (len, fill, must = []) => Array.from({ length: len }, (_, i) => m
 
 // Ostatnie 17 minut wiatru: 16 kroków melodii i pomiar przed nimi, żeby znać zmianę w pierwszym kroku.
 function windValues() {
+  if (onRecording()) return Array.from({ length: 17 }, (_, i) => SNAP.wind[(replayIdx - 16 + i + SNAP.wind.length) % SNAP.wind.length]);
   if (mode === "live" && windTail.length === 17) return windTail;
-  if (mode === "replay" || (mode === "live" && !lastLive)) return Array.from({ length: 17 }, (_, i) => SNAP.wind[(replayIdx - 16 + i + SNAP.wind.length) % SNAP.wind.length]);
   return null;
 }
 // Wysokości melodii: każdy pomiar to jeden krok frazy.

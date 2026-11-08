@@ -29,7 +29,7 @@ Osobny projekt od Aurora Now (`dgrochowicki/Aurora`, prognoza zorzy). Ten sam au
 | Kp | `.../products/noaa-planetary-k-index.json` | ostatni wiersz |
 | Rozbłyski | `.../json/goes/primary/xrays-6-hour.json` | pasmo `0.1-0.8nm`, klasa A/B/C/M/X z `flux` |
 
-Odświeżanie co 60 s. Rozbłysk dźwiękowo tylko przy nowym (od klasy C): klasa wyższa niż wszystko z poprzednich 3 godzin, nie przy pierwszym odczycie. Przy chwilowej awarii sieci aplikacja trzyma ostatni pomiar; zapis z 18.10 gra tylko, gdy nigdy nie było danych na żywo.
+Odświeżanie co 60 s. Rozbłysk dźwiękowo tylko przy nowym (od klasy C): klasa wyższa niż wszystko z poprzednich 3 godzin, nie przy pierwszym odczycie. Przy chwilowej awarii sieci aplikacja trzyma ostatni pomiar; zapis z 18.10 gra, gdy nigdy nie było danych na żywo albo nie ma ich od 10 minut (`onRecording()`, minuta zapisu na minutę), i sam wraca do Live.
 
 ## Mapowanie danych
 
@@ -83,15 +83,15 @@ Wybór pulsara: mapa całego nieba na cały ekran, prostokątna (RA 12h w środk
 ## Interfejs (projekt autora z Figmy, 8.11.2026)
 
 Ekrany wzorcowe: `docs/Pulsar 1600_01.png` (główny) i `docs/Pulsar 1600_02.png` (okienko informacji); ikony z `docs/*24.svg` (źródła 24 px, rysowane 18 px, biały 70%). Te pliki to materiały autora, nie commitować.
-- Komputer: „Pulsar.fm” w lewym górnym rogu, dane w kolumnie po lewej, na dole jeden pasek: Play (biały kwadrat), stacja (kropka 12 px migająca z pulsarem, nazwa, „gatunek · BPM”, (i) = informacja o pulsarze, cztery kółka = mapa), tryb danych (ikona nadawania), styl obrazu (ikona sinusa).
+- Komputer: „Pulsar.fm” w lewym górnym rogu, dane w kolumnie po lewej, na dole jeden pasek: Play (biały kwadrat), stacja (kropka 12 px migająca z pulsarem, nazwa, „gatunek · BPM”, (i) = informacja o pulsarze, cztery kółka = mapa), styl obrazu (ikona sinusa). Tryb danych (ikona nadawania) tylko pod `?dev`.
 - Telefon (≤640 px): dane w jednym rzędzie nad paskiem, styl obrazu w prawym górnym rogu, krótkie podpisy („Scale”, „Highs”).
 - Kafelki: tło #C4DDFF 10% (na lekko przyciemnionej podkładce, bez rozmycia ze względu na koszt), zaokrąglenie 18 px. Podpis roli w kolorze z obrazu (Bz różowy, Kp zielony).
 - Okienko informacji (`infoHTML()`): nazwa, jedno zdanie (`tag`), tabelka Genre/Tempo/Rotation/Key, opis (`about`), „How it plays” z `psrFacts()`. Na mapie (pomysł autora) zostaje dolny pasek, okienko informacji jest otwarte nad nim, kafelki danych są schowane; ikona mapy jest podświetlona i zamyka mapę (też Esc). U góry tylko nazwa „Pulsar.fm” i Auto. Klik w nazwę (na mapie i na ekranie głównym) otwiera okienko „czym to jest” (`#aboutPop`). Domena pulsar.fm zajęta, nazwa do zmiany. Podpowiedzi ikon własne (`.tip`), okienka pojawiają się z krótką animacją; kropka w pasku miga jak pulsar na mapie. **Aplikacja startuje od mapy** (autor, 8.11.2026), po Play zostaje na mapie; wybór stylu obrazu z mapy od razu przechodzi do wizualizacji.
-- Stan danych (NOAA, godzina pomiaru) jest w podpowiedzi ikony trybu; pod tytułem pokazują się tylko kłopoty.
+- Stan danych (NOAA, godzina pomiaru) jest w znaku Live obok nazwy, wyjaśnienie w jego podpowiedzi; `#status` tylko dla czytnika ekranu.
 
 ## Tylko prawdziwe dane
 
-Decyzja autora (2.11.2026): słuchacz niczego nie wywołuje sam. Są tylko tryby „Na żywo” i „Zapis 3 h”. Przycisk Burza, „Wywołaj rozbłysk” i suwaki działają wyłącznie pod adresem z `?dev`, do dopracowywania obrazu. Pod `?dev` są też włączniki każdej warstwy dźwięku z nazwą (pole `mix` w `make()` gatunku): używać tych nazw w rozmowie z autorem.
+Decyzja autora (2.11.2026): słuchacz niczego nie wywołuje sam. Słuchacz ma tylko Live (decyzja autora, 8.11.2026: przełącznik Live/Replay usunięty, nagranie włącza się samo przy braku danych). Obok nazwy jest znak `.live-badge`: „● Live · 13:52” (czerwona pulsująca kropka), „Live · waiting for NOAA”, „Recording · 18 Oct 2026”. Przycisk trybu z Replay 3 h zostaje pod `?dev`. Przycisk Burza, „Wywołaj rozbłysk” i suwaki działają wyłącznie pod adresem z `?dev`, do dopracowywania obrazu. Pod `?dev` są też włączniki każdej warstwy dźwięku z nazwą (pole `mix` w `make()` gatunku): używać tych nazw w rozmowie z autorem.
 
 ## Plan (zatwierdzony przez autora 1.11.2026)
 
