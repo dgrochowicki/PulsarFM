@@ -177,21 +177,21 @@
 
   /* Telefon: dane w jednym rzędzie nad paskiem, styl obrazu w prawym górnym rogu. */
   @media (max-width: 640px) {
-    .pop.about-pop { left: 10px; right: 10px; width: auto; top: calc(env(safe-area-inset-top) + 50px); max-height: calc(100dvh - 140px); overflow: auto; }
-    .top { padding: calc(env(safe-area-inset-top) + 24px) 20px 0; }
-    .bar { left: 10px; right: 10px; bottom: calc(env(safe-area-inset-bottom) + 10px); gap: 6px; }
+    .pop.about-pop { left: 24px; right: 24px; width: auto; top: calc(env(safe-area-inset-top) + 50px); max-height: calc(100dvh - 140px); overflow: auto; }
+    .top { padding: calc(env(safe-area-inset-top) + 24px) 24px 0; }
+    .bar { left: 24px; right: 24px; bottom: calc(env(safe-area-inset-bottom) + 10px); gap: 6px; }
     .play, .station .ico { width: 48px; height: 48px; }
     .station { flex: 1; width: auto; min-width: 0; height: 64px; padding-right: 8px; }
     .st-main { padding-left: 18px; gap: 12px; }
     :root { --player-w: auto; }
-    .livebar { left: 20px; transform: none; top: calc(env(safe-area-inset-top) + 52px); justify-content: flex-start; font-size: 12px; gap: 8px; }
+    .livebar { left: 24px; transform: none; top: calc(env(safe-area-inset-top) + 52px); justify-content: flex-start; font-size: 12px; gap: 8px; }
     .livebar .lb-r { color: var(--dim); }
-    .side { left: auto; right: 10px; bottom: auto; top: calc(env(safe-area-inset-top) + 12px); }
+    .side { left: auto; right: 24px; bottom: auto; top: calc(env(safe-area-inset-top) + 12px); }
     .side .sq { width: 44px; height: 44px; border-radius: 14px; }
     .style-pop, .mode-pop { top: calc(100% + 8px); bottom: auto; left: auto; right: 0; transform-origin: 100% 0; }
     .style-pop:not(.open) { transform: translateY(-6px) scale(.98); }
     .info-pop { max-height: 62vh; }
-    .stats { left: 10px; right: 10px; top: auto; bottom: calc(env(safe-area-inset-bottom) + 80px); transform: none; width: auto; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+    .stats { left: 24px; right: 24px; top: auto; bottom: calc(env(safe-area-inset-bottom) + 80px); transform: none; width: auto; grid-template-columns: repeat(5, 1fr); gap: 5px; }
     body:not(.data-on) .stats { transform: translateY(12px); }
     .stat { padding: 8px 6px 7px; border-radius: 14px; }
     .stat .v { font-size: 14px; }
@@ -200,9 +200,9 @@
     .stat .k, .stat .r { font-size: 10.5px; }
     .stat .long { display: none; }
     .stat .short { display: inline; }
-    .devbox { top: auto; bottom: 150px; left: 10px; right: 10px; width: auto; max-height: 40vh; }
-    .sheet { padding-left: 10px; padding-right: 10px; }
-    .sheet-head { padding-left: 10px; }
+    .devbox { top: auto; bottom: 150px; left: 24px; right: 24px; width: auto; max-height: 40vh; }
+    .sheet { padding-left: 24px; padding-right: 24px; } /* marginesy po bokach min. 24 px (autor) */
+    .sheet-head { padding-left: 0; }
     body.map .sheet-actions { margin-right: 102px; } /* miejsce na dwa przyciski w rogu */
   }
   @media (max-width: 360px) { .stats { gap: 4px; } .stat { padding: 8px 4px 7px; } .stat .k, .stat .r { font-size: 9.5px; } .stat .v small { display: none; } }
@@ -220,11 +220,11 @@
 
 <div class="panel" id="panel">
   <div class="stats" id="stats">
-    <div class="stat tile" title="The last 16 minutes of solar wind set the notes of the melody and the chords"><div class="v"><span id="vWind">–</span><small>km/s</small></div><div class="k">Solar wind</div><div class="r">Melody</div></div>
+    <div class="stat tile" title="The last 16 minutes of solar wind set the notes of the melody and the chords"><div class="v"><span id="vWind">–</span><small>km/s</small></div><div class="k"><span class="long">Solar wind</span><span class="short">Wind</span></div><div class="r">Melody</div></div>
     <div class="stat tile" title="The denser the wind, the more notes in the melody and the more small drum hits"><div class="v"><span id="vDens">–</span><small>p/cm³</small></div><div class="k">Density</div><div class="r">Rhythm</div></div>
     <div class="stat tile" title="Bz below −2 nT: a dark scale and a low bass; above 0: a bright scale"><div class="v"><span id="vBz">–</span><small>nT</small></div><div class="k">Bz</div><div class="r" id="rBz">Scale</div></div>
     <div class="stat tile" title="From Kp 4, quiet high tones play above the chords, louder as Kp rises"><div class="v" id="vKp">–</div><div class="k">Kp</div><div class="r" id="rKp"><span class="long">High tones</span><span class="short">Highs</span></div></div>
-    <div class="stat tile" title="A new flare from class C: a boom like in a film trailer (big drum, low boom, at M and X a braam chord)"><div class="v" id="vX">–</div><div class="k">Solar flare</div><div class="r" id="rX">Boom</div></div>
+    <div class="stat tile" title="A new flare from class C: a boom like in a film trailer (big drum, low boom, at M and X a braam chord)"><div class="v" id="vX">–</div><div class="k"><span class="long">Solar flare</span><span class="short">Flare</span></div><div class="r" id="rX">Boom</div></div>
   </div>
 
   <div class="side">
