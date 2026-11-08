@@ -91,7 +91,7 @@ Ekrany wzorcowe: `docs/Pulsar 1600_01.png` (główny) i `docs/Pulsar 1600_02.png
 
 ## Tylko prawdziwe dane
 
-Decyzja autora (2.11.2026): słuchacz niczego nie wywołuje sam. Słuchacz ma tylko Live (decyzja autora, 8.11.2026: przełącznik Live/Replay usunięty, nagranie włącza się samo przy braku danych). Obok nazwy jest znak `.live-badge`: „● Live · 13:52” (czerwona pulsująca kropka), „Live · waiting for NOAA”, „Recording · 18 Oct 2026”. Przycisk trybu z Replay 3 h zostaje pod `?dev`. Przycisk Burza, „Wywołaj rozbłysk” i suwaki działają wyłącznie pod adresem z `?dev`, do dopracowywania obrazu. Pod `?dev` są też włączniki każdej warstwy dźwięku z nazwą (pole `mix` w `make()` gatunku): używać tych nazw w rozmowie z autorem.
+Decyzja autora (2.11.2026): słuchacz niczego nie wywołuje sam. Słuchacz ma tylko Live (decyzja autora, 8.11.2026: przełącznik Live/Replay usunięty, nagranie włącza się samo przy braku danych). Pod nazwą jest znak `.live-badge`: „● Live · 13:52” (czerwona pulsująca kropka), „Live · waiting for NOAA”, „Recording · 18 Oct 2026”. Przycisk trybu z Replay 3 h zostaje pod `?dev`. Przycisk Burza, „Wywołaj rozbłysk” i suwaki działają wyłącznie pod adresem z `?dev`, do dopracowywania obrazu. Pod `?dev` są też włączniki każdej warstwy dźwięku z nazwą (pole `mix` w `make()` gatunku): używać tych nazw w rozmowie z autorem.
 
 ## Plan (zatwierdzony przez autora 1.11.2026)
 

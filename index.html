@@ -27,11 +27,11 @@
   .ico:hover, .ico[aria-expanded="true"] { background: rgba(255,255,255,0.08); color: #fff; }
   .ico svg, .sq svg { width: 18px; height: 18px; }
 
-  .top { position: fixed; left: 0; right: 0; top: 0; padding: calc(env(safe-area-inset-top) + 34px) 38px 0; pointer-events: none; }
+  .top { position: fixed; left: 0; right: 0; top: 0; padding: calc(env(safe-area-inset-top) + 24px) 38px 0; pointer-events: none; }
   .top h1 { margin: 0; font-size: 16px; font-weight: 500; letter-spacing: 0.1px; }
   .top .brand, .top .live-badge { pointer-events: auto; }
   /* Znak „Live” obok nazwy: kropka pulsuje, gdy dane przychodzą; szara przy przerwie i nagraniu. */
-  .brandline { display: flex; align-items: center; gap: 14px; }
+  .brandline { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
   .live-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--dim); white-space: nowrap; cursor: default; }
   .live-badge i { width: 6px; height: 6px; border-radius: 50%; background: rgba(238,240,246,0.4); flex: 0 0 auto; }
   .live-badge.on i { background: #ff6b5e; box-shadow: 0 0 6px rgba(255,107,94,0.7); animation: onair 2s ease-in-out infinite; }
@@ -141,7 +141,8 @@
     display: flex; flex-direction: column; padding: calc(env(safe-area-inset-top) + 24px) 20px calc(env(safe-area-inset-bottom) + 20px);
     opacity: 0; pointer-events: none; transition: opacity .3s ease; }
   .sheet.open { opacity: 1; pointer-events: auto; }
-  .sheet-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-left: 18px; }
+  .sheet-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding-left: 18px; }
+  .sheet-actions { margin-top: -8px; } /* Auto na wysokości nazwy */
   .sheet-head b { font-size: 16px; font-weight: 500; }
   .sheet-actions { display: flex; gap: 8px; align-items: center; }
   .auto-toggle { height: 36px; padding: 0 14px; border: 0; border-radius: 12px; color: var(--icon); font-size: 13px; cursor: pointer; }
@@ -158,12 +159,12 @@
   /* Telefon: dane w jednym rzędzie nad paskiem, styl obrazu w prawym górnym rogu. */
   @media (max-width: 640px) {
     .pop.about-pop { left: 10px; right: 10px; width: auto; top: calc(env(safe-area-inset-top) + 50px); max-height: calc(100dvh - 140px); overflow: auto; }
-    .top { padding: calc(env(safe-area-inset-top) + 18px) 20px 0; }
+    .top { padding: calc(env(safe-area-inset-top) + 24px) 20px 0; }
     .bar { left: 10px; right: 10px; bottom: calc(env(safe-area-inset-bottom) + 10px); gap: 6px; }
     .play, .sq { width: 48px; height: 48px; }
     .station { flex: 1; width: auto; min-width: 0; height: 48px; padding-right: 6px; }
     .st-main { padding-left: 14px; gap: 10px; }
-    .style-wrap { position: fixed; top: calc(env(safe-area-inset-top) + 8px); right: 10px; }
+    .style-wrap { position: fixed; top: calc(env(safe-area-inset-top) + 12px); right: 10px; }
     .style-wrap .sq { width: 44px; height: 44px; }
     .style-pop { top: calc(100% + 8px); bottom: auto; transform-origin: 50% 0; }
     .style-pop:not(.open) { transform: translateY(-6px) scale(.98); }
