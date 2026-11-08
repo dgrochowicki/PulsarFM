@@ -81,6 +81,8 @@
   /* Przycisk mapy tej samej wielkości co Play (podświetlenie też). */
   .station .ico { width: 54px; height: 54px; border-radius: 14px; }
   /* Przyciski w lewym dolnym rogu: dane ze Słońca i styl obrazu. */
+  /* Zmiana stylu obrazu tylko na ekranie z obrazem; na mapie jej nie ma (autor, 8.11.2026). */
+  body.map .style-wrap { display: none; }
   .side { position: fixed; z-index: 10; left: 24px; bottom: calc(env(safe-area-inset-bottom) + 24px); display: flex; gap: 6px; }
 
   /* Okienka nad paskiem: informacja o pulsarze, tryb danych, styl obrazu. */
@@ -245,7 +247,7 @@
         </div>
       </div>
     </div>
-    <div class="style-wrap dev-only">
+    <div class="style-wrap">
       <button class="sq tile" id="styleBtn" type="button" aria-haspopup="true" aria-expanded="false"></button>
       <div class="pop style-pop" id="stylePop">
         <div class="styles" id="styles">
