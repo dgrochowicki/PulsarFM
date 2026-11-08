@@ -32,10 +32,11 @@
   .top .brand { pointer-events: auto; }
   /* Pasek „Live” u góry na środku, na szerokość odtwarzacza: po lewej źródło, po prawej godzina pomiaru (projekt autora, 8.11.2026). */
   :root { --player-w: 420px; }
-  .livebar { position: fixed; z-index: 12; top: calc(env(safe-area-inset-top) + 27px); left: 50%; width: var(--player-w); transform: translateX(-50%);
+  .livebar { position: fixed; z-index: 12; top: calc(env(safe-area-inset-top) + 28px); line-height: 16px; left: 50%; width: var(--player-w); transform: translateX(-50%);
     display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 13px; color: rgba(238,240,246,0.7); white-space: nowrap; cursor: default; }
   .livebar .lb-l { display: inline-flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-  .livebar svg { width: 16px; height: 16px; flex: 0 0 auto; }
+  .livebar svg { width: 16px; height: 16px; flex: 0 0 auto; display: block; }
+  #lbIco { display: flex; }
   .livebar.on svg { animation: onair 2.4s ease-in-out infinite; }
   .livebar:not(.on) { color: var(--dim); }
   @keyframes onair { 50% { opacity: .4; } }
