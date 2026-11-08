@@ -205,7 +205,8 @@ const layers = await page.evaluate(async () => {
 check(Object.keys(layers).length === 9 && Object.values(layers).every(Boolean), `warstwy do wyciszenia: ${Object.keys(layers).length} gatunków`);
 
 for (const st of ["ridges", "waves", "cymatics", "color", "bauhaus", "scope"]) {
-  await page.click("#styleBtn"); await page.click(`[data-style=${st}]`);
+  // Wybór stylu jest tylko pod ?dev, więc ustawiamy go wprost.
+  await page.evaluate((x) => { vis.style = x; vis.clear = true; showStyle(); }, st);
   await page.waitForTimeout(2500);
   await page.screenshot({ path: join(out, `${st}.png`) });
 }
