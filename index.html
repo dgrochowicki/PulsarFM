@@ -1925,7 +1925,7 @@ sky.addEventListener("click", (e) => {
   for (const p of PULSARS) { const q = skyXY(p.ra, p.dec), d = Math.hypot(q.x - x, q.y - y); if (d < bd) { bd = d; best = p; } }
   if (best) selectPulsar(best, true);
 });
-function openSheet() { sheetOpen = true; document.body.classList.add("map"); $("sheet").classList.add("open"); $("psrBtn").classList.add("on"); $("psrBtn").title = "Back to the music"; renderCard(); $("infoPop").classList.add("open"); $("infoBtn").setAttribute("aria-expanded", true); sizeSky(); }
+function openSheet() { sheetOpen = true; document.body.classList.add("map"); $("sheet").classList.add("open"); $("psrBtn").classList.add("on"); $("psrBtn").title = "Back to the music"; renderCard(); sizeSky(); }
 function closeSheet() { sheetOpen = false; document.body.classList.remove("map"); $("sheet").classList.remove("open"); $("psrBtn").classList.remove("on"); $("psrBtn").title = "Choose a pulsar"; toggleInfoPop(false); }
 $("psrBtn").innerHTML = ICONS.map; $("infoBtn").innerHTML = ICONS.info;
 // Okienko leży na mapie, mapa pod nim ma stały rozmiar.
