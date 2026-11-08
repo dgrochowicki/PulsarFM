@@ -251,31 +251,31 @@ document.getElementById("play").innerHTML = ICONS.play;
 // ---------- Pulsary ----------
 // Okresy i położenia z literatury (katalog ATNF). ra w godzinach, dec w stopniach.
 const PULSARS = [
-  { id: "B0329", genre: "ambient", lab: [0, -24, "center"], name: "PSR B0329+54", short: "B0329+54", P: 0.714520, ra: 3.550, dec: 54.58,
+  { id: "B0329", genre: "ambient", name: "PSR B0329+54", short: "B0329+54", P: 0.714520, ra: 3.550, dec: 54.58,
     tag: "One of the brightest pulsars in the northern sky.",
     about: "A calm, steady march." },
-  { id: "B1919", genre: "choral", lab: [0, -15, "center"], name: "PSR B1919+21", short: "B1919+21 · first", P: 1.337302, ra: 19.362, dec: 21.88,
+  { id: "B1919", genre: "choral", name: "PSR B1919+21", short: "B1919+21", P: 1.337302, ra: 19.362, dec: 21.88,
     tag: "The first pulsar ever found (Jocelyn Bell Burnell, 1967).",
     about: "Slow and solemn." },
-  { id: "J2144", genre: "drone", lab: [0, 24, "center"], name: "PSR J2144−3933", short: "J2144 · slowest", P: 8.509827, ra: 21.737, dec: -39.57,
+  { id: "J2144", genre: "drone", name: "PSR J2144−3933", short: "J2144", P: 8.509827, ra: 21.737, dec: -39.57,
     tag: "One of the slowest pulsars known: one flash every 8.5 s.",
     about: "Near silence between the beats." },
-  { id: "Geminga", genre: "techno", lab: [-9, 15, "right"], name: "Geminga", short: "Geminga", P: 0.237099, ra: 6.565, dec: 17.77,
+  { id: "Geminga", genre: "techno", name: "Geminga", short: "Geminga", P: 0.237099, ra: 6.565, dec: 17.77,
     tag: "A nearby pulsar that shines in gamma rays.",
     about: "Four flashes a second: a quick, nervous pulse." },
-  { id: "B0950", genre: "deep", lab: [0, 20, "center"], name: "PSR B0950+08", short: "B0950+08", P: 0.253065, ra: 9.886, dec: 7.93,
+  { id: "B0950", genre: "deep", name: "PSR B0950+08", short: "B0950+08", P: 0.253065, ra: 9.886, dec: 7.93,
     tag: "A bright, nearby pulsar.",
     about: "It flashes four times a second." },
-  { id: "Vela", genre: "glitch", lab: [0, -15, "center"], name: "Vela Pulsar", short: "Vela", P: 0.089328, ra: 8.589, dec: -45.18,
+  { id: "Vela", genre: "glitch", name: "Vela Pulsar", short: "Vela", P: 0.089328, ra: 8.589, dec: -45.18,
     tag: "What is left of a supernova in the constellation Vela.",
     about: "11 flashes a second is already a hum, not a rhythm." },
-  { id: "Crab", genre: "dub", lab: [11, -7, "left"], name: "Crab Pulsar", short: "Crab", P: 0.03374, ra: 5.576, dec: 22.01,
+  { id: "Crab", genre: "dub", name: "Crab Pulsar", short: "Crab", P: 0.03374, ra: 5.576, dec: 22.01,
     tag: "The heart of the Crab Nebula, left by the supernova of 1054.",
     about: "30 turns a second: the deepest bass." },
-  { id: "J0437", genre: "glass", lab: [0, 26, "center"], name: "PSR J0437−4715", short: "J0437", P: 0.005757452, ra: 4.621, dec: -47.25,
+  { id: "J0437", genre: "glass", name: "PSR J0437−4715", short: "J0437", P: 0.005757452, ra: 4.621, dec: -47.25,
     tag: "The nearest and brightest millisecond pulsar.",
     about: "It spins 174 times a second." },
-  { id: "Ter5", genre: "musicbox", lab: [0, -17, "center"], name: "PSR J1748−2446ad", short: "Terzan 5 · fastest", P: 0.00139595, ra: 17.810, dec: -24.77,
+  { id: "Ter5", genre: "musicbox", name: "PSR J1748−2446ad", short: "Terzan 5", P: 0.00139595, ra: 17.810, dec: -24.77,
     tag: "The fastest pulsar known, in the globular cluster Terzan 5.",
     about: "716 turns a second." },
 ];
@@ -1367,7 +1367,7 @@ function drawPulsarGeo(L, time, color) {
   const s = 6 + vis.pulseT * 4 + (vis.fast ? Math.sin(time * 60) * 1.5 : 0);
   ctx.save(); ctx.rotate(a * 0.5); ctx.fillRect(-s / 2, -s / 2, s, s); ctx.restore();
   ctx.globalAlpha = 0.55; ctx.font = "600 10.5px -apple-system, sans-serif"; ctx.textAlign = "center";
-  ctx.fillText(psr.short.split(" · ")[0], 0, 26);
+  ctx.fillText(psr.short, 0, 26);
   ctx.restore(); ctx.globalAlpha = 1;
 }
 
@@ -1445,7 +1445,7 @@ function drawScope(L, dt, time) {
   }
   ctx.stroke();
   ctx.shadowBlur = 0; ctx.globalAlpha = 0.6; ctx.font = "10.5px ui-monospace, Menlo, monospace"; ctx.textAlign = "right";
-  ctx.fillText(psr.short.split(" · ")[0], pw, 16);
+  ctx.fillText(psr.short, pw, 16);
   ctx.restore();
   ctx.shadowBlur = 0; ctx.globalAlpha = 1;
 }
@@ -1835,8 +1835,13 @@ function drawSky(time) {
     if (sel) { sctx.strokeStyle = "#ffcf6e"; sctx.lineWidth = 2; sctx.beginPath(); sctx.arc(q.x, q.y, 17, 0, 6.283); sctx.stroke(); }
     sctx.fillStyle = sel ? "#ffcf6e" : "rgba(238,240,246,0.75)";
     sctx.font = `${sel ? 600 : 500} 11.5px -apple-system, sans-serif`;
-    sctx.textAlign = p.lab[2];
-    sctx.fillText(SW < 560 ? p.short.split(" · ")[0] : p.short, q.x + p.lab[0], q.y + p.lab[1]);
+    // Nazwa zawsze pod pulsarem, na środku, poniżej kółka wyboru (promień 17).
+    sctx.textAlign = "center"; sctx.textBaseline = "top";
+    // Ciemna obwódka: nazwa czytelna także na gwiazdach i sąsiednim pulsarze.
+    const fill = sctx.fillStyle; sctx.strokeStyle = "rgba(5,6,11,0.85)"; sctx.lineWidth = 3; sctx.lineJoin = "round";
+    sctx.strokeText(p.short, q.x, q.y + 22); sctx.fillStyle = fill;
+    sctx.fillText(p.short, q.x, q.y + 22);
+    sctx.textBaseline = "alphabetic";
   }
 }
 
