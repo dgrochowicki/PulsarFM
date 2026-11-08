@@ -1727,7 +1727,7 @@ function ringSound(dt) {
 }
 function drawRings(L, dt, time) {
   ctx.fillStyle = INK; ctx.fillRect(0, 0, W, H);
-  const S = stage(), now = performance.now() / 1000, sunR = Math.min(S.w, S.h) * 0.055;
+  const S = stage(), now = performance.now() / 1000, sunR = Math.min(S.w, S.h) * 0.03; // małe Słońce (autor)
   const reach = Math.hypot(Math.max(S.cx, W - S.cx), Math.max(S.cy, H - S.cy));
   WAVES.list = WAVES.list.filter((w) => (now - w.born) * w.speed < 1);
   ringSound(dt);
