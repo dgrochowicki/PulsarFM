@@ -1702,49 +1702,67 @@ function drawWaves(L, dt, time) {
   ctx.fillStyle = waveColor({ bz: cur.bz, kp: 0, wind: 800 }, 1); ctx.fill();
 }
 
-// ---------- Pierścienie (wzór autora z 8.11.2026: grube, faliste pasy koloru i czerni) ----------
-// Te same fale co w „Falach” (jedna na takt, z pomiarem z chwili wyjścia), ale jako pełne pasy.
-// Pas grubieje ku brzegom, środki pasów lekko dryfują, więc koła nie są współśrodkowe.
-const RING_TOP = { north: [178, 140, 255], south: [226, 72, 214] }, RING_LOW = { north: [255, 150, 88], south: [255, 84, 112] };
-function ringColors(so, kp, wind) {
-  const glow = map(kp, 3, 8, 0, 1), light = map(wind, 300, 800, 0.7, 1);
-  const top = RING_TOP.north.map((v, i) => lerp(lerp(v, RING_TOP.south[i], so), [95, 211, 141][i], glow * 0.6) * light);
-  const low = RING_LOW.north.map((v, i) => lerp(v, RING_LOW.south[i], so) * light);
-  return [top, low];
+// ---------- Pierścienie: Fale, które niosą dźwięk (wariant C, autor 8.11.2026) ----------
+// Te same fale co w „Falach”, ale grubsze, a grubość wzdłuż linii to kształt dźwięku, jak linia w „Grzbietach”,
+// tylko owinięty dookoła: basy na dole, wysokie tony u góry, lewa i prawa strona lustrzane.
+// Fala przy Słońcu żyje z tym, co gra teraz; odpływając zastyga, więc dalej od środka widać zapis ostatnich taktów.
+// Uderzenie lekko pogrubia wszystkie linie naraz.
+const RING_PTS = 120, RING_LIVE_T = 0.1; // część drogi do brzegu, na której fala jeszcze żyje
+const RINGS = { live: new Float32Array(RING_PTS), mean: new Float32Array(RING_PTS) };
+function ringSound(dt) {
+  const fft = A && playing ? A.fft.getValue() : null, live = RINGS.live, mean = RINGS.mean, hold = Math.exp(-dt * 2.5), slow = 1 - Math.exp(-dt * 0.4);
+  for (let k = 0; k < RING_PTS; k++) {
+    const a = k / RING_PTS * 6.2832, u = (1 - Math.sin(a)) / 2; // 0 na dole (basy), 1 u góry
+    const v = fft ? Math.pow(map(fft[Math.min(fft.length - 1, Math.round(Math.pow(fft.length * 0.8, u)) - 1)], -96, -22, 0, 1), 1.7) : 0;
+    // Stałe tło (np. ciągły bas) odejmujemy, żeby wypustki robiło to, co się zmienia: nuty i uderzenia.
+    mean[k] += (v - mean[k]) * (RINGS.warm ? slow : 1); // pierwszy odczyt ustawia tło od razu, bez wielkiej wypustki na start
+    const peak = Math.max(0, v - mean[k] * 0.85) * 2.2;
+    live[k] = Math.max(peak, live[k] * hold); // szczyty trzymają się chwilę, jak echo
+  }
+  if (fft) RINGS.warm = true;
+  for (let pass = 0; pass < 2; pass++) {
+    const c = live.slice();
+    for (let k = 0; k < RING_PTS; k++) live[k] = c[(k + RING_PTS - 1) % RING_PTS] * 0.25 + c[k] * 0.5 + c[(k + 1) % RING_PTS] * 0.25;
+  }
 }
 function drawRings(L, dt, time) {
   ctx.fillStyle = INK; ctx.fillRect(0, 0, W, H);
-  const S = stage(), now = performance.now() / 1000, core = Math.min(S.w, S.h) * 0.07;
-  const reach = Math.hypot(Math.max(S.cx, W - S.cx), Math.max(S.cy, H - S.cy)) * 1.15;
+  const S = stage(), now = performance.now() / 1000, sunR = Math.min(S.w, S.h) * 0.055;
+  const reach = Math.hypot(Math.max(S.cx, W - S.cx), Math.max(S.cy, H - S.cy));
   WAVES.list = WAVES.list.filter((w) => (now - w.born) * w.speed < 1);
-  const [top, low] = ringColors(southward(), cur.kp, cur.wind);
-  const grad = ctx.createLinearGradient(S.cx + S.w * 0.4, S.y, S.cx - S.w * 0.4, S.y + S.h);
-  grad.addColorStop(0, mix(top, top, 0)); grad.addColorStop(1, mix(low, low, 0));
-  ctx.lineJoin = "round";
-  // Promień każdej fali, potem pas na połowie drogi do następnej (grubość zależy od gęstości).
-  // Co czwarta fala (stały numer, więc pasy nie migają), rozbłyski zawsze: kilkanaście szerokich pasów jak we wzorze.
-  const rs = WAVES.list.filter((w) => w.flare || w.id % 4 === 0).map((w) => { const t = (now - w.born) * w.speed; return { w, t, r: core + Math.pow(t, 1.45) * (reach - core) }; }).sort((a, b) => a.r - b.r);
-  rs.forEach((o, i) => {
-    const { w, t, r } = o;
-    const gap = i + 1 < rs.length ? rs[i + 1].r - r : (i ? (r - rs[i - 1].r) * 1.1 : core);
-    const band = gap * map(w.dens, 1, 15, 0.42, 0.62), mid = r + gap * 0.5;
-    const wobble = 0.02 + 0.1 * map(w.wind, 300, 800, 0, 1);
-    const ox = Math.sin(w.born * 0.37) * S.w * 0.06 * t, oy = Math.cos(w.born * 0.29) * S.h * 0.05 * t;
-    ctx.beginPath();
-    for (let k = 0; k <= 96; k++) {
-      const a = k / 96 * 6.2832, rr = mid * (1 + wobble * Math.min(1, t * 2.5) * waveShape(a + time * 0.05, w.born));
-      const x = S.cx + ox + Math.cos(a) * rr, y = S.cy + oy + Math.sin(a) * rr;
-      k ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+  ringSound(dt);
+  const beat = 1 + (vis.beatT * 0.3 + vis.pulseT * 0.15);
+  const ox = new Float32Array(RING_PTS + 1), oy = new Float32Array(RING_PTS + 1), ix = new Float32Array(RING_PTS + 1), iy = new Float32Array(RING_PTS + 1);
+  for (const w of WAVES.list) {
+    const t = (now - w.born) * w.speed, r = sunR + t * (reach - sunR), wobble = 0.012 + 0.075 * map(w.wind, 300, 800, 0, 1);
+    // Fala za strefą życia zastyga z kształtem z chwili wyjścia (fale z historii na starcie są gładkie).
+    if (t >= RING_LIVE_T && !w.ring && t < RING_LIVE_T + 0.05) w.ring = RINGS.live.slice();
+    const prof = t < RING_LIVE_T ? RINGS.live : w.ring;
+    const base = map(w.dens, 1, 15, 2.4, 9), bump = 10 + 50 * t;
+    for (let k = 0; k <= RING_PTS; k++) {
+      const kk = k % RING_PTS, a = kk / RING_PTS * 6.2832, rr = r * (1 + wobble * t * waveShape(a, w.born));
+      const half = (base + (prof ? prof[kk] * bump : 0)) * beat / 2, c = Math.cos(a), sn = Math.sin(a);
+      ox[k] = S.cx + c * (rr + half); oy[k] = S.cy + sn * (rr + half);
+      ix[k] = S.cx + c * Math.max(0, rr - half); iy[k] = S.cy + sn * Math.max(0, rr - half);
     }
+    ctx.beginPath();
+    ctx.moveTo(ox[0], oy[0]); for (let k = 1; k <= RING_PTS; k++) ctx.lineTo(ox[k], oy[k]);
+    ctx.lineTo(ix[RING_PTS], iy[RING_PTS]); for (let k = RING_PTS - 1; k >= 0; k--) ctx.lineTo(ix[k], iy[k]);
     ctx.closePath();
-    ctx.lineWidth = Math.max(1, band);
-    ctx.strokeStyle = w.flare ? "rgba(255,236,200,0.95)" : grad;
-    ctx.globalAlpha = Math.min(1, t * 12);
-    ctx.stroke();
-  });
-  ctx.globalAlpha = 1;
-  // Środek: czarne koło, które oddycha z pulsarem.
-  ctx.beginPath(); ctx.arc(S.cx, S.cy, core * (0.8 + vis.pulseT * 0.08 + vis.flareT * 0.3), 0, 6.2832); ctx.fillStyle = INK; ctx.fill();
+    const fade = Math.pow(1 - t, 0.7) * Math.min(1, t * 25);
+    ctx.fillStyle = w.flare ? `rgba(255,242,196,${fade})` : waveColor(w, 0.92 * fade);
+    ctx.fill();
+  }
+  // Słońce jak w Falach.
+  const sound = A && playing ? A.wave.getValue() : null;
+  ctx.beginPath();
+  for (let k = 0; k <= 96; k++) {
+    const a = k / 96 * 6.2832, v = sound ? sound[Math.floor(k / 96 * (sound.length - 1))] : 0;
+    const rr = sunR * (1 + vis.pulseT * 0.06 + vis.flareT * 0.5) + v * sunR * 0.9;
+    k ? ctx.lineTo(S.cx + Math.cos(a) * rr, S.cy + Math.sin(a) * rr) : ctx.moveTo(S.cx + Math.cos(a) * rr, S.cy + Math.sin(a) * rr);
+  }
+  ctx.closePath();
+  ctx.fillStyle = waveColor({ bz: cur.bz, kp: 0, wind: 800 }, 1); ctx.fill();
 }
 
 // ---------- Kierunek 3: Cymatyka ----------
@@ -1797,7 +1815,7 @@ function drawColor(L, dt, time) {
 const STYLE_NOTES = {
   ridges: "One line per pulsar turn: the shape of the sound right now. Colour: Bz, tremble: wind, tall peak: flare.",
   waves: "Waves from the Sun in every direction. Speed and shape: wind, thickness: density, colour: Bz and Kp, bright fast wave: flare.",
-  rings: "Bands of colour from the centre, one per bar. Shape: wind, thickness: density, colours: Bz and Kp, bright band: flare.",
+  rings: "Waves that carry the sound: the newest wave swells with the music (bass at the bottom, highs at the top) and keeps that shape as it travels out. Shape: wind, thickness: density, colour: Bz and Kp.",
   cymatics: "Sand settles into the figure of the current chord. Amount: wind density, shaking: speed, colour: Bz.",
   color: "Top field: aurora, bottom: wind and Bz. The border moves with wind pressure, everything breathes with the pulsar.",
 }
