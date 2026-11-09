@@ -24,6 +24,8 @@ const server = createServer(async (req, res) => {
 
 const browser = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required", "--mute-audio"] });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+// Okienko powitalne (pierwsze wejście) zasłaniałoby przyciski: test udaje, że już tu był.
+await page.addInitScript(() => localStorage.setItem("pfm.seen", "1"));
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
 page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
@@ -226,6 +228,7 @@ check(waves.before > 0 && waves.added === 2 && waves.faster && waves.flare === 3
 const listener = await page.evaluate(() => ["[data-mode=storm]", "#flare", "#toggleSliders"].map((q) => getComputedStyle(document.querySelector(q)).display === "none" || !!document.querySelector(q).closest(".dev-only") && getComputedStyle(document.querySelector(q).closest(".dev-only")).display === "none"));
 check(listener.every(Boolean), `bez Burzy, rozbłysku i suwaków: ${listener}`);
 const devPage = await browser.newPage();
+await devPage.addInitScript(() => localStorage.setItem("pfm.seen", "1"));
 await devPage.goto("http://localhost:4174/?dev");
 await devPage.click("#modeBtn");
 const devTools = await devPage.isVisible("[data-mode=storm]") && await devPage.isVisible("#flare");
