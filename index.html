@@ -82,10 +82,16 @@
   .st-main .bpm { color: var(--dim); font-size: 11.5px; margin-left: 8px; }
   /* Przycisk mapy tej samej wielkości co Play (podświetlenie też). */
   .station .ico { width: 54px; height: 54px; border-radius: 14px; }
-  /* Przyciski w lewym dolnym rogu: dane ze Słońca i styl obrazu. */
-  /* Zmiana stylu obrazu tylko na ekranie z obrazem; na mapie jej nie ma (autor, 8.11.2026). */
-  body.map .style-wrap { display: none; }
-  .side { position: fixed; z-index: 10; left: 24px; bottom: calc(env(safe-area-inset-bottom) + 24px); display: flex; gap: 6px; }
+  /* Rząd trzech przycisków nad odtwarzaczem, ten sam na komputerze i telefonie (autor, 9.11.2026):
+     dane ze Słońca | przejście mapa/obraz (najważniejsze, na środku) | na obrazie styl, na mapie Auto. */
+  body.map .style-wrap, body:not(.map) #sideAuto, .station #psrBtn, .sheet-head .auto-toggle { display: none; }
+  .side { position: fixed; z-index: 10; left: 50%; width: var(--player-w); transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom) + 104px); display: flex; gap: 6px; }
+  .side > *, .side > .style-wrap, .side > .mode-wrap { flex: 1 1 0; min-width: 0; }
+  .side .sq { width: 100%; height: 36px; border-radius: 12px; font-size: 12.5px; }
+  .side .sq svg { width: 16px; height: 16px; }
+  .side .sq, .stat { --base: rgba(5, 6, 11, 0.78); } /* leżą na obrazie: mniej prześwitują */
+  /* Włączony stan wspólny dla danych i Auto: jaśniejsze tło, żółty znak. */
+  .side .sq[aria-pressed="true"] { background: linear-gradient(rgba(196,221,255,0.2), rgba(196,221,255,0.2)), var(--base); color: #ffcf6e; }
 
   /* Okienka nad paskiem: informacja o pulsarze, tryb danych, styl obrazu. */
   /* Okienka półprzezroczyste: pod spodem widać mapę albo obraz, rozmyte. */
@@ -106,7 +112,7 @@
     font-size: 14px; font-weight: 500; padding: 9px 12px; border-radius: 11px; cursor: pointer; white-space: nowrap; }
   .modes button.on { background: rgba(255,255,255,0.1); color: var(--text); }
   .modes svg { width: 18px; height: 18px; }
-  .style-pop { left: 0; padding: 10px; width: 300px; max-width: calc(100vw - 20px); transform-origin: 0 100%; }
+  .style-pop { left: auto; right: 0; padding: 10px; width: 300px; max-width: calc(100vw - 20px); transform-origin: 100% 100%; }
   .mode-pop { left: 0; right: auto; }
   .styles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
   .styles button { border: 0; background: rgba(255,255,255,0.04); color: var(--dim); font-size: 12px; font-weight: 500; padding: 10px 4px 8px;
@@ -198,17 +204,9 @@
        dane ze Słońca | wybór obrazu (na mapie Auto) | przejście mapa/obraz. Nad nim same pomiary; klik pokazuje podpisy. */
     .livebar { left: 24px; right: 24px; width: auto; transform: none; top: calc(env(safe-area-inset-top) + 60px); font-size: 13px; }
     .livebar .lb-r { color: var(--dim); }
-    .side { left: 24px; right: 24px; bottom: calc(env(safe-area-inset-bottom) + 86px); gap: 6px; }
-    .side > * { flex: 1 1 0; min-width: 0; }
-    .side .sq { width: 100%; height: 30px; border-radius: 12px; font-size: 13px; }
-    .side .sq svg { width: 16px; height: 16px; }
-    .side .sq, .stat { --base: rgba(5, 6, 11, 0.78); } /* leżą na obrazie: mniej prześwitują */
-    /* Włączony stan wspólny dla danych i Auto: jaśniejsze tło, żółty znak (autor, 9.11.2026). */
-    .side .sq[aria-pressed="true"] { background: linear-gradient(rgba(196,221,255,0.2), rgba(196,221,255,0.2)), var(--base); color: #ffcf6e; }
+    .side { left: 24px; right: 24px; width: auto; transform: none; bottom: calc(env(safe-area-inset-bottom) + 86px); }
+    .side .sq { height: 30px; }
     #sideAuto { font-size: 11.5px; }
-    body:not(.map) #sideAuto, .station #psrBtn, .sheet-head .auto-toggle { display: none; }
-    .style-pop { left: 50%; translate: -50% 0; transform-origin: 50% 100%; }
-    .mode-pop { left: 0; }
     .info-pop { max-height: 62vh; }
     .stats { left: 24px; right: 24px; top: auto; bottom: calc(env(safe-area-inset-bottom) + 126px); transform: none; width: auto; grid-template-columns: repeat(5, 1fr); gap: 5px; align-items: end; }
     body:not(.data-on) .stats { transform: translateY(12px); }
@@ -263,6 +261,7 @@
         </div>
       </div>
     </div>
+    <button class="sq tile" id="sideView" type="button" title="Choose a pulsar" aria-label="Choose a pulsar"></button>
     <div class="style-wrap">
       <button class="sq tile" id="styleBtn" type="button" aria-haspopup="true" aria-expanded="false"></button>
       <div class="pop style-pop" id="stylePop">
@@ -277,8 +276,7 @@
         <div class="note" id="styleNote"></div>
       </div>
     </div>
-    <button class="sq tile m-only" id="sideAuto" type="button" aria-pressed="false" title="Pick the pulsar highest above you">Auto</button>
-    <button class="sq tile m-only" id="sideView" type="button" title="Choose a pulsar" aria-label="Choose a pulsar"></button>
+    <button class="sq tile" id="sideAuto" type="button" aria-pressed="false" title="Pick the pulsar highest above you">Auto</button>
   </div>
 
   <div class="bar">
@@ -1595,7 +1593,7 @@ function stage() {
   const top = Math.max(document.querySelector(".top").offsetHeight, $("livebar").getBoundingClientRect().bottom) + 10;
   // Na telefonie dane leżą nad paskiem, na komputerze po lewej, więc dół obrazu wyznacza wyższy z nich.
   // Na telefonie obraz sięga do odtwarzacza, przyciski i dane leżą na nim (projekt autora, 9.11.2026).
-  const low = document.querySelector(".bar").getBoundingClientRect().top;
+  const low = document.querySelector(innerWidth <= 640 ? ".bar" : ".side").getBoundingClientRect().top;
   const bottom = $("panel").classList.contains("hidden") ? H - 14 : low - 14;
   const h = Math.max(80, bottom - top);
   return { y: top, w: W, h, cx: W / 2, cy: top + h / 2 };
@@ -1943,7 +1941,7 @@ function sizeSky() {
   SW = wrap.width; SH = wrap.height;
   // Pulsary leżą w pasie do ±55°: ±65° mieści się między nagłówkiem a kartą, reszta nieba idzie pod nie.
   const top = document.querySelector(".sheet-head").getBoundingClientRect().bottom + 12 - wrap.top;
-  const mob = innerWidth <= 640, low = mob ? (document.body.classList.contains("data-on") ? $("stats") : document.querySelector(".side")) : document.querySelector(".bar .station");
+  const low = innerWidth <= 640 && document.body.classList.contains("data-on") ? $("stats") : document.querySelector(".side");
   const bottom = low.getBoundingClientRect().top - 8 - wrap.top;
   skyMid = (top + bottom) / 2; skyScale = (bottom - top) / 130;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
