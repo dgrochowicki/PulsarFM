@@ -36,7 +36,7 @@ await page.evaluate(() => Object.defineProperty(navigator, "geolocation", {
   configurable: true,
   value: { getCurrentPosition(success, error) { error({ code: 1, PERMISSION_DENIED: 1 }); } },
 }));
-await page.click("#autoPulsar");
+await page.click("#sideAuto");
 const autoSelection = await page.evaluate(() => ({
   enabled: document.querySelector("#autoPulsar").getAttribute("aria-pressed") === "true",
   fallback: document.querySelector("#autoStatus").textContent.includes("Using Szczecin."),
@@ -52,7 +52,7 @@ await page.evaluate(() => {
 });
 const manualSelection = await page.evaluate(() => document.querySelector("#autoPulsar").getAttribute("aria-pressed") === "false");
 if (!manualSelection) throw new Error("Ręczny wybór pulsara nie wyłącza trybu automatycznego.");
-await page.click("#psrBtn");
+await page.click("#sideView");
 await page.click("#play");
 
 const rms = () => page.evaluate(async () => {
@@ -245,10 +245,10 @@ const mapCost = await page.evaluate(async () => {
   return { scene, bases };
 });
 check(mapCost.scene === 0 && mapCost.bases === 1, `koszt mapy: ${JSON.stringify(mapCost)}`);
-await page.click("#psrBtn");
+await page.click("#sideView");
 await page.waitForTimeout(600);
 await page.screenshot({ path: join(out, "map.png") });
-await page.click("#psrBtn");
+await page.click("#sideView");
 
 // Dane mają płynąć do muzyki także bez klatek, czyli w ukrytej karcie.
 const hidden = await page.evaluate(async () => {
