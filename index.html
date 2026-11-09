@@ -203,8 +203,8 @@
     .side .sq { width: 100%; height: 30px; border-radius: 12px; font-size: 13px; }
     .side .sq svg { width: 16px; height: 16px; }
     .side .sq, .stat { --base: rgba(5, 6, 11, 0.78); } /* leżą na obrazie: mniej prześwitują */
-    .side .sq[aria-pressed="true"] { background: linear-gradient(rgba(196,221,255,0.2), rgba(196,221,255,0.2)), var(--base); }
-    #sideAuto.on { background: #e8e9ec; color: #000; }
+    /* Włączony stan wspólny dla danych i Auto: jaśniejsze tło, żółty znak (autor, 9.11.2026). */
+    .side .sq[aria-pressed="true"] { background: linear-gradient(rgba(196,221,255,0.2), rgba(196,221,255,0.2)), var(--base); color: #ffcf6e; }
     #sideAuto { font-size: 11.5px; }
     body:not(.map) #sideAuto, .station #psrBtn, .sheet-head .auto-toggle { display: none; }
     .style-pop { left: 50%; translate: -50% 0; transform-origin: 50% 100%; }
