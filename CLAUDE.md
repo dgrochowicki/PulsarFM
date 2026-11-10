@@ -137,6 +137,10 @@ Na razie muzyka ważniejsza od obrazu. Autorowi podoba się brzmienie gatunków 
 - [ ] Dopracować Drone, Chorał, Glitch, Dub (przy 111 BPM i z melodią w basie) i Pozytywkę: wciąż stare brzmienia z syntezy.
 - [ ] Liquid: autor chce porównać z ulubionymi utworami LTJ Bukema i Calibre (nagranie telefonem do `docs/`).
 
+**Charakter techniczny i ekran „Signal” (autor, 10.11.2026)**
+- [ ] Pomysły zebrane w `docs/POMYSLY.md`: typografia danych, nazwa sondy i licznik pakietów w pasku Live, czas przelotu wiatru, osobny ekran „Signal” (dane → dźwięk), pięciolinia z wykresu wiatru, nazwa i domeny. Autor najpierw projektuje w Figmie, potem wdrażamy.
+- [ ] Wyrównać głośność gatunków i dodać limiter (suwak głośności niepotrzebny).
+
 **Później / do rozważenia**
 - [ ] Porównanie z Lyria RealTime (Google, Gemini API): model AI sterowany opisem gatunku + `bpm`, `density`, `brightness`. Możliwa hybryda: Lyria gra tło w gatunku pulsara, a pulsar i rozbłyski zostają w Tone.js. Wymaga klucza API i małego serwera.
 - [ ] Wybór kierunku graficznego: szkice z `docs/WIZUALIZACJE.md` (bez usuniętych Linii pola) są w przełączniku. Autor po obejrzeniu Fal: „to jeszcze nie to”, sam jeszcze nie wie, co dalej. Autor wybiera; niewybrane style usunąć.
