@@ -43,6 +43,16 @@
   #lbIco { display: flex; }
   .livebar.on svg { animation: onair 2.4s ease-in-out infinite; }
   .livebar:not(.on) { color: var(--dim); }
+  /* Po prawej odliczanie do następnego pomiaru z kółkiem; przy nowych danych na chwilę „new data” na żółto (autor, 10.11.2026). */
+  .livebar .lb-r { display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+  #lbRing { display: flex; }
+  #lbRing svg { width: 14px; height: 14px; animation: none; }
+  #lbRing circle { fill: none; stroke-width: 2; }
+  .livebar .lb-r.fresh { color: #ffcf6e; }
+  .livebar.fresh #lbIco { filter: drop-shadow(0 0 4px #ff4f64); }
+  /* Kafelki danych na chwilę dostają żółtą obwódkę: widać, że przyszedł nowy pomiar. */
+  .stat { box-shadow: inset 0 0 0 1px transparent; transition: box-shadow .8s ease, transform .2s cubic-bezier(0.2, 0.8, 0.2, 1), background-color .2s; }
+  .fresh-data .stat { box-shadow: inset 0 0 0 1px rgba(255, 207, 110, 0.55); transition: box-shadow .15s ease; }
   @keyframes onair { 50% { opacity: .4; } }
   @media (prefers-reduced-motion: reduce) { .livebar.on svg { animation: none; } }
   .brand { padding: 4px 8px; margin: -4px -8px; border: 0; border-radius: 10px; background: none; font-size: 16px; font-weight: 500; cursor: pointer; }
@@ -241,7 +251,7 @@
   <div class="status" id="status" aria-live="polite">Loading data…</div>
 </div>
 
-<div class="livebar" id="livebar" title=""><span class="lb-l"><span id="lbIco"></span><span><span id="lbText">Live</span><span class="lb-more" id="lbMore"></span></span></span><span class="lb-r"><span class="lb-more">measured </span><span id="lbTime"></span></span></div>
+<div class="livebar" id="livebar" title=""><span class="lb-l"><span id="lbIco"></span><span><span id="lbText">Live</span><span class="lb-more" id="lbMore"></span></span></span><span class="lb-r"><span id="lbRing"></span><span class="lb-pre"></span><span id="lbTime"></span></span></div>
 
 <div class="panel" id="panel">
   <div class="stats" id="stats">
@@ -353,7 +363,7 @@ const ICON_PATHS = {
   close: "M19.546 17.954C19.7573 18.1653 19.876 18.452 19.876 18.7509C19.876 19.0497 19.7573 19.3364 19.546 19.5477C19.3346 19.7591 19.048 19.8778 18.7491 19.8778C18.4502 19.8778 18.1636 19.7591 17.9522 19.5477L12 13.5937L6.04596 19.5459C5.83461 19.7572 5.54797 19.8759 5.24908 19.8759C4.9502 19.8759 4.66355 19.7572 4.45221 19.5459C4.24086 19.3345 4.12213 19.0479 4.12213 18.749C4.12213 18.4501 4.24086 18.1635 4.45221 17.9521L10.4063 11.9999L4.45408 6.04586C4.24274 5.83451 4.12401 5.54787 4.12401 5.24898C4.12401 4.9501 4.24274 4.66345 4.45408 4.45211C4.66543 4.24076 4.95207 4.12203 5.25096 4.12203C5.54984 4.12203 5.83649 4.24076 6.04783 4.45211L12 10.4062L17.9541 4.45117C18.1654 4.23983 18.4521 4.12109 18.751 4.12109C19.0498 4.12109 19.3365 4.23983 19.5478 4.45117C19.7592 4.66251 19.8779 4.94916 19.8779 5.24805C19.8779 5.54693 19.7592 5.83358 19.5478 6.04492L13.5938 11.9999L19.546 17.954Z",
 };
 const ICONS = Object.fromEntries(Object.entries(ICON_PATHS).map(([k, d]) => [k, `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}" fill="currentColor"/></svg>`]));
-ICONS.stop = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="2.5" fill="currentColor"/></svg>';
+ICONS.stop = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.25 4.5V19.5C20.25 19.8978 20.092 20.2794 19.8107 20.5607C19.5294 20.842 19.1478 21 18.75 21H15C14.6022 21 14.2206 20.842 13.9393 20.5607C13.658 20.2794 13.5 19.8978 13.5 19.5V4.5C13.5 4.10218 13.658 3.72064 13.9393 3.43934C14.2206 3.15804 14.6022 3 15 3H18.75C19.1478 3 19.5294 3.15804 19.8107 3.43934C20.092 3.72064 20.25 4.10218 20.25 4.5ZM9 3H5.25C4.85218 3 4.47064 3.15804 4.18934 3.43934C3.90804 3.72064 3.75 4.10218 3.75 4.5V19.5C3.75 19.8978 3.90804 20.2794 4.18934 20.5607C4.47064 20.842 4.85218 21 5.25 21H9C9.39782 21 9.77936 20.842 10.0607 20.5607C10.342 20.2794 10.5 19.8978 10.5 19.5V4.5C10.5 4.10218 10.342 3.72064 10.0607 3.43934C9.77936 3.15804 9.39782 3 9 3Z" fill="currentColor"/></svg>`; // pauza (autor, 10.11.2026; nazwa stop zostaje w kodzie)
 document.getElementById("play").innerHTML = ICONS.play;
 "use strict";
 
@@ -485,6 +495,10 @@ async function getJSON(url) {
 }
 const newestActive = (rows, key) => rows.find((r) => r.active && r[key] != null) || rows.find((r) => r[key] != null);
 
+// Sonda, z której NOAA bierze dane (pole source przy active: true); NOAA sama przełącza się między sondami.
+const CRAFT = { SOLAR1: "SOLAR-1", DSCOVR: "DSCOVR", ACE: "ACE", IMAP: "IMAP" };
+const craftName = (s) => s ? CRAFT[s] || s : "";
+let packetAt = 0, nextPollAt = 0;
 async function fetchLive() {
   try {
     const [wind, mag, kp, xr] = await Promise.allSettled([
@@ -496,7 +510,7 @@ async function fetchLive() {
     if (wind.status !== "fulfilled" || mag.status !== "fulfilled") throw new Error("brak RTSW");
     const w = newestActive(wind.value, "proton_speed");
     const m = newestActive(mag.value, "bz_gsm");
-    const out = { wind: Number(w.proton_speed), dens: Number(w.proton_density ?? 4), bz: Number(m.bz_gsm), time: new Date(w.time_tag + "Z") };
+    const out = { wind: Number(w.proton_speed), dens: Number(w.proton_density ?? 4), bz: Number(m.bz_gsm), time: new Date(w.time_tag + "Z"), src: craftName(w.source) };
     if (kp.status === "fulfilled") { const last = kp.value[kp.value.length - 1]; out.kp = Number(last.Kp ?? last[1]); }
     if (xr.status === "fulfilled") {
       const long = xr.value.filter((r) => r.energy === "0.1-0.8nm" && r.flux > 0);
@@ -505,6 +519,7 @@ async function fetchLive() {
         out.xray = Number(last.flux); out.xrayTag = last.time_tag; out.flareLevel = newFlareLevel(long);
       }
     }
+    if (lastLive && out.time > lastLive.time) packetAt = Date.now(); // nowa minuta pomiaru, nie pierwszy odczyt
     liveOK = true; lastLive = out; lastOkAt = Date.now();
     const tail = wind.value.filter((r) => r.active && r.proton_speed != null).slice(0, 17).reverse().map((r) => Number(r.proton_speed));
     if (tail.length === 17) windTail = tail;
@@ -535,7 +550,7 @@ function onRecording() {
 function setStatus() {
   const s = $("status");
   const hh = (d) => d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-  if (mode === "live" && liveOK && lastLive) s.textContent = `Live · NOAA, L1 spacecraft · measured ${hh(lastLive.time)}`;
+  if (mode === "live" && liveOK && lastLive) s.textContent = `Live · NOAA, ${lastLive.src || "L1 spacecraft"} at L1 · measured ${hh(lastLive.time)}`;
   else if (mode === "live" && lastLive && !onRecording()) s.innerHTML = `<span class="err">No new NOAA data.</span> Holding the ${hh(lastLive.time)} reading.`;
   else if (mode === "live") s.innerHTML = `<span class="err">Can't reach NOAA.</span> Playing the 18 Oct 2026 recording.`;
   else if (mode === "replay") s.textContent = "Recording from 18 Oct 2026, 3 hours in 3 minutes";
@@ -545,8 +560,9 @@ function setStatus() {
   $("modeBtn").title = s.textContent;
   let cls = "", text, more = "", time = "", tip;
   if (mode === "live" && !onRecording() && liveOK && lastLive) {
-    cls = "on"; text = "Live · NOAA"; more = ", L1 spacecraft"; time = hh(lastLive.time);
-    tip = `Real-time NOAA data from the spacecraft at L1, 1.5 million km towards the Sun. New every minute; last measured at ${hh(lastLive.time)}.`;
+    const craft = lastLive.src || "NOAA";
+    cls = "on"; text = "Live · " + craft; more = " at L1"; time = hh(lastLive.time);
+    tip = `Real-time NOAA data from ${lastLive.src ? "the " + craft + " spacecraft" : "the spacecraft"} at L1, 1.5 million km towards the Sun. New every minute; last measured at ${hh(lastLive.time)} (${lastLive.time.toISOString().slice(11, 16)} UTC).`;
   } else if (mode === "live" && !onRecording()) {
     text = "Live · waiting for NOAA"; time = hh(lastLive.time);
     tip = `No new NOAA data since ${hh(lastLive.time)}. Holding that reading and trying again every minute.`;
@@ -556,10 +572,25 @@ function setStatus() {
   } else if (mode === "storm") { text = "Simulation"; tip = "Made-up storm data (dev)."; }
   else { text = "Manual"; tip = "Manual control (dev)."; }
   const lb = $("livebar");
-  lb.className = "livebar " + cls; $("lbText").textContent = text; $("lbMore").textContent = more; $("lbTime").textContent = time;
-  lb.querySelector(".lb-r .lb-more").textContent = cls === "on" ? "measured " : time ? "last " : "";
+  lb.className = "livebar " + cls; $("lbText").textContent = text; $("lbMore").textContent = more;
+  lb.dataset.last = cls === "on" ? "" : time ? "last " + time : "";
+  tickLive();
   if (lb.dataset.tip !== undefined) lb.dataset.tip = tip; else lb.title = tip;
 }
+
+// Prawa strona paska co sekundę: odliczanie do następnego pomiaru albo „new data” tuż po nowym.
+function tickLive() {
+  const lb = $("livebar"), r = lb.querySelector(".lb-r");
+  if (!lb.classList.contains("on")) { $("lbRing").innerHTML = ""; r.classList.remove("fresh"); lb.querySelector(".lb-pre").textContent = ""; $("lbTime").textContent = lb.dataset.last || ""; return; }
+  const fresh = Date.now() - packetAt < 3000;
+  r.classList.toggle("fresh", fresh); lb.classList.toggle("fresh", fresh); document.body.classList.toggle("fresh-data", fresh);
+  if (fresh) { $("lbRing").innerHTML = ""; lb.querySelector(".lb-pre").textContent = ""; $("lbTime").textContent = "new data"; return; }
+  const left = Math.max(0, Math.ceil((nextPollAt - Date.now()) / 1000)), done = 1 - left / 60, c = 2 * Math.PI * 6;
+  $("lbRing").innerHTML = `<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6" stroke="rgba(255,255,255,.15)"/><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-linecap="round" stroke-dasharray="${c.toFixed(2)}" stroke-dashoffset="${(c * (1 - done)).toFixed(2)}" transform="rotate(-90 8 8)"/></svg>`;
+  lb.querySelector(".lb-pre").textContent = "next";
+  $("lbTime").textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
+}
+setInterval(tickLive, 1000);
 
 let liveTimer = null;
 async function enterMode(m) {
@@ -572,7 +603,8 @@ async function enterMode(m) {
     const d = await fetchLive();
     if (request !== modeRequest || mode !== m) return; // w czasie pobierania wybrano coś innego
     if (d || lastLive) applyLive(d || lastLive); else { replayIdx = SNAP.wind.length - 1; seedWaves(snapHistory()); }
-    liveTimer = setInterval(async () => { const d = await fetchLive(); if (d && mode === "live") applyLive(d); setStatus(); }, 60000);
+    nextPollAt = Date.now() + 60000;
+    liveTimer = setInterval(async () => { nextPollAt = Date.now() + 60000; const d = await fetchLive(); if (d && mode === "live") applyLive(d); setStatus(); }, 60000);
   }
   if (m === "storm") {
     Object.assign(target, { wind: 780, dens: 18, bz: -18, kp: 7.67 });
@@ -2219,7 +2251,7 @@ $("play").onclick = async () => {
       if (M.kind === "tone") if (!G?.pulseBurst) A.starVol.volume.rampTo(M.f < 20 ? -28 : M.f < 100 ? -33 : M.f < 400 ? -32 : -40, 1.5);
     } else { stopAudio(); playing = false; }
     $("play").innerHTML = playing ? ICONS.stop : ICONS.play;
-    $("play").title = $("play").ariaLabel = playing ? "Stop" : "Play";
+    $("play").title = $("play").ariaLabel = playing ? "Pause" : "Play";
     $("play").classList.toggle("on", playing);
   } catch (e) {
     $("status").innerHTML = `<span class="err">${e.message}</span>`; $("status").classList.add("show");
