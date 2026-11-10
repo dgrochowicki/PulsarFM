@@ -43,11 +43,8 @@
   #lbIco { display: flex; }
   .livebar.on svg { animation: onair 2.4s ease-in-out infinite; }
   .livebar:not(.on) { color: var(--dim); }
-  /* Po prawej odliczanie do następnego pomiaru z kółkiem; przy nowych danych na chwilę „new data” na żółto (autor, 10.11.2026). */
-  .livebar .lb-r { display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
-  #lbRing { display: flex; }
-  #lbRing svg { width: 14px; height: 14px; animation: none; }
-  #lbRing circle { fill: none; stroke-width: 2; }
+  /* Po prawej godzina pomiaru; przy nowych danych na chwilę „new data” na żółto (autor, 10.11.2026). */
+  .livebar .lb-r { display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; }
   .livebar .lb-r.fresh { color: #ffcf6e; }
   .livebar.fresh #lbIco { filter: drop-shadow(0 0 4px #ff4f64); }
   /* Kafelki danych na chwilę dostają żółtą obwódkę: widać, że przyszedł nowy pomiar. */
@@ -251,7 +248,7 @@
   <div class="status" id="status" aria-live="polite">Loading data…</div>
 </div>
 
-<div class="livebar" id="livebar" title=""><span class="lb-l"><span id="lbIco"></span><span><span id="lbText">Live</span><span class="lb-more" id="lbMore"></span></span></span><span class="lb-r"><span id="lbRing"></span><span class="lb-pre"></span><span id="lbTime"></span></span></div>
+<div class="livebar" id="livebar" title=""><span class="lb-l"><span id="lbIco"></span><span><span id="lbText">Live</span><span class="lb-more" id="lbMore"></span></span></span><span class="lb-r"><span class="lb-pre"></span><span id="lbTime"></span></span></div>
 
 <div class="panel" id="panel">
   <div class="stats" id="stats">
@@ -498,7 +495,7 @@ const newestActive = (rows, key) => rows.find((r) => r.active && r[key] != null)
 // Sonda, z której NOAA bierze dane (pole source przy active: true); NOAA sama przełącza się między sondami.
 const CRAFT = { SOLAR1: "SOLAR-1", DSCOVR: "DSCOVR", ACE: "ACE", IMAP: "IMAP" };
 const craftName = (s) => s ? CRAFT[s] || s : "";
-let packetAt = 0, nextPollAt = 0;
+let packetAt = 0;
 async function fetchLive() {
   try {
     const [wind, mag, kp, xr] = await Promise.allSettled([
@@ -573,22 +570,19 @@ function setStatus() {
   else { text = "Manual"; tip = "Manual control (dev)."; }
   const lb = $("livebar");
   lb.className = "livebar " + cls; $("lbText").textContent = text; $("lbMore").textContent = more;
-  lb.dataset.last = cls === "on" ? "" : time ? "last " + time : "";
+  lb.dataset.pre = cls === "on" ? "measured" : time ? "last" : ""; lb.dataset.time = time;
   tickLive();
   if (lb.dataset.tip !== undefined) lb.dataset.tip = tip; else lb.title = tip;
 }
 
-// Prawa strona paska co sekundę: odliczanie do następnego pomiaru albo „new data” tuż po nowym.
+// Prawa strona paska: godzina ostatniego pomiaru (ta sama na każdym urządzeniu), a tuż po nowym pomiarze przez 3 s „new data”.
+// Bez odliczania: nie wymyślamy danych, pokazujemy tylko to, co przyszło z NOAA (autor, 10.11.2026).
 function tickLive() {
   const lb = $("livebar"), r = lb.querySelector(".lb-r");
-  if (!lb.classList.contains("on")) { $("lbRing").innerHTML = ""; r.classList.remove("fresh"); lb.querySelector(".lb-pre").textContent = ""; $("lbTime").textContent = lb.dataset.last || ""; return; }
-  const fresh = Date.now() - packetAt < 3000;
+  const fresh = lb.classList.contains("on") && Date.now() - packetAt < 3000;
   r.classList.toggle("fresh", fresh); lb.classList.toggle("fresh", fresh); document.body.classList.toggle("fresh-data", fresh);
-  if (fresh) { $("lbRing").innerHTML = ""; lb.querySelector(".lb-pre").textContent = ""; $("lbTime").textContent = "new data"; return; }
-  const left = Math.max(0, Math.ceil((nextPollAt - Date.now()) / 1000)), done = 1 - left / 60, c = 2 * Math.PI * 6;
-  $("lbRing").innerHTML = `<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6" stroke="rgba(255,255,255,.15)"/><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-linecap="round" stroke-dasharray="${c.toFixed(2)}" stroke-dashoffset="${(c * (1 - done)).toFixed(2)}" transform="rotate(-90 8 8)"/></svg>`;
-  lb.querySelector(".lb-pre").textContent = "next";
-  $("lbTime").textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
+  lb.querySelector(".lb-pre").textContent = fresh ? "" : lb.dataset.pre || "";
+  $("lbTime").textContent = fresh ? "new data" : lb.dataset.time || "";
 }
 setInterval(tickLive, 1000);
 
@@ -603,8 +597,7 @@ async function enterMode(m) {
     const d = await fetchLive();
     if (request !== modeRequest || mode !== m) return; // w czasie pobierania wybrano coś innego
     if (d || lastLive) applyLive(d || lastLive); else { replayIdx = SNAP.wind.length - 1; seedWaves(snapHistory()); }
-    nextPollAt = Date.now() + 60000;
-    liveTimer = setInterval(async () => { nextPollAt = Date.now() + 60000; const d = await fetchLive(); if (d && mode === "live") applyLive(d); setStatus(); }, 60000);
+    liveTimer = setInterval(async () => { const d = await fetchLive(); if (d && mode === "live") applyLive(d); setStatus(); }, 60000);
   }
   if (m === "storm") {
     Object.assign(target, { wind: 780, dens: 18, bz: -18, kp: 7.67 });
