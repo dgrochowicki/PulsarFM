@@ -63,3 +63,34 @@ pulsar.fm i pulsarfm.com są zajęte. Sprawdzone whois 10.11.2026 (do potwierdze
 | pulsefm.space | wolna | |
 | skyradio.fm | wolna | odpuścić: Sky Radio to istniejąca stacja |
 | pulsar.fm, pulsarfm.com, pulsarradio.com, pulsar.audio, pulsar.live | zajęte | |
+
+## Instrumenty stacji: co z czego gra (pomysł autora, 10.11.2026)
+
+Słuchacz ma wiedzieć, który instrument gra z której danej. Dwa miejsca, ta sama treść:
+- **Informacja o pulsarze** (`infoHTML()`): sekcja „Instruments”, krótka lista instrument → dana, np. w Ambiencie: harfa ← wiatr (melodia), kontrabas pizzicato ← gęstość (rytm), pad ← wiatr (barwa), bas ← Bz, wysokie tony ← Kp, bęben wielki i „buuum” ← rozbłysk. Pulsar: tempo (i w szybkich tonacja).
+- **Ekran Signal**: w każdym rzędzie danych nazwa instrumentu grającej teraz stacji („→ Melody · harp”). Rząd mógłby lekko błysnąć, gdy ten instrument naprawdę zagra nutę, żeby związek był widoczny, a nie tylko opisany.
+
+Źródło w kodzie: każdy gatunek ma już nazwane warstwy w polu `mix` w `make()` (np. Ambient: Pad, Harfa, Kontrabas, Bit, Bas, Werbel). Wystarczy dopisać do nich daną sterującą i angielską nazwę dla słuchacza.
+
+## Czy wiatr to najlepsze źródło melodii (rozmowa 10.11.2026)
+
+Wniosek: wiatr zostaje. Jest ciągły (co minutę), gładki, ma wyraźne trendy i jest najpewniejszy (DSCOVR, zapasowo ACE). Słabość: w spokojne dni prawie płaski, co łagodzi minimalny zakres w `windDegrees()` i nuta tylko przy wyraźnej zmianie.
+
+Inne dane, które biorą udział albo mogłyby:
+- **Bz**: zmienia się szybko i zmienia znak, ruchliwy, ale szarpany; dziś skala i bas. Ewentualnie druga głos/kontrapunkt, ale wbrew zasadzie „jedna dana, jedna rola”.
+- **Gęstość**: zbyt kolczasta na melodię, dobra do rytmu (tak jest).
+- **Strumień rentgenowski GOES**: gładka krzywa dobowa, wolna; dobra na długą formę (np. jasność, napięcie utworu), nie na melodię.
+- **Kp**: co 3 godziny, za wolny.
+- **Monitory neutronów** (promienie kosmiczne): prawie płaskie, ułamki procenta; faktura/szum (etap 3).
+- **Magnetometry** (GOES, stacje naziemne): bogate falowanie, rośnie przy burzy; kandydat na drugi głos albo na tempo/puls magnetosfery (patrz niżej).
+
+## Co oprócz pulsarów mogłoby dawać tempo (rozmowa 10.11.2026)
+
+Wniosek: pulsary zostają sercem (jedyne naturalne metronomy, tempo z błysków to prawda). Ewentualnie wyjątkowe stacje na mapie:
+1. **Słońce**: drgania powierzchni z okresem ok. 5 minut (helioseizmologia), podwajane do tempa jak pulsary. „Rytm z gwiazd, melodia ze Słońca”. Najlepiej pasuje do opowieści.
+2. **Drgania magnetosfery** (pulsacje Pc3–Pc5, od kilkunastu sekund do kilku minut): jedyne tempo zmieniające się na żywo z pogodą kosmiczną; trudne dane, dalszy etap.
+3. Księżyce Jowisza 1:2:4, TRAPPIST-1: gotowe polirytmy, ale już wykorzystywane muzycznie.
+4. Gwiazdy pulsujące (cefeidy, RR Lyrae): okresy godzin i dni, mniej dokładne.
+5. Prędkość wiatru jako tempo: odrzucone, tempo pływałoby i rozjeżdżało się z błyskami pulsara.
+
+Podobne projekty (dla nazwy i pozycji): CRaTER Radio (NASA/UNH, muzyka z promieniowania przy Księżycu), „Space Weather – The Musical” (blog S. Elvidge'a, 2026). Nikt nie łączy pulsarów jako stacji z pogodą kosmiczną na żywo.
