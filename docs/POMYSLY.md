@@ -108,3 +108,15 @@ Uczciwe możliwości:
 2. **Taśma porcji w drodze** (tylko na ekranie Signal): ostatnie ok. 60 minut pomiarów (mamy je z NOAA) ułożone nie według czasu, ale według drogi: przy L1 najnowsza porcja, przy Ziemi ta, która właśnie dociera. Każda porcja leci ze swoją prędkością (czas = 1,5 mln km / jej prędkość), więc szybsze doganiają wolniejsze; tak naprawdę powstają fronty uderzeniowe. Melodia gra z 16 najnowszych porcji, czyli z pierwszej części taśmy. To obraz prawdziwy fizycznie, ale nadal kontekst, nie dźwięk.
 
 Wniosek: nie na ekran główny. Jeśli w ogóle, to wariant 1 (zdanie) albo wariant 2 na ekranie Signal. Wykres z jednym punktem „now” i jedną liczbą (szkic B) odrzucony. Praktyczny sens „za ile dotrze” ma w Aurora Now (kiedy wyjść patrzeć na zorzę), ewentualnie przy połączeniu projektów.
+
+## Co jeszcze mierzy SOLAR-1 (rozmowa 15.11.2026)
+
+Od 2026 NOAA bierze dane z sondy **SOLAR-1** (dawniej SWFO-L1). Wszystko publiczne przychodzi w plikach, które już pobieramy (`rtsw_wind_1m.json`, `rtsw_mag_1m.json`), plus obrazy koronografu. Czujnik szybkich cząstek (STIS) nie ma na razie publicznego pliku.
+
+Nieużywane dziś pola i pomysły (autor: „wszystkie pomysły są super”):
+1. **By (pole w bok), kąty pola → stereo.** Pole obraca się w lewo i w prawo, dźwięk przesuwa się między głośnikami. Rola „przestrzeń” jest wolna. Polecane jako pierwsze: prosty dodatek do każdego gatunku, słychać od razu na słuchawkach.
+2. **Bt (całkowita siła pola) → napięcie albo pogłos.** Bz mówi o kierunku, Bt o sile; skacze przy nadejściu wyrzutu masy (CME).
+3. **Temperatura protonów (`proton_temperature`) → nuty drugiej warstwy albo tła (pomysł autora).** Uwaga: temperatura rośnie razem z prędkością, więc wprost dublowałaby melodię z wiatru. Ciekawsze jest odchylenie od temperatury oczekiwanej dla danej prędkości (zależność empiryczna, np. Lopez 1987, T rośnie mniej więcej z kwadratem prędkości): wiatr za zimny jak na swoją prędkość to typowy znak CME. Wtedy druga warstwa mówiłaby coś nowego, a nie powtarzała wiatr. Do sprawdzenia ze słuchu.
+4. **Koronograf CCOR-2 (obrazy korony Słońca, co 15 minut).** Autor: „nie wiem, czy teraz jest nam potrzebne”, odłożone. Przykłady w `docs/research/ccor2-solar1-20261115_2045.jpg` (zwykły, „White Light”) i `...-roznicowy.jpg` („Running Difference”, różnica z obrazem sprzed 15 min, na nim widać ruch, np. wyrzuty). Adresy: `services.swpc.noaa.gov/images/animations/ccor2/latest.jpg` i `.../ccor2-diff/latest.jpg`; NOAA pozwala je wczytać z naszej strony (CORS `*`). Na obrazach są napisy i logo NOAA wtopione w piksele, do przycięcia; przesłona ma kształt kropli z ramieniem u góry.
+
+Odrzucone: kierunek przepływu (vx, vy, vz, zmienia się minimalnie), położenie sondy (orbita wokół L1, bez znaczenia dla muzyki).
