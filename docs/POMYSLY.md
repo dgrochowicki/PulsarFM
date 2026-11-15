@@ -12,7 +12,7 @@ Ważne pytanie autora: skoro dane tworzą muzykę, to same wykresy nie wystarcz�
 
 1. **Typografia danych.** Liczby krojem o stałej szerokości (`ui-monospace`, cyfry tabelaryczne), stała precyzja (np. „487.3 km/s”), małe etykiety wersalikami z odstępem (`SOLAR WIND`, `BZ · GSM`). Czas w UTC z sekundami tam, gdzie to dane, a nie interfejs.
 2. **Konkretne źródło i pakiety.** W pasku Live prawdziwa nazwa sondy zamiast „L1 spacecraft”: wiersze NOAA RTSW mają pole `source` przy `active: true` (DSCOVR albo ACE). Zmiana sondy w pasku: autor akceptuje. Po prawej licznik do następnego pakietu („next 0:42” z kółkiem, które się zapełnia) zamiast „measured 13:52”; godzina pomiaru w podpowiedzi albo na ekranie Signal. Przy nowym pakiecie krótkie „packet received”.
-3. **Czas przelotu wiatru.** Wiatr zmierzony na L1 dociera do Ziemi po ok. 1,5 mln km / prędkość (przy 487 km/s ok. 51 min). Jedno zdanie: „This wind reaches Earth in 51 min” z mikroschematem Słońce → L1 → Ziemia. Było już w planie jako „wiatr dotrze za N minut”.
+3. **Czas przelotu wiatru.** Wiatr zmierzony na L1 dociera do Ziemi po ok. 1,5 mln km / prędkość (przy 487 km/s ok. 51 min). Jedno zdanie: „This wind reaches Earth in 51 min” z mikroschematem Słońce → L1 → Ziemia. Było już w planie jako „wiatr dotrze za N minut”. **Wniosek z 15.11.2026: kontekst, nie dźwięk**, patrz sekcja „Czas przelotu wiatru: co naprawdę znaczy”.
 4. **Historia przy wartościach.** Wykres ostatnich minut/godzin. Same wykresy autor uznał za mniej potrzebne niż pokazanie zamiany w muzykę (patrz ekran Signal).
 5. **Mapa jak atlas.** Podziałka RA/Dec na brzegach, dane katalogowe pulsara (okres, DM, odległość, rok odkrycia), w trybie Auto współrzędne słuchacza i czas gwiazdowy.
 
@@ -94,3 +94,17 @@ Wniosek: pulsary zostają sercem (jedyne naturalne metronomy, tempo z błysków 
 5. Prędkość wiatru jako tempo: odrzucone, tempo pływałoby i rozjeżdżało się z błyskami pulsara.
 
 Podobne projekty (dla nazwy i pozycji): CRaTER Radio (NASA/UNH, muzyka z promieniowania przy Księżycu), „Space Weather – The Musical” (blog S. Elvidge'a, 2026). Nikt nie łączy pulsarów jako stacji z pogodą kosmiczną na żywo.
+
+## Czas przelotu wiatru: co naprawdę znaczy (rozmowa 15.11.2026)
+
+**Dla muzyki nic nie zmienia.** Żaden dźwięk od niego nie zależy. Mówi tylko, że muzyka gra z wiatru, który jeszcze nie dotarł do Ziemi (sonda na L1 mierzy go ok. 50 minut wcześniej). Nasza muzyka miesza dwa czasy: wiatr i Bz to pomiar przed Ziemią (to, co nadchodzi), Kp to stan przy Ziemi (skutek wiatru sprzed ok. godziny, liczony co 3 godziny).
+
+Odrzucone: granie tego czasu, np. repryza melodii po 51 minutach, gdy ten wiatr dociera do Ziemi. Nikt nie zapamięta frazy sprzed godziny, więc byłby to efekt tylko na papierze.
+
+**Pytanie autora: skoro co minutę przychodzi nowa paczka, to co pokazywać?** Autor ma rację, że jedna liczba („za 51 min”) jest myląca. Każda minuta pomiaru to osobna porcja wiatru. W każdej chwili między L1 a Ziemią leci ok. 50 takich porcji, a do Ziemi właśnie dociera ta zmierzona ok. 50 minut temu. Liczba „51 min” dotyczy tylko najnowszej porcji i prawie się nie zmienia (zależy tylko od prędkości), więc co minutę pokazywałaby to samo.
+
+Uczciwe możliwości:
+1. **Stałe zdanie o zjawisku**, nie o paczce: „Solar wind takes about 50 minutes to travel from the spacecraft to Earth.” Do okienka „czym to jest” albo na ekran Signal. Najprostsze i zawsze prawdziwe.
+2. **Taśma porcji w drodze** (tylko na ekranie Signal): ostatnie ok. 60 minut pomiarów (mamy je z NOAA) ułożone nie według czasu, ale według drogi: przy L1 najnowsza porcja, przy Ziemi ta, która właśnie dociera. Każda porcja leci ze swoją prędkością (czas = 1,5 mln km / jej prędkość), więc szybsze doganiają wolniejsze; tak naprawdę powstają fronty uderzeniowe. Melodia gra z 16 najnowszych porcji, czyli z pierwszej części taśmy. To obraz prawdziwy fizycznie, ale nadal kontekst, nie dźwięk.
+
+Wniosek: nie na ekran główny. Jeśli w ogóle, to wariant 1 (zdanie) albo wariant 2 na ekranie Signal. Wykres z jednym punktem „now” i jedną liczbą (szkic B) odrzucony. Praktyczny sens „za ile dotrze” ma w Aurora Now (kiedy wyjść patrzeć na zorzę), ewentualnie przy połączeniu projektów.
