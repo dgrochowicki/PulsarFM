@@ -41,6 +41,7 @@ Wspólne dla wszystkich gatunków (obiekt `E` w kodzie, wartości 0–1):
 | Gęstość wiatru | ile się dzieje (gęstość motywów, dodatkowe warstwy) | liczba cząstek/kresek/fal |
 | Prędkość × gęstość | – | odległość magnetopauzy (Chapman–Ferraro, kształt Shue) |
 | Bz < −2 nT | mroczna skala; wspólny niski bas rośnie z −Bz | kolor (różowy/bursztynowy) |
+| By (GSM) | stereo: głos melodii w prawo/lewo (`byPan()`, gatunek przepina go przez `B.side()`); bas, stopa i puls na środku (16.11.2026) | – |
 | Kp | wysoka poświata (shimmer) | zorza |
 | Rozbłysk (C/M/X) | **trailerowe uderzenie**: zawsze prawdziwy bęben wielki (uderzenie, po 2 s pocieranie membrany) i niskie „buuum” z opadającą wysokością (C); M = + przesterowany akord „braam” z otwierającym się filtrem; X = pełny braam z tercją + szum | koła/drganie Słońca/znak f–fff |
 
@@ -152,4 +153,4 @@ npm i -D playwright && npx playwright install chromium
 node tests/smoke.mjs
 ```
 
-Sprawdza: brak błędów strony, start dźwięku, wszystkie gatunki grają (RMS > 0), rytm po zmianie stacji i po Stop/Play, ciszę po Stop, echo i strojenie, rozbłyski, awarię sieci, wznowienie dźwięku, dane bez klatek animacji; screenshoty stylów w `tests/out/`.
+Sprawdza: brak błędów strony, start dźwięku, wszystkie gatunki grają (RMS > 0), rytm po zmianie stacji i po Stop/Play, ciszę po Stop, echo i strojenie, rozbłyski, awarię sieci, wznowienie dźwięku, dane bez klatek animacji, stereo z By; screenshoty stylów w `tests/out/`.

@@ -263,6 +263,13 @@ const hidden = await page.evaluate(async () => {
 });
 check(hidden > 500, `dane bez klatek animacji: wiatr ${Math.round(hidden)} km/s`);
 
+// Stereo z By: głos melodii idzie w prawo przy dodatnim By, w lewo przy ujemnym.
+const pan = await page.evaluate(async () => {
+  const at = async (by) => { target.by = by; await new Promise((r) => setTimeout(r, 4500)); return G.bus.panners.map((p) => +p.pan.value.toFixed(2)); };
+  return { right: await at(12), left: await at(-12) };
+});
+check(pan.right.length > 0 && pan.right.every((v) => v > 0.4) && pan.left.every((v) => v < -0.4), `stereo z By: ${JSON.stringify(pan)}`);
+
 console.log(errors.length ? "Błędy:\n" + errors.join("\n") : "Bez błędów strony.");
 await browser.close();
 server.close();

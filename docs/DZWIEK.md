@@ -110,6 +110,7 @@ Styl to prawdziwy rodzaj muzyki, do którego dany gatunek ma się zbliżać, z h
 | Prędkość wiatru | otwarcie filtrów (jaśniej), wysokość motywów, długość echa, jasność melodii w techno |
 | Gęstość wiatru | jak często grają nuty motywu, dodatkowe warstwy rytmu, sprzężenie echa w dubie |
 | Bz < −2 nT | mroczna skala (na początku taktu), wspólny niski bas |
+| By (pole w bok, GSM) | stereo głosu melodii (`byPan()`, `B.side()`): dodatnie w prawo, ujemne w lewo, najwyżej 70% w bok (`0,7·tanh(By/6)`, By = 2 nT to około 0,2, 5 nT to około 0,5); zmiana płynna w 2 s. W bok idzie tylko melodia (Ambient harfa, Chorał chór, Drone dzwon, Techno i Deep melodia, Glitch piknięcia, Liquid szkło, Pozytywka pozytywka; w Dubie akordy, bo melodia jest w basie). Bas, stopa, puls pulsara, rozbłyski i wspólny bas zostają na środku. Nagranie z 18.10 nie ma By, więc gra na środku. |
 | Kp | wysoka poświata nad akordami, druga linia szklanej harmonijki |
 | Rozbłysk C / M / X | bęben wielki (uderzenie, po 2 s pocieranie) i „buuum” / + „braam” / pełny „braam” z tercją + szum |
 

@@ -311,6 +311,7 @@
       <label>Wiatr <input type="range" id="sWind" min="280" max="900" step="5"><output id="oWind"></output></label>
       <label>Gęstość <input type="range" id="sDens" min="0.5" max="30" step="0.5"><output id="oDens"></output></label>
       <label>Bz <input type="range" id="sBz" min="-25" max="15" step="0.5"><output id="oBz"></output></label>
+      <label>By <input type="range" id="sBy" min="-15" max="15" step="0.5"><output id="oBy"></output></label>
       <label>Kp <input type="range" id="sKp" min="0" max="9" step="0.33"><output id="oKp"></output></label>
     </div>
   </div>
@@ -445,7 +446,7 @@ const map = (x, a, b, c, d) => c + (d - c) * clamp((x - a) / (b - a), 0, 1);
 const lerp = (a, b, t) => a + (b - a) * t;
 const $ = (id) => document.getElementById(id);
 
-const target = { wind: 420, dens: 4, bz: 0, kp: 2, xray: null };
+const target = { wind: 420, dens: 4, bz: 0, by: 0, kp: 2, xray: null };
 const cur = { ...target };
 let windTail = [], mode = "live", liveOK = false, lastLive = null, lastOkAt = 0, replayIdx = 0, xrayTag = null, modeRequest = 0;
 
@@ -507,7 +508,7 @@ async function fetchLive() {
     if (wind.status !== "fulfilled" || mag.status !== "fulfilled") throw new Error("brak RTSW");
     const w = newestActive(wind.value, "proton_speed");
     const m = newestActive(mag.value, "bz_gsm");
-    const out = { wind: Number(w.proton_speed), dens: Number(w.proton_density ?? 4), bz: Number(m.bz_gsm), time: new Date(w.time_tag + "Z"), src: craftName(w.source) };
+    const out = { wind: Number(w.proton_speed), dens: Number(w.proton_density ?? 4), bz: Number(m.bz_gsm), by: Number(m.by_gsm) || 0, time: new Date(w.time_tag + "Z"), src: craftName(w.source) };
     if (kp.status === "fulfilled") { const last = kp.value[kp.value.length - 1]; out.kp = Number(last.Kp ?? last[1]); }
     if (xr.status === "fulfilled") {
       const long = xr.value.filter((r) => r.energy === "0.1-0.8nm" && r.flux > 0);
@@ -529,7 +530,7 @@ async function fetchLive() {
 }
 
 function applyLive(d) {
-  target.wind = d.wind; target.dens = d.dens; target.bz = d.bz;
+  target.wind = d.wind; target.dens = d.dens; target.bz = d.bz; target.by = d.by ?? 0;
   if (Number.isFinite(d.kp)) target.kp = d.kp;
   if (d.xray) {
     target.xray = d.xray;
@@ -600,7 +601,7 @@ async function enterMode(m) {
     liveTimer = setInterval(async () => { const d = await fetchLive(); if (d && mode === "live") applyLive(d); setStatus(); }, 60000);
   }
   if (m === "storm") {
-    Object.assign(target, { wind: 780, dens: 18, bz: -18, kp: 7.67 });
+    Object.assign(target, { wind: 780, dens: 18, bz: -18, by: -9, kp: 7.67 });
     setTimeout(() => mode === "storm" && triggerFlare(4), 2500);
   }
   syncSliders(); setStatus();
@@ -612,7 +613,7 @@ setInterval(() => {
     // Replay (dev): minuta nagrania na sekundę. Zastępstwo za Live: minuta na minutę, jak prawdziwe dane.
     if (mode === "replay" || ++snapTick % 60 === 0) replayIdx = (replayIdx + 1) % SNAP.wind.length;
     const i = replayIdx, j = Math.round((i / SNAP.wind.length) * (SNAP.bz.length - 1));
-    target.wind = SNAP.wind[i]; target.dens = SNAP.dens[i]; target.bz = SNAP.bz[j]; target.kp = SNAP.kp;
+    target.wind = SNAP.wind[i]; target.dens = SNAP.dens[i]; target.bz = SNAP.bz[j]; target.by = 0; target.kp = SNAP.kp; // w nagraniu nie ma By: środek
   }
 }, 1000);
 
@@ -738,7 +739,7 @@ const GENRES = {
       const nf = new Tone.Filter({ frequency: 600, type: "bandpass", Q: 2 }).connect(B.rev);
       const noise = vol(new Tone.Noise("pink"), -30).connect(nf).start();
       const gong = vol(new Tone.FMSynth({ harmonicity: 1.41, modulationIndex: 9, envelope: { attack: 0.01, decay: 9, sustain: 0, release: 6 }, modulationEnvelope: { attack: 0.01, decay: 5, sustain: 0, release: 4 } }), -12).connect(B.rev);
-      const bell = vol(new Tone.FMSynth({ harmonicity: 5.07, modulationIndex: 8, envelope: { attack: 0.001, decay: 5, sustain: 0, release: 5 } }), -26).connect(B.delay);
+      const bell = vol(new Tone.FMSynth({ harmonicity: 5.07, modulationIndex: 8, envelope: { attack: 0.001, decay: 5, sustain: 0, release: 5 } }), -26).connect(B.side(B.delay));
       const motif = new Motif(8, [7, 14], 0.6);
       return {
         mix: { "Dźwięk 1": o1, "Dźwięk 2": o2, Szum: noise, Gong: gong, Dzwon: bell },
@@ -767,7 +768,7 @@ const GENRES = {
       const organ = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "custom", partials: [1, 0.55, 0.35, 0.22, 0.12, 0.08, 0.05] }, envelope: { attack: 0.25, decay: 0.2, sustain: 0.9, release: 2.2 } }), -28).connect(B.rev);
       const vf = new Tone.Filter({ frequency: 1000, type: "bandpass", Q: 0.9 }).connect(B.rev);
       const vib = new Tone.Vibrato(5, 0.08).connect(vf);
-      const choir = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fatsawtooth", count: 4, spread: 30 }, envelope: { attack: 1.2, decay: 0.5, sustain: 0.8, release: 3 } }), -24).connect(vib);
+      const choir = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fatsawtooth", count: 4, spread: 30 }, envelope: { attack: 1.2, decay: 0.5, sustain: 0.8, release: 3 } }), -24).connect(B.side(vib)); // sopran w chórze; organy na środku
       const timp = vol(new Tone.MembraneSynth({ pitchDecay: 0.08, octaves: 2, envelope: { attack: 0.002, decay: 0.8, sustain: 0, release: 0.5 } }), -17);
       timp.connect(B.rev); timp.connect(B.lim); // wprost też, żeby było słychać uderzenie, nie tylko pogłos
       const prog = [0, 3, 4, 0, 5, 3, 1, 4];
@@ -809,7 +810,7 @@ const GENRES = {
       // Kontrabas pizzicato niesie rytm, harfa gra melodię z wiatru.
       const low = vol(sampler({ D2: "bas-D2", E2: "bas-E2", "F#2": "bas-Fs2", "G#2": "bas-Gs2", "C#3": "bas-Cs3", E3: "bas-E3", "G#3": "bas-Gs3", B3: "bas-B3" }, 0.2), -17);
       low.connect(B.lim); low.connect(B.rev);
-      const harp = vol(sampler({ D4: "harp-D4", F4: "harp-F4", A4: "harp-A4", C5: "harp-C5", E5: "harp-E5", G5: "harp-G5", B5: "harp-B5", D6: "harp-D6" }, 1.5), -21).connect(B.delay);
+      const harp = vol(sampler({ D4: "harp-D4", F4: "harp-F4", A4: "harp-A4", C5: "harp-C5", E5: "harp-E5", G5: "harp-G5", B5: "harp-B5", D6: "harp-D6" }, 1.5), -21).connect(B.side(B.delay));
       // Najcichszy werbel raz na takt, między uderzeniami bitu, żeby go nie przykrywał.
       const snare = vol(sampler({ C3: "werbel-pppp" }, 0.2), -35).connect(B.lim);
       const prog = [0, 5, 3, 4];
@@ -873,8 +874,8 @@ const GENRES = {
       const stab = deep ? vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fatsquare", count: 2, spread: 15 }, envelope: { attack: 0.003, decay: 0.12, sustain: 0, release: 0.15 } }), -2).connect(B.delay) : null;
       const melF = deep ? null : new Tone.Filter(3500, "lowpass").connect(B.delay);
       const melody = deep
-        ? vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fatsquare", count: 2, spread: 15 }, envelope: { attack: 0.003, decay: 0.12, sustain: 0, release: 0.15 } }), -14).connect(B.delay)
-        : vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "custom", partials: [1, 0.7, 0.5, 0.25, 0.15, 0.1] }, envelope: { attack: 0.004, decay: 0.18, sustain: 0.15, release: 0.1 } }), -19).connect(melF); // organy
+        ? vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fatsquare", count: 2, spread: 15 }, envelope: { attack: 0.003, decay: 0.12, sustain: 0, release: 0.15 } }), -14).connect(B.side(B.delay))
+        : vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "custom", partials: [1, 0.7, 0.5, 0.25, 0.15, 0.1] }, envelope: { attack: 0.004, decay: 0.18, sustain: 0.15, release: 0.1 } }), -19).connect(B.side(melF)); // organy
       // Szepty: szum przez wąski filtr, który w każdej sylabie stoi gdzie indziej. Imitacja, nie głos.
       const whF = deep ? null : new Tone.Filter({ type: "bandpass", frequency: 2600, Q: 2.5 }).connect(B.delay);
       const whisper = deep ? null : vol(new Tone.NoiseSynth({ noise: { type: "pink" }, envelope: { attack: 0.012, decay: 0.09, sustain: 0 } }), -6).connect(whF);
@@ -957,7 +958,7 @@ const GENRES = {
     make(B) {
       const crush = new Tone.Distortion(0.85).connect(B.delay);
       const click = vol(new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.001, decay: 0.006, sustain: 0 } }), -22).connect(crush);
-      const blip = vol(new Tone.FMSynth({ harmonicity: 7, modulationIndex: 22, envelope: { attack: 0.001, decay: 0.06, sustain: 0, release: 0.05 } }), -26).connect(crush);
+      const blip = vol(new Tone.FMSynth({ harmonicity: 7, modulationIndex: 22, envelope: { attack: 0.001, decay: 0.06, sustain: 0, release: 0.05 } }), -26).connect(B.side(crush));
       const sub = vol(new Tone.MembraneSynth({ pitchDecay: 0.02, octaves: 4, envelope: { attack: 0.001, decay: 0.3, sustain: 0, release: 0.1 } }), -14).connect(B.lim);
       const pf = new Tone.AutoFilter(0.07, 200, 3).connect(B.rev).start();
       const pad = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fmsquare" }, envelope: { attack: 2, decay: 1, sustain: 0.6, release: 4 } }), -32).connect(pf);
@@ -995,7 +996,7 @@ const GENRES = {
     make(B) {
       const echo = new Tone.FeedbackDelay({ delayTime: "8n.", feedback: 0.62, wet: 0.55 }).connect(B.rev);
       const ef = new Tone.Filter(1800, "lowpass").connect(echo);
-      const skank = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "square" }, envelope: { attack: 0.002, decay: 0.12, sustain: 0, release: 0.1 } }), -24).connect(ef);
+      const skank = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "square" }, envelope: { attack: 0.002, decay: 0.12, sustain: 0, release: 0.1 } }), -24).connect(B.side(ef)); // w Dubie melodia jest w basie, więc w bok idą akordy
       const bass = vol(new Tone.MonoSynth({ oscillator: { type: "sine" }, envelope: { attack: 0.02, decay: 0.3, sustain: 0.8, release: 0.4 }, filterEnvelope: { baseFrequency: 200, octaves: 1 } }), -17).connect(B.lim);
       const kick = vol(new Tone.MembraneSynth({ pitchDecay: 0.05, octaves: 5, envelope: { attack: 0.001, decay: 0.4, sustain: 0, release: 0.1 } }), -13).connect(B.lim);
       const rf = new Tone.Filter({ frequency: 2500, type: "bandpass", Q: 3 }).connect(echo);
@@ -1030,7 +1031,7 @@ const GENRES = {
       const choir = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fatsine", count: 4, spread: 25 }, envelope: { attack: 3, decay: 1, sustain: 0.8, release: 6 } }), -23).connect(vf);
       const vib = new Tone.Vibrato(5.5, 0.06).connect(B.rev);
       // Kilka głosów: nuta melodii wybrzmiewa, zamiast urywać się na następnej.
-      const glass = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "sine" }, envelope: { attack: 0.03, decay: 3, sustain: 0, release: 3 } }), -22).connect(vib);
+      const glass = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "sine" }, envelope: { attack: 0.03, decay: 3, sustain: 0, release: 3 } }), -22).connect(B.side(vib));
       // Perkusja z prawdziwych próbek. Dwa pliki pod różnymi nutami: uderzenia nie są identyczne, a wysokość się nie zmienia.
       const kick = vol(sampler({ C2: "dnb-stopa" }, 0.1), -13).connect(B.lim);
       const snare = vol(sampler({ C3: "dnb-werbel-1", D3: "dnb-werbel-2" }, 0.1), -17);
@@ -1104,7 +1105,7 @@ const GENRES = {
   musicbox: {
     label: "Music box", barSteps: 12, scales: ["major", "aeolian"],
     make(B) {
-      const box = vol(new Tone.PolySynth(Tone.FMSynth, { harmonicity: 8, modulationIndex: 2.5, envelope: { attack: 0.001, decay: 1.4, sustain: 0, release: 1.2 }, modulationEnvelope: { attack: 0.001, decay: 0.4, sustain: 0, release: 0.3 } }), -9).connect(B.rev);
+      const box = vol(new Tone.PolySynth(Tone.FMSynth, { harmonicity: 8, modulationIndex: 2.5, envelope: { attack: 0.001, decay: 1.4, sustain: 0, release: 1.2 }, modulationEnvelope: { attack: 0.001, decay: 0.4, sustain: 0, release: 0.3 } }), -9).connect(B.side(B.rev));
       const lowF = new Tone.Filter(1200, "lowpass").connect(B.rev);
       const low = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "triangle" }, envelope: { attack: 0.005, decay: 0.6, sustain: 0, release: 0.5 } }), -15).connect(lowF);
       const motif = new Motif(12, [7, 16], 0.55);
@@ -1254,13 +1255,19 @@ function applyPulsarAudio() {
     const { inst: old, bus: oldBus } = G;
     old.nodes.forEach((n) => n.releaseAll && n.releaseAll());
     Object.values(oldBus).forEach((g) => g.gain.rampTo(0, 3));
-    setTimeout(() => [...old.nodes, ...Object.values(oldBus)].forEach((n) => { try { n.dispose(); } catch (e) {} }), 4000);
+    setTimeout(() => [...old.nodes, ...Object.values(oldBus), ...oldBus.panners].forEach((n) => { try { n.dispose(); } catch (e) {} }), 4000);
   }
   E.root = 62 + M.tr;
   // Tempo przed make(): opóźnienia w nutach („8n.”) przeliczają się przy tworzeniu.
   Tone.Transport.bpm.value = bpmFor(psr);
   A.delay.delayTime.rampTo(Tone.Time("8n.").toSeconds(), 0.2);
   const bus = { lim: new Tone.Gain().connect(A.lim), rev: new Tone.Gain().connect(A.rev), delay: new Tone.Gain().connect(A.delay) };
+  // Stereo z By: gatunek przepina przez B.side() tylko głos melodii (nie bas, stopę ani puls, te zostają na środku).
+  const panners = [];
+  Object.defineProperties(bus, {
+    panners: { value: panners },
+    side: { value: (dest) => { const p = new Tone.Panner(byPan()).connect(dest); panners.push(p); return p; } },
+  });
   G = { ...def, bus, inst: def.make(bus) };
   for (const [key, , node] of layerEntries()) if (mutedLayers.has(key)) savedLayerVolume.set(key, node.output.volume.value);
   holdMutes(); renderLayers();
@@ -1278,11 +1285,15 @@ function applyPulsarAudio() {
   stepCount = 0;
 }
 
+// By (pole w bok, GSM): dodatnie w prawo, ujemne w lewo. Nigdy do końca w bok, żeby melodia nie siedziała w jednym uchu.
+const byPan = () => 0.7 * Math.tanh(cur.by / 6);
+
 function updateAudioParams() {
   if (!A) return;
   A.droneVol.volume.rampTo(cur.bz < 0 ? map(-cur.bz, 0, 20, -30, -12) : -70, 2);
   A.shimmer.volume.rampTo(cur.kp >= 4 ? map(cur.kp, 4, 9, -32, -16) : -60, 2);
   A.delay.feedback.rampTo(map(cur.wind, 300, 800, 0.3, 0.55), 2);
+  if (G) for (const p of G.bus.panners) p.pan.rampTo(byPan(), 2);
 }
 
 function triggerFlare(level) {
@@ -1362,7 +1373,7 @@ let lastDataT = performance.now();
 function stepData() {
   const now = performance.now(), k = 1 - Math.exp(-((now - lastDataT) / 1000) * 1.2);
   lastDataT = now;
-  for (const key of ["wind", "dens", "bz", "kp"]) cur[key] = lerp(cur[key], target[key], k);
+  for (const key of ["wind", "dens", "bz", "by", "kp"]) cur[key] = lerp(cur[key], target[key], k);
 }
 
 const pressure = () => 1.6726e-6 * cur.dens * cur.wind * cur.wind;
@@ -2308,7 +2319,7 @@ canvas.addEventListener("click", (e) => {
   $("panel").classList.toggle("hidden");
 });
 
-const SL = [["sWind", "wind", "oWind", 0], ["sDens", "dens", "oDens", 1], ["sBz", "bz", "oBz", 1], ["sKp", "kp", "oKp", 1]];
+const SL = [["sWind", "wind", "oWind", 0], ["sDens", "dens", "oDens", 1], ["sBz", "bz", "oBz", 1], ["sBy", "by", "oBy", 1], ["sKp", "kp", "oKp", 1]];
 function syncSliders() { for (const [id, key, out, d] of SL) { $(id).value = target[key]; $(out).textContent = fmt(Number(target[key]), d); } }
 for (const [id, key, out, d] of SL) {
   $(id).addEventListener("input", (e) => {
