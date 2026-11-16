@@ -740,9 +740,9 @@ const GENRES = {
       const nf = new Tone.Filter({ frequency: 600, type: "bandpass", Q: 2 }).connect(B.rev);
       const noise = vol(new Tone.Noise("pink"), -33).connect(nf).start();
       // Głęboki, długo ciągnący się bit na każdy błysk zamiast gongu (autor, 16.11.2026): uderzenie w D1 opada przez kilka sekund.
-      const boom = vol(new Tone.MembraneSynth({ pitchDecay: 0.6, octaves: 2.5, oscillator: { type: "sine" }, envelope: { attack: 0.004, decay: 7, sustain: 0, release: 2 } }), -10);
+      const boom = vol(new Tone.MembraneSynth({ pitchDecay: 0.6, octaves: 2.5, oscillator: { type: "sine" }, envelope: { attack: 0.004, decay: 7, sustain: 0, release: 2 } }), -13); // ciszej o 3 dB (autor, 16.11.2026)
       boom.connect(B.lim); boom.connect(B.rev);
-      const bell = vol(new Tone.FMSynth({ harmonicity: 5.07, modulationIndex: 8, envelope: { attack: 0.001, decay: 5, sustain: 0, release: 5 } }), -26).connect(B.side(B.delay));
+      const bell = vol(new Tone.FMSynth({ harmonicity: 5.07, modulationIndex: 8, envelope: { attack: 0.001, decay: 5, sustain: 0, release: 5 } }), -23).connect(B.side(B.delay)); // melodia o 3 dB głośniej (autor, 16.11.2026)
       const motif = new Motif(8, [7, 14], 0.6);
       return {
         mix: { "Dźwięk 1": o1, "Dźwięk 2": o2, Szum: noise, Bit: boom, Dzwon: bell },
@@ -2032,7 +2032,8 @@ function drawSky(time) {
     const q = skyXY(p.ra, p.dec);
     const sel = p === psr;
     let glow;
-    if (p.P >= 0.2) { const ph = (time % p.P) / p.P; glow = Math.exp(-ph * 9); }
+    // Grający pulsar miga razem z uderzeniem (vis.pulseAt z Tone.Draw), a nie z własnego zegara.
+    if (p.P >= 0.2) { const ph = sel && playing && vis.pulseAt ? (Math.max(0, time - vis.pulseAt) / p.P) % 1 : (time % p.P) / p.P; glow = Math.exp(-ph * 9); }
     else glow = 0.55 + 0.25 * Math.sin(time * 40 + p.ra);
     const rad = 3 + glow * 6;
     const g = sctx.createRadialGradient(q.x, q.y, 0, q.x, q.y, rad * 3.2);
