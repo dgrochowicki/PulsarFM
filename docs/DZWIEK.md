@@ -10,7 +10,7 @@
 | **Oscylator „fat”** | kilka lekko rozstrojonych oscylatorów naraz; daje szeroki, chóralny dźwięk | pad w ambiencie, chór, akord „braam” |
 | **Oscylator z harmonicznymi** | własna mieszanka tonu podstawowego i alikwotów | organy w chorale (7 harmonicznych) |
 | **Ciąg impulsów** | wąskie impulsy o zadanej częstotliwości | **sam pulsar**: Vela, Krab, J0437 i Terzan 5 grają swoją prawdziwą częstotliwością obrotu |
-| **Synteza FM** | jeden oscylator moduluje częstotliwość drugiego; daje metaliczne, dzwonkowe i szklane barwy | pozytywka, piknięcia w glitchu, gong w drone |
+| **Synteza FM** | jeden oscylator moduluje częstotliwość drugiego; daje metaliczne, dzwonkowe i szklane barwy | pozytywka, piknięcia w glitchu, dzwon w drone |
 | **Membrana** | sinus z gwałtownie opadającą wysokością | stopa w techno, kotły w chorale, trailerowe „buuum” |
 | **Szum** | biały (ostry) albo różowy (głębszy) | hi-hat, klaps, trzaski, wiatr w drone, „szum” przy rozbłysku X |
 | **Obwiednia** | kształt głośności w czasie: atak, opadanie, podtrzymanie, wybrzmienie | ta sama piła z długim atakiem to plama, z krótkim to stab |
@@ -33,7 +33,7 @@ Droga sygnału: instrumenty gatunku → (echo / filtr / przester) → pogłos �
 ## 3. Kompozycja: kto decyduje, co zagrać
 
 - **Zegar.** Tone.js odlicza szesnastki w tempie wyznaczonym przez pulsar. W każdej szesnastce gatunek decyduje, co zagrać (`step(t, s, bar)` w `GENRES`).
-- **Puls pulsara.** Przy wolnych pulsarach osobny zegar uderza dokładnie co okres pulsara (np. co 0,7145 s) i gra stopę, gong, kocioł albo hi-hat, zależnie od gatunku.
+- **Puls pulsara.** Przy wolnych pulsarach osobny zegar uderza dokładnie co okres pulsara (np. co 0,7145 s) i gra stopę, głęboki bit, kocioł albo hi-hat, zależnie od gatunku.
 - **Głośność warstw oceniać na wyjściu.** Pomiar przy źródle myli: nie widać filtrów, pogłosu i echa ani czułości ucha. Mierzyć każdą warstwę solo na `A.master`, z ważeniem A i przez pełny cykl filtra (Deep i Minimal techno 3.11.2026: stopa około -46 dB, tło około -60 dB).
 - **Jedna melodia z wiatru (`windMelody()`, wszystkie gatunki).** Te same dane dają te same nuty i pauzy, nowy pomiar je zmienia. Gatunek dodaje tylko swój instrument, tempo, rytm, rejestr i skalę; dlatego słychać ten sam kształt, a nie te same częstotliwości. Bez danych, także w Burzy pod `?dev`, gra własny motyw.
 - **Akordy z wiatru (Deep, Minimal techno).** Co 4 takty akord: średnia z kolejnych 4 z ostatnich 16 minut wybiera stopień z `WIND_CHORDS`, od ciemnego do jasnego. Za akordem idzie plama i bas.
@@ -91,7 +91,7 @@ Styl to prawdziwy rodzaj muzyki, do którego dany gatunek ma się zbliżać, z h
 
 | Gatunek (pulsar) | Instrumenty |
 |---|---|
-| **Drone** (J2144) | dwa długie, grube oscylatory (piła + sinus) przez wolno ruchomy filtr; różowy szum jak wiatr; gong FM co 8,5 s; rzadkie dzwony |
+| **Drone** (J2144) | dwa długie, grube oscylatory (piła + sinus) przez wolno ruchomy filtr; różowy szum jak wiatr; głęboki bit co 8,5 s (membrana w D1, opada przez około 7 s; zamiast gongu, autor 16.11.2026); rzadkie dzwony |
 | **Chorał** (B1919+21) | organy (oscylator z harmonicznymi), chór (gruba piła przez vibrato i filtr samogłoski), kotły (membrana) |
 | **Ambient** (B0329+54) | plama z grubych oscylatorów o barwie z wiatru (16 ostatnich minut to głośności 16 alikwotów, nowa barwa przy zmianie akordu; akord trwa 4 takty, około 11 s, i ma 6 dźwięków), basowy sinus, melodia na próbkach harfy przez echo (16 ostatnich minut wiatru, pomiar na ósemkę: wysokość z prędkości, nuta tylko przy zmianie od 4 km/s na minutę, mniej przy dużej gęstości), niska warstwa rytmiczna na próbkach kontrabasu pizzicato (krótkie nuty akordu w oktawie D1–A2 na ćwierćnuty, między nimi przy zmianie wiatru; dźwięk akordu wybiera wiatr), najcichszy werbel raz na takt, miękka, długo wybrzmiewająca stopa na każdy błysk |
 | **Minimal techno** (Geminga) | stopa (membrana), hi-hat = błyski pulsara (biały szum), otwarty hi-hat, klaps (szum przez filtr pasmowy), bas: głęboki sinus idący za akordem, długie płynące akordy z grubej piły jako tło (przenikają się, filtr otwiera się co 8 taktów), cicha melodia z wiatru na organach (kilka harmonicznych, krótko), szepty: szum przez wąski filtr przez 4 takty po skoku wiatru od 5 km/s na minutę (imitacja, nie głos). Wzór: nagranie „Galeria Kaskada”. Usunięte 3.11.2026 na prośbę autora: Acid (piła, Q 12, poślizg 0,04, przester 0,55) i Bas górny (cicha piła nad sinusem) |

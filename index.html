@@ -729,22 +729,24 @@ function windPartials() {
 }
 
 const GENRES = {
-  // J2144: prawie cisza. Dwa długie tony, wiatr jako szum, gong co 8,5 s.
+  // J2144: prawie cisza. Dwa długie tony, wiatr jako szum, głęboki bit co 8,5 s.
   drone: {
     label: "Drone", scales: ["lydian", "phrygian"],
     make(B) {
       const f = new Tone.Filter(300, "lowpass", -24).connect(B.rev);
       const lfo = new Tone.LFO(0.03, 150, 700).connect(f.frequency).start();
-      const o1 = vol(new Tone.FatOscillator(nn(E.m(0, -2)), "sawtooth", 18), -26).connect(f).start();
-      const o2 = vol(new Tone.FatOscillator(nn(E.m(4, -2)), "sine", 10), -22).connect(f).start();
+      const o1 = vol(new Tone.FatOscillator(nn(E.m(0, -2)), "sawtooth", 18), -29).connect(f).start();
+      const o2 = vol(new Tone.FatOscillator(nn(E.m(4, -2)), "sine", 10), -25).connect(f).start(); // tło o 3 dB ciszej (autor, 16.11.2026)
       const nf = new Tone.Filter({ frequency: 600, type: "bandpass", Q: 2 }).connect(B.rev);
-      const noise = vol(new Tone.Noise("pink"), -30).connect(nf).start();
-      const gong = vol(new Tone.FMSynth({ harmonicity: 1.41, modulationIndex: 9, envelope: { attack: 0.01, decay: 9, sustain: 0, release: 6 }, modulationEnvelope: { attack: 0.01, decay: 5, sustain: 0, release: 4 } }), -12).connect(B.rev);
+      const noise = vol(new Tone.Noise("pink"), -33).connect(nf).start();
+      // Głęboki, długo ciągnący się bit na każdy błysk zamiast gongu (autor, 16.11.2026): uderzenie w D1 opada przez kilka sekund.
+      const boom = vol(new Tone.MembraneSynth({ pitchDecay: 0.6, octaves: 2.5, oscillator: { type: "sine" }, envelope: { attack: 0.004, decay: 7, sustain: 0, release: 2 } }), -10);
+      boom.connect(B.lim); boom.connect(B.rev);
       const bell = vol(new Tone.FMSynth({ harmonicity: 5.07, modulationIndex: 8, envelope: { attack: 0.001, decay: 5, sustain: 0, release: 5 } }), -26).connect(B.side(B.delay));
       const motif = new Motif(8, [7, 14], 0.6);
       return {
-        mix: { "Dźwięk 1": o1, "Dźwięk 2": o2, Szum: noise, Gong: gong, Dzwon: bell },
-        nodes: [f, lfo, o1, o2, nf, noise, gong, bell], tun: [o1, o2, gong, bell],
+        mix: { "Dźwięk 1": o1, "Dźwięk 2": o2, Szum: noise, Bit: boom, Dzwon: bell },
+        nodes: [f, lfo, o1, o2, nf, noise, boom, bell], tun: [o1, o2, boom, bell],
         step(t, s, bar) {
           if (s === 0 && bar % 8 === 0) {
             const second = E.dark() ? 2 : 4;
@@ -757,7 +759,7 @@ const GENRES = {
           if (mel ? s % 8 === 0 && mel[mi] != null : s % 4 === 0 && chance(0.03 + E.busy() * 0.08)) { const n = E.n(mel ? 7 + mel[mi] : motif.at(bar * 4 + s / 4), 0); bell.triggerAttackRelease(n, "2n", t, 0.5); E.note(n, t); }
           if (s === 0 && bar % 4 === 3) motif.mutate(0.6);
         },
-        pulse(t) { gong.triggerAttackRelease(E.n(0, -2), "1n", t, 0.8); },
+        pulse(t) { boom.triggerAttackRelease(E.n(0, -3), 7, t, 0.9); },
       };
     },
   },
@@ -1269,7 +1271,8 @@ function applyPulsarAudio() {
     panners: { value: panners },
     side: { value: (dest) => { const p = new Tone.Panner(byPan()).connect(dest); panners.push(p); return p; } },
   });
-  G = { ...def, bus, inst: def.make(bus) };
+  // Najpierw G z nowym gatunkiem: make() może już pytać o skalę (E.m), a przy pierwszym starcie G było puste.
+  G = { ...def, bus }; G.inst = def.make(bus);
   for (const [key, , node] of layerEntries()) if (mutedLayers.has(key)) savedLayerVolume.set(key, node.output.volume.value);
   holdMutes(); renderLayers();
   G.inst.tun.forEach((n) => { if (n.set) n.set({ detune: M.cents }); else if (n.detune) n.detune.value = M.cents; });

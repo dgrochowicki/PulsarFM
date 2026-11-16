@@ -57,7 +57,7 @@ Automatyczny wybór pulsara używa geolokalizacji i czasu UTC, aby co minutę wy
 
 | Pulsar | Okres | Gatunek | Uwagi |
 |---|---|---|---|
-| PSR J2144−3933 | 8,51 s | Drone | gong co 8,5 s |
+| PSR J2144−3933 | 8,51 s | Drone | głęboki, długi bit co 8,5 s (zamiast gongu, 16.11.2026) |
 | PSR B1919+21 | 1,337 s | Chorał | pierwszy odkryty pulsar |
 | PSR B0329+54 | 0,7145 s | Ambient | domyślny |
 | Geminga | 0,2371 s | Minimal techno | 30/P = 126,5 BPM; błyski = hi-hat na ósemkach. **Autor: „mega”** |
