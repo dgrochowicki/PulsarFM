@@ -136,6 +136,7 @@ Na razie muzyka ważniejsza od obrazu. Autorowi podoba się brzmienie gatunków 
 - [ ] Forma utworu z danych zamiast zegara: gęstość układa warstwy, skręt Bz na południe działa jak drop.
 - [ ] Deep i Geminga: klaps i hi-haty są cicho; inna perkusja i bas w każdym z nich. Szepty to imitacja, ewentualnie prawdziwe nagranie CC0.
 - [ ] Dopracować Drone, Chorał, Glitch, Dub (przy 111 BPM i z melodią w basie) i Pozytywkę: wciąż stare brzmienia z syntezy.
+- [ ] Szybkie pulsary (Vela, Krab, J0437, Terzan 5): animacja pierścienia zostaje (autor, 16.11.2026: „w sumie fajnie”; prawdziwych 11–716 Hz oko nie zobaczy, a szybkie miganie byłoby niebezpieczne), ale muzykę „z nich” trzeba dopracować. Pomysł: skoro słychać je jako ton, zrobić z tonu pulsara oś utworu (dron, wokół którego wszystko się buduje), a nie tylko tło.
 - [ ] Liquid: autor chce porównać z ulubionymi utworami LTJ Bukema i Calibre (nagranie telefonem do `docs/`).
 
 **Charakter techniczny i ekran „Signal” (autor, 10.11.2026)**
