@@ -60,7 +60,7 @@ Wysokość zależy więc od tego, jak wiatr zmieniał się względem siebie w ty
 2. Gra n kroków z największą zmianą, reszta to pauzy.
 3. n zależy od gęstości: od 6 przy 1 p/cm³ do 10 przy 20 p/cm³ i więcej (`round(lerp(6, 10, E.busy()))`).
 
-Przykład z 16.11.2026, 12:00 UTC (B0329+54, Ambient, Bz −3,1 nT, czyli skala ciemna, D aeolski): gęstość 1,1 p/cm³ dała 6 nut: `· E · F · C A · · · B♭ · B♭ · · · ·`. Wiatr zmienił się w ostatniej minucie tylko o +0,5 km/s, co nie mieściło się w szóstce największych zmian, więc najnowszy krok był cichy.
+Przykład z 16.11.2026, 12:00 UTC (B0329+54, Ambient, Bz −3,1 nT, czyli skala ciemna, D aeolski): gęstość 1,1 p/cm³ dała 6 nut: `E · F · C A · · · B♭ · B♭ · · · ·`. Wiatr zmienił się w ostatniej minucie tylko o +0,5 km/s, co nie mieściło się w szóstce największych zmian, więc najnowszy krok był cichy.
 
 **Co z tego wynika.**
 - Melodia zawsze ma od 6 do 10 nut. Nawet w zupełnie spokojny dzień coś gra, bo wybieramy największe zmiany względem siebie, a nie powyżej progu. Plus: muzyka nigdy nie milknie. Minus: spokojny dzień brzmi podobnie jak burzliwy, różni się tylko liczbą nut.
