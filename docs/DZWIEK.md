@@ -43,6 +43,30 @@ Droga sygnału: instrumenty gatunku → (echo / filtr / przester) → pogłos �
 - **Forma.** W techno co 16 taktów są 2 takty bez stopy (oddech przed nową frazą).
 - **Strojenie.** Przy szybkich pulsarach cały utwór jest transponowany do nuty najbliższej częstotliwości pulsara i dostrajany w centach. Np. J0437 (173,7 Hz) to F3 o 9 centów niżej, więc cała muzyka jest o 9 centów niżej niż czyste F.
 
+### Jak wiatr pisze melodię (opis dla autora, 16.11.2026)
+
+**Skąd 16 minut.** To decyzja muzyczna, nie fizyczna. Fraza ma 16 kroków, bo tak zwykle buduje się muzykę (16 ósemek to dwa takty na 4/4). Do tego jeden pomiar to jeden krok, a NOAA daje pomiar co minutę, więc 16 kroków to 16 minut wiatru. Pobieramy 17 wartości (`windTail`), bo o tym, które nuty grają, decyduje zmiana między kolejnymi minutami, a z 17 pomiarów wychodzi 16 zmian. Fraza 8- albo 32-krokowa dałaby okno 8 albo 32 minut; nic w danych nie wyróżnia 16 minut.
+
+**Wysokość nuty (`windDegrees`).**
+1. Z 16 minut bierzemy najwolniejszą i najszybszą prędkość.
+2. Najwolniejsza to najniższy stopień skali (0), najszybsza to najwyższy (7, oktawa wyżej). Reszta rozkłada się proporcjonalnie między nimi.
+3. Rozpiętość liczymy jako co najmniej 6 km/s, żeby drgania o 1–2 km/s nie rozciągały się na całą oktawę.
+4. W `windMelody()` nuta skacze najwyżej o 2 stopnie od poprzedniej, żeby melodia płynęła.
+
+Wysokość zależy więc od tego, jak wiatr zmieniał się względem siebie w tych 16 minutach, a nie od samej prędkości. Sama prędkość działa osobno, na jasność brzmienia (filtry).
+
+**Które nuty grają (`windPeaks`).**
+1. Dla każdego kroku liczymy, o ile wiatr zmienił się względem poprzedniej minuty (`windChange`).
+2. Gra n kroków z największą zmianą, reszta to pauzy.
+3. n zależy od gęstości: od 6 przy 1 p/cm³ do 10 przy 20 p/cm³ i więcej (`round(lerp(6, 10, E.busy()))`).
+
+Przykład z 16.11.2026, 12:00 UTC (B0329+54, Ambient, Bz −3,1 nT, czyli skala ciemna, D aeolski): gęstość 1,1 p/cm³ dała 6 nut: `· E · F · C A · · · B♭ · B♭ · · · ·`. Wiatr zmienił się w ostatniej minucie tylko o +0,5 km/s, co nie mieściło się w szóstce największych zmian, więc najnowszy krok był cichy.
+
+**Co z tego wynika.**
+- Melodia zawsze ma od 6 do 10 nut. Nawet w zupełnie spokojny dzień coś gra, bo wybieramy największe zmiany względem siebie, a nie powyżej progu. Plus: muzyka nigdy nie milknie. Minus: spokojny dzień brzmi podobnie jak burzliwy, różni się tylko liczbą nut.
+- Gęstość rzadko przekracza 10 p/cm³, więc w praktyce grają zwykle 6–7 nut.
+- Pomysł do rozważenia (niewdrożony): próg, na przykład zmiana mniejsza niż 1 km/s nigdy nie daje nuty. Wtedy spokojny dzień grałby rzadko, a burza gęsto.
+
 ## 4. Instrumenty w każdym gatunku
 
 ### Pulsary, tempo i styl
