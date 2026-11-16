@@ -65,7 +65,7 @@ Przykład z 16.11.2026, 12:00 UTC (B0329+54, Ambient, Bz −3,1 nT, czyli skala 
 **Co z tego wynika.**
 - Melodia zawsze ma od 6 do 10 nut. Nawet w zupełnie spokojny dzień coś gra, bo wybieramy największe zmiany względem siebie, a nie powyżej progu. Plus: muzyka nigdy nie milknie. Minus: spokojny dzień brzmi podobnie jak burzliwy, różni się tylko liczbą nut.
 - Gęstość rzadko przekracza 10 p/cm³, więc w praktyce grają zwykle 6–7 nut.
-- Pomysł do rozważenia (niewdrożony): próg, na przykład zmiana mniejsza niż 1 km/s nigdy nie daje nuty. Wtedy spokojny dzień grałby rzadko, a burza gęsto.
+- Próg (zmiana poniżej np. 1 km/s nie daje nuty) **odrzucony** (autor, 16.11.2026): burze są rzadkie, więc przez większość czasu byłoby po prostu nudno. Melodia zostaje stałym głosem; spokój i burzę mają oddawać przestrzeń i barwa (Bt jako pogłos, temperatura jako tło, Bz, rozbłyski), nie liczba nut.
 
 ## 4. Instrumenty w każdym gatunku
 
