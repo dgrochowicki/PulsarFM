@@ -804,13 +804,13 @@ const GENRES = {
     label: "Ambient", scales: ["lydian", "aeolian"],
     make(B) {
       const pf = new Tone.Filter(900, "lowpass", -24).connect(B.rev);
-      const pad = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fatcustom", partials: windPartials(), count: 3, spread: 22 }, envelope: { attack: 4, decay: 1, sustain: 0.75, release: 8 } }), -28).connect(pf);
+      const pad = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fatcustom", partials: windPartials(), count: 3, spread: 22 }, envelope: { attack: 4, decay: 1, sustain: 0.75, release: 8 } }), -32).connect(pf); // tło ciszej (autor, 16.11.2026)
       const kick = vol(new Tone.MembraneSynth({ pitchDecay: 0.09, octaves: 1.6, envelope: { attack: 0.012, decay: 0.95, sustain: 0, release: 0.6 } }), -10).connect(B.lim);
-      const bass = vol(new Tone.MonoSynth({ oscillator: { type: "sine" }, envelope: { attack: 0.6, decay: 0.5, sustain: 0.8, release: 2 } }), -16).connect(B.lim);
+      const bass = vol(new Tone.MonoSynth({ oscillator: { type: "sine" }, envelope: { attack: 0.6, decay: 0.5, sustain: 0.8, release: 2 } }), -24).connect(B.lim); // dużo ciszej, „bas szczególnie” (autor, 16.11.2026)
       // Kontrabas pizzicato niesie rytm, harfa gra melodię z wiatru.
       const low = vol(sampler({ D2: "bas-D2", E2: "bas-E2", "F#2": "bas-Fs2", "G#2": "bas-Gs2", "C#3": "bas-Cs3", E3: "bas-E3", "G#3": "bas-Gs3", B3: "bas-B3" }, 0.2), -17);
       low.connect(B.lim); low.connect(B.rev);
-      const harp = vol(sampler({ D4: "harp-D4", F4: "harp-F4", A4: "harp-A4", C5: "harp-C5", E5: "harp-E5", G5: "harp-G5", B5: "harp-B5", D6: "harp-D6" }, 1.5), -21).connect(B.side(B.delay));
+      const harp = vol(sampler({ D4: "harp-D4", F4: "harp-F4", A4: "harp-A4", C5: "harp-C5", E5: "harp-E5", G5: "harp-G5", B5: "harp-B5", D6: "harp-D6" }, 1.5), -18).connect(B.side(B.delay)); // melodia lekko głośniej (autor, 16.11.2026)
       // Najcichszy werbel raz na takt, między uderzeniami bitu, żeby go nie przykrywał.
       const snare = vol(sampler({ C3: "werbel-pppp" }, 0.2), -35).connect(B.lim);
       const prog = [0, 5, 3, 4];
