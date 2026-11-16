@@ -745,7 +745,7 @@ const GENRES = {
       const bell = vol(new Tone.FMSynth({ harmonicity: 5.07, modulationIndex: 8, envelope: { attack: 0.001, decay: 5, sustain: 0, release: 5 } }), -23).connect(B.side(B.delay)); // melodia o 3 dB głośniej (autor, 16.11.2026)
       // Chór magnetosfery Ziemi (NASA, Van Allen Probes, EMFISIS) wchodzi tam, gdzie tło przycicha:
       // druga, odwrócona fala tej samej częstotliwości co filtr, podniesiona do 4. potęgi, więc słychać go tylko w dołku.
-      const space = vol(new Tone.Player({ url: "audio/kosmos-chor.m4a", loop: true, onload: () => space.start(undefined, Math.random() * 27) }), -8);
+      const space = vol(new Tone.Player({ url: "audio/kosmos-chor.m4a", loop: true, onload: () => space.start(undefined, Math.random() * 27) }), -22); // ledwo słyszalny, jak na początku wejścia (autor, 17.11.2026)
       const spaceGain = new Tone.Gain(0);
       space.connect(spaceGain); spaceGain.connect(B.rev); spaceGain.connect(B.side(B.delay));
       const dip = new Tone.LFO(0.03, 1, 0).start(), dipPow = new Tone.Pow(4);
