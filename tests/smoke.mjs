@@ -64,7 +64,7 @@ const rms = () => page.evaluate(async () => {
 });
 
 let failed = false;
-for (const id of ["B0329", "B1919", "J2144", "Geminga", "B0950", "Vela", "Crab", "J0437", "Ter5"]) {
+for (const id of ["B0329", "B1919", "J2144", "Geminga", "B0950", "Vela", "Crab", "B1508", "Ter5"]) {
   await page.evaluate((id) => selectPulsar(PULSARS.find((p) => p.id === id)), id);
   await page.waitForTimeout(4000);
   const r = await rms();
@@ -72,6 +72,16 @@ for (const id of ["B0329", "B1919", "J2144", "Geminga", "B0950", "Vela", "Crab",
   console.log(`${id.padEnd(8)} ${label.padEnd(16)} RMS ${r.toFixed(4)}`);
   if (!(r > 0.003)) failed = true;
 }
+
+// Pulsar bez muzyki (J0437 czeka na eksperymentalną) jest cicho, a po nim następny znowu gra.
+await page.evaluate(() => selectPulsar(PULSARS.find((p) => p.id === "J0437")));
+await page.waitForTimeout(3000);
+const silentRms = await rms();
+await page.evaluate(() => selectPulsar(PULSARS.find((p) => p.id === "B0329")));
+await page.waitForTimeout(3000);
+const backRms = await rms();
+console.log(`${silentRms < 0.001 && backRms > 0.003 ? "ok  " : "BŁĄD"} pulsar bez muzyki cicho: RMS ${silentRms.toFixed(4)}, potem ${backRms.toFixed(4)}`);
+if (!(silentRms < 0.001 && backRms > 0.003)) failed = true;
 
 // Pierwszy impuls po akcji; po ~45 s grania opóźnienie z przeliczania czasu byłoby już wyraźne.
 const firstPulseAfter = (action) => page.evaluate(async (action) => {
@@ -204,7 +214,7 @@ const layers = await page.evaluate(async () => {
   }
   return out;
 });
-check(Object.keys(layers).length === 9 && Object.values(layers).every(Boolean), `warstwy do wyciszenia: ${Object.keys(layers).length} gatunków`);
+check(Object.keys(layers).length === 10 && Object.values(layers).every(Boolean), `warstwy do wyciszenia: ${Object.keys(layers).length} gatunków`);
 
 for (const st of ["ridges", "waves", "cymatics", "color", "bauhaus", "scope"]) {
   // Wybór stylu jest tylko pod ?dev, więc ustawiamy go wprost.

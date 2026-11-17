@@ -390,7 +390,12 @@ const PULSARS = [
   { id: "Crab", genre: "dub", name: "Crab Pulsar", short: "Crab", P: 0.03374, ra: 5.576, dec: 22.01,
     tag: "The heart of the Crab Nebula, left by the supernova of 1054.",
     about: "30 turns a second: the deepest bass." },
-  { id: "J0437", genre: "glass", name: "PSR J0437−4715", short: "J0437", P: 0.005757452, ra: 4.621, dec: -47.25,
+  // Liquid przeniesiony z J0437 (autor, 17.11.2026): wolne pulsary grają zwykłe gatunki, szybkie dostaną muzykę eksperymentalną.
+  { id: "B1508", genre: "glass", name: "PSR B1508+55", short: "B1508+55", P: 0.739682, ra: 15.157, dec: 55.53,
+    tag: "One of the fastest-moving stars known, fast enough to leave the Milky Way.",
+    about: "81 flashes a minute, doubled into a rolling 162 BPM." },
+  // Na mapie zostaje, ale nie gra, dopóki nie ma swojej eksperymentalnej muzyki.
+  { id: "J0437", genre: "soon", name: "PSR J0437−4715", short: "J0437", P: 0.005757452, ra: 4.621, dec: -47.25,
     tag: "The nearest and brightest millisecond pulsar.",
     about: "It spins 174 times a second." },
   { id: "Ter5", genre: "musicbox", name: "PSR J1748−2446ad", short: "Terzan 5", P: 0.00139595, ra: 17.810, dec: -24.77,
@@ -1050,7 +1055,7 @@ const GENRES = {
     },
   },
 
-  // J0437: ton F, a co 64. błysk to uderzenie: 162,8 BPM, tempo liquid drum and bass. Szybki rytm pod wolnym chórem i szkłem.
+  // B1508+55 (od 17.11.2026, wcześniej J0437): 81 błysków na minutę razy 2 = 162,2 BPM, tempo liquid drum and bass. Szybki rytm pod wolnym chórem i szkłem.
   glass: {
     label: "Liquid drum and bass", tempoFloor: 100, pulseBurst: true, scales: ["lydian", "aeolian"],
     make(B) {
@@ -1086,7 +1091,7 @@ const GENRES = {
         step(t, s, bar) {
           vf.frequency.rampTo(map(E.bright(), 0, 1, 600, 1600), 2, t);
           // Impuls pulsara nie gra ciągle: krótki błysk co 4 takty.
-          if (s === 0 && bar % 4 === 0) { A.starVol.volume.setValueAtTime(-30, t); A.starVol.volume.linearRampToValueAtTime(-80, t + 0.3); }
+          if (M.kind === "tone" && s === 0 && bar % 4 === 0) { A.starVol.volume.setValueAtTime(-30, t); A.starVol.volume.linearRampToValueAtTime(-80, t + 0.3); }
           // Akord co 8 taktów, około 11 s: pod szybkim rytmem chór ma płynąć wolno.
           if (s === 0 && bar % 8 === 0) {
             const part = (bar / 8) % 4;
@@ -1126,6 +1131,12 @@ const GENRES = {
         },
       };
     },
+  },
+
+  // Szybki pulsar czeka na muzykę eksperymentalną (autor, 17.11.2026): wybrany z mapy nie gra nic.
+  soon: {
+    label: "Coming soon", silent: true, scales: ["lydian", "aeolian"],
+    make() { return { mix: {}, nodes: [], tun: [], step() {} }; },
   },
 
   // Terzan 5: 716 obrotów na sekundę, wysoki pisk. Pozytywka w metrum na trzy.
@@ -1297,6 +1308,7 @@ function applyPulsarAudio() {
   });
   // Najpierw G z nowym gatunkiem: make() może już pytać o skalę (E.m), a przy pierwszym starcie G było puste.
   G = { ...def, bus }; G.inst = def.make(bus);
+  if (playing) A.master.volume.rampTo(def.silent ? -80 : 0, 0.5); // pulsar bez muzyki: cisza, także warstw wspólnych
   for (const [key, , node] of layerEntries()) if (mutedLayers.has(key)) savedLayerVolume.set(key, node.output.volume.value);
   holdMutes(); renderLayers();
   G.inst.tun.forEach((n) => { if (n.set) n.set({ detune: M.cents }); else if (n.detune) n.detune.value = M.cents; });
@@ -1931,6 +1943,7 @@ function pulsarAltitude(p, location, date = new Date()) {
 function highestPulsarAboveHorizon(location, date = new Date()) {
   let best = null, bestAltitude = 0;
   for (const p of PULSARS) {
+    if (GENRES[p.genre].silent) continue; // Auto wybiera tylko pulsary, które grają
     const altitude = pulsarAltitude(p, location, date);
     if (altitude > bestAltitude) { best = { pulsar: p, altitude }; bestAltitude = altitude; }
   }
@@ -2087,6 +2100,10 @@ function drawSky(time) {
 
 function infoHTML(close) {
   const f = psrFacts(psr), label = GENRES[psr.genre].label;
+  if (GENRES[psr.genre].silent) return `<div class="info"><div class="handle"></div><div class="dot"></div><div class="info-head"><div><b>${psr.name}</b><div class="tag">${psr.tag}</div></div></div>
+    <dl><dt>Genre</dt><dd>${label}</dd><dt>Rotation</dt><dd>${f.per}</dd></dl>
+    <p class="about">${psr.about}</p>
+    <div class="how"><span>How it plays</span>Silent for now. The fastest pulsars are getting their own dark, experimental music, built on their own tone.</div></div>`;
   return `<div class="info"><div class="handle"></div><div class="dot"></div><div class="info-head"><div><b>${psr.name}</b><div class="tag">${psr.tag}</div></div></div>
     <dl><dt>Genre</dt><dd>${label}</dd><dt>Tempo</dt><dd>${f.bpm} BPM · ${f.beat}</dd><dt>Rotation</dt><dd>${f.per}</dd><dt>Key</dt><dd>${f.key} · ${f.keySub}</dd></dl>
     <p class="about">${psr.about}</p>
@@ -2096,7 +2113,8 @@ function renderCard() {
   const f = psrFacts(psr);
   $("infoPop").innerHTML = infoHTML(true);
   $("psrName").textContent = psr.name;
-  $("psrLine").innerHTML = `${GENRES[psr.genre].label}<span class="bpm">${f.bpm} BPM</span><span class="bpm m-only">Rotation: ${f.per}</span>`;
+  const g = GENRES[psr.genre];
+  $("psrLine").innerHTML = `${g.label}${g.silent ? "" : `<span class="bpm">${f.bpm} BPM</span>`}<span class="bpm m-only">Rotation: ${f.per}</span>`;
 }
 
 function selectPulsar(p, manual = false) {
@@ -2280,7 +2298,7 @@ $("play").onclick = async () => {
     if (!playing) {
       clearTimeout(suspendTimer);
       if (Tone.getContext().rawContext.state !== "running") await Tone.getContext().rawContext.resume();
-      stepCount = 0; schedulePulse(); A.master.volume.rampTo(0, 0.1); Tone.Transport.start("+0.1"); playing = true;
+      stepCount = 0; schedulePulse(); A.master.volume.rampTo(G?.silent ? -80 : 0, 0.1); Tone.Transport.start("+0.1"); playing = true;
       if (M.kind === "tone") if (!G?.pulseBurst) A.starVol.volume.rampTo(M.f < 20 ? -28 : M.f < 100 ? -33 : M.f < 400 ? -32 : -40, 1.5);
     } else { stopAudio(); playing = false; }
     $("play").innerHTML = playing ? ICONS.stop : ICONS.play;
