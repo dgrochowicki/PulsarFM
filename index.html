@@ -729,7 +729,7 @@ function windPartials() {
 }
 
 const GENRES = {
-  // J2144: prawie cisza. Dwa długie tony, wiatr jako szum, głęboki bit co 8,5 s, chór magnetosfery w dołkach tła.
+  // J2144: prawie cisza. Dwa długie tony, wiatr jako szum, głęboki bit co 8,5 s, szepty w dołkach tła.
   drone: {
     label: "Drone", scales: ["lydian", "phrygian"],
     make(B) {
@@ -743,17 +743,22 @@ const GENRES = {
       const boom = vol(new Tone.MembraneSynth({ pitchDecay: 0.6, octaves: 2.5, oscillator: { type: "sine" }, envelope: { attack: 0.004, decay: 7, sustain: 0, release: 2 } }), -13); // ciszej o 3 dB (autor, 16.11.2026)
       boom.connect(B.lim); boom.connect(B.rev);
       const bell = vol(new Tone.FMSynth({ harmonicity: 5.07, modulationIndex: 8, envelope: { attack: 0.001, decay: 5, sustain: 0, release: 5 } }), -23).connect(B.side(B.delay)); // melodia o 3 dB głośniej (autor, 16.11.2026)
-      // Chór magnetosfery Ziemi (NASA, Van Allen Probes, EMFISIS) wchodzi tam, gdzie tło przycicha:
-      // druga, odwrócona fala tej samej częstotliwości co filtr, podniesiona do 4. potęgi, więc słychać go tylko w dołku.
-      const space = vol(new Tone.Player({ url: "audio/kosmos-chor.m4a", loop: true, onload: () => space.start(undefined, Math.random() * 27) }), -22); // ledwo słyszalny, jak na początku wejścia (autor, 17.11.2026)
-      const spaceGain = new Tone.Gain(0);
-      space.connect(spaceGain); spaceGain.connect(B.rev); spaceGain.connect(B.side(B.delay));
-      const dip = new Tone.LFO(0.03, 1, 0).start(), dipPow = new Tone.Pow(4);
-      dip.connect(dipPow); dipPow.connect(spaceGain.gain);
+      // Szepty tam, gdzie tło przycicha (autor, 17.11.2026): krótkie kawałki prawdziwego szeptu (CC0), część od tyłu,
+      // obniżone, każdy w innym miejscu stereo, prawie cały w pogłosie, więc słów nie słychać.
+      // Dołek to druga, odwrócona fala tej samej częstotliwości co filtr tła; czytamy ją co krok.
+      const wBus = new Tone.Volume(-28), wHi = new Tone.Filter(350, "highpass").connect(wBus);
+      wBus.connect(B.rev); wBus.connect(B.delay);
+      const whispers = [false, false, false, true, true, true].map((reverse) => {
+        const pan = new Tone.Panner(0).connect(wHi);
+        return { pan, pl: new Tone.Player({ url: "audio/szept.m4a", reverse, fadeIn: 0.06, fadeOut: 0.12 }).connect(pan) };
+      });
+      const dip = new Tone.LFO(0.03, 1, 0).start(), dipRead = new Tone.Waveform(32);
+      dip.connect(dipRead);
+      let wk = 0;
       const motif = new Motif(8, [7, 14], 0.6);
       return {
-        mix: { "Dźwięk 1": o1, "Dźwięk 2": o2, Szum: noise, Bit: boom, Dzwon: bell, Kosmos: space },
-        nodes: [f, lfo, o1, o2, nf, noise, boom, bell, space, spaceGain, dip, dipPow], tun: [o1, o2, boom, bell],
+        mix: { "Dźwięk 1": o1, "Dźwięk 2": o2, Szum: noise, Bit: boom, Dzwon: bell, Szepty: { output: wBus } },
+        nodes: [f, lfo, o1, o2, nf, noise, boom, bell, wBus, wHi, ...whispers.flatMap((w) => [w.pan, w.pl]), dip, dipRead], tun: [o1, o2, boom, bell],
         step(t, s, bar) {
           if (s === 0 && bar % 8 === 0) {
             const second = E.dark() ? 2 : 4;
@@ -765,6 +770,16 @@ const GENRES = {
           const mel = windMelody(), mi = (bar % 8) * 2 + (s >> 3); // jedna nuta melodii na półnutę
           if (mel ? s % 8 === 0 && mel[mi] != null : s % 4 === 0 && chance(0.03 + E.busy() * 0.08)) { const n = E.n(mel ? 7 + mel[mi] : motif.at(bar * 4 + s / 4), 0); bell.triggerAttackRelease(n, "2n", t, 0.5); E.note(n, t); }
           if (s === 0 && bar % 4 === 3) motif.mutate(0.6);
+          // Im głębszy dołek tła, tym częściej szept; poza dołkiem cisza.
+          const deep = Math.max(0, dipRead.getValue()[0]) ** 2;
+          const w = whispers[wk % whispers.length];
+          if (w.pl.loaded && chance(deep * 0.2)) {
+            wk++;
+            const len = w.pl.buffer.duration, dur = 0.18 + Math.random() * 0.3;
+            w.pl.playbackRate = 0.72 + Math.random() * 0.2;
+            w.pan.pan.setValueAtTime(Math.random() * 1.6 - 0.8, t);
+            w.pl.start(t, Math.random() * Math.max(0, len - dur), dur);
+          }
         },
         pulse(t) { boom.triggerAttackRelease(E.n(0, -3), 7, t, 0.9); },
       };
