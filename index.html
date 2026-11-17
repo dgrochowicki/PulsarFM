@@ -1035,29 +1035,31 @@ const GENRES = {
       const HARM = { bright: [32, 34, 38, 43, 48, 51, 57, 64, 68, 76, 86, 96, 102, 114], dark: [32, 34, 37, 45, 46, 51, 55, 64, 68, 74, 90, 92, 102, 110] };
       const mood = () => (E.dark() ? "dark" : "bright");
       // Impuls: wysoka, cicha iskra na każdy błysk, jak spięcie elektryczne (autor: ciszej i wyżej). Prędkość wiatru: jasność iskry.
-      const zPan = new Tone.Panner(0).connect(B.lim); // stereo (autor): iskry na zmianę lewo i prawo
+      const zPan = new Tone.Panner(0).connect(B.lim); // stereo (autor): iskry na zmianę lewo i prawo wokół środka, który przesuwa By
       const zf = new Tone.Filter({ frequency: 9000, type: "bandpass", Q: 1.5 }).connect(zPan);
       const crush = new Tone.BitCrusher(4).connect(zf);
       const zap = vol(new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.0003, decay: 0.005, sustain: 0 } }), -4).connect(crush); // impulsy są ważne (autor): głośniej
       // Piknięcie jak monitor w szpitalu (autor): krótki ton 88 × F (985 Hz) co 64 błyski, podwójne przy nowym pomiarze.
       const bf2 = new Tone.Filter(2500, "lowpass").connect(B.lim);
       const beep = vol(new Tone.Synth({ oscillator: { type: "square" }, envelope: { attack: 0.003, decay: 0.01, sustain: 1, release: 0.01 } }), -22).connect(bf2);
-      // Bas: czysty sinus bez piły (autor: piła buczała). Uderzenie zaczyna się na 8 × F (90 Hz), więc słychać wejście, i opada do 4 × F (45 Hz).
-      const bassBus = new Tone.Volume(-8).connect(B.lim);
-      const purr = new Tone.MembraneSynth({ pitchDecay: 0.25, octaves: 1, oscillator: { type: "sine" }, envelope: { attack: 0.005, decay: 1.6, sustain: 0, release: 0.4 } }).connect(bassBus);
+            // Bas, kolejna wersja (autor: za krótki, za słaby, brzmiał jak bęben): długi, gładki sinus 4 × F (45 Hz) bez uderzenia,
+      // z łagodnie dodaną 2. harmoniczną (Chebyshev), żeby był mocny i słyszalny, ale nie buczał jak piła.
+      const bassBus = new Tone.Volume(-14).connect(B.lim);
+      const cheb = new Tone.Chebyshev({ order: 2, wet: 0.45 }).connect(bassBus);
+      const purr = new Tone.Synth({ oscillator: { type: "sine" }, envelope: { attack: 0.25, decay: 0.5, sustain: 0.85, release: 1.8 } }).connect(cheb);
       // Tło: bardzo ciche pady daleko w pogłosie, akord z wielokrotności pulsara, nowy przy każdym nowym pomiarze (autor).
       const CLOUD = { bright: [[16, 19, 24, 34], [17, 24, 26, 34], [19, 24, 29, 38], [16, 21, 24, 32]], dark: [[16, 19, 23, 34], [17, 23, 25, 34], [19, 23, 27, 38], [16, 22, 23, 32]] };
       const cf = new Tone.Filter(550, "lowpass").connect(B.rev);
       const pad = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fatsine", count: 3, spread: 12 }, envelope: { attack: 6, decay: 2, sustain: 0.8, release: 10 } }), -34).connect(cf);
       let ci = 0;
       // Sonar: jeden ping na nutę (autor): czysty sinus z miękkim wejściem, lekko opadający, krótko trzyma i gaśnie w pogłosie.
-      const sonar = vol(new Tone.Synth({ oscillator: { type: "sine" }, envelope: { attack: 0.012, decay: 0.35, sustain: 0, release: 0.4 } }), -6);
+      const sonar = vol(new Tone.Synth({ oscillator: { type: "sine" }, envelope: { attack: 0.012, decay: 0.35, sustain: 0, release: 0.4 } }), -10);
       sonar.connect(B.side(B.rev)); sonar.connect(B.lim);
       const dataStamp = () => (onRecording() ? replayIdx : lastLive ? lastLive.time : 0);
       let flash = 0, stamp = null, ping = 0;
       return {
         mix: { Melodia: sonar, "Tło": pad, Impuls: zap, "Piknięcie": beep, Bas: { output: bassBus } },
-        nodes: [zPan, zf, crush, zap, bf2, beep, bassBus, purr, cf, pad, sonar], tun: [],
+        nodes: [zPan, zf, crush, zap, bf2, beep, bassBus, cheb, purr, cf, pad, sonar], tun: [],
         step(t, s, bar) {
           const k = flash++;
           // Pomruk co 64 błyski (około 6 s); przy nowym pomiarze z sondy mocniej i dłużej.
@@ -1067,9 +1069,9 @@ const GENRES = {
             const ch = CLOUD[mood()][ci++ % 4].map((h) => F * h);
             pad.releaseAll(t); pad.triggerAttack(ch, t + 0.05, 0.5); E.chord(ch.map((f) => Tone.Frequency(f).toNote()), t);
           }
-          if (fresh || k % 64 === 32) purr.triggerAttackRelease(F * 4, 1.2, t, fresh ? 1 : 0.75);
+          if (fresh || k % 64 === 32) purr.triggerAttackRelease(F * 4, fresh ? 3.5 : 2.6, t, fresh ? 1 : 0.85);
           zf.frequency.setValueAtTime(lerp(7000, 11000, E.bright()), t);
-          zPan.pan.setValueAtTime((k % 2 ? 0.75 : -0.75) * (0.6 + Math.random() * 0.4), t);
+          zPan.pan.setValueAtTime(clamp(byPan() + (k % 2 ? 0.6 : -0.6) * (0.6 + Math.random() * 0.4), -1, 1), t);
           zap.triggerAttackRelease(0.005, t, 0.5 + Math.random() * 0.4);
           // Piknięcie w połowie między pomrukami; przy nowym pomiarze dwa razy.
           if (k % 64 === 0 && !fresh) beep.triggerAttackRelease(F * 88, 0.11, t, 0.8);
