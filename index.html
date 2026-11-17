@@ -1034,10 +1034,14 @@ const GENRES = {
       // Wielokrotności F jako skala: jasna z czystych interwałów, ciemna z 17., 19. i 51. harmonicznej (dźwięki między naszymi nutami).
       const HARM = { bright: [32, 36, 40, 45, 48, 54, 60, 64, 72, 80, 90, 96, 108, 120], dark: [32, 34, 38, 43, 48, 51, 57, 64, 68, 76, 86, 96, 102, 114] };
       const CLOUD = { bright: [[16, 20, 24, 30], [18, 24, 27, 32], [15, 20, 24, 30], [20, 24, 30, 36]], dark: [[16, 19, 24, 34], [17, 24, 26, 34], [19, 24, 29, 38], [16, 21, 24, 32]] };
-      const tone = vol(new Tone.Synth({ oscillator: { type: "sine" }, envelope: { attack: 0.0005, decay: 0.006, sustain: 0, release: 0.002 } }), -3).connect(B.side(B.delay));
-      tone.connect(B.lim);
-      const hp = new Tone.Filter(3000, "highpass").connect(B.lim);
-      const tick = vol(new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.0005, decay: 0.003, sustain: 0 } }), -13).connect(hp);
+      // Hi-hat na każdy błysk, bez przerw: to jest impuls pulsara (autor, 17.11.2026).
+      const hp = new Tone.Filter(6000, "highpass").connect(B.lim);
+      const hat = vol(new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.0005, decay: 0.004, sustain: 0 } }), -12).connect(hp);
+      // Stopa przerywana: gra tylko część błysków, gęstość wiatru decyduje ile.
+      const kick = vol(new Tone.MembraneSynth({ pitchDecay: 0.02, octaves: 4, envelope: { attack: 0.001, decay: 0.09, sustain: 0, release: 0.02 } }), -12).connect(B.lim);
+      // Melodia szybka, na strunie szarpanej (Karplus-Strong), bo struna stroi się do każdej częstotliwości, także między naszymi nutami.
+      const pluck = vol(new Tone.PluckSynth({ attackNoise: 1.2, dampening: 4000, resonance: 0.93 }), -8);
+      pluck.connect(B.side(B.delay)); pluck.connect(B.lim);
       // Chmura: rozmyte akordy daleko w pogłosie.
       const cf = new Tone.Filter(900, "lowpass").connect(B.rev);
       const cloud = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fatsine", count: 3, spread: 14 }, envelope: { attack: 5, decay: 2, sustain: 0.8, release: 9 } }), -30).connect(cf);
@@ -1045,13 +1049,14 @@ const GENRES = {
       const trem = new Tone.Tremolo({ frequency: F, depth: 0.7, spread: 0 }).connect(B.lim).start();
       const lf = new Tone.Filter(160, "lowpass").connect(trem);
       const drone = vol(new Tone.FatOscillator(F * 4, "sawtooth", 12), -24).connect(lf).start();
-      const drone2 = vol(new Tone.Oscillator(F * 6, "sine"), -34).connect(lf).start();
+      // Wyższy dron na 12. harmonicznej (134 Hz), obok filtra basu, żeby go nie przykrył.
+      const drone2 = vol(new Tone.Oscillator(F * 12, "triangle"), -27).connect(trem).start();
       let gate = rhythm(16, 0.6, [0]), flash = 0, stamp = null, ci = 0;
       const dataStamp = () => (onRecording() ? replayIdx : lastLive ? lastLive.time : 0);
       const mood = () => (E.dark() ? "dark" : "bright");
       return {
-        mix: { Melodia: tone, "Tło": cloud, Bas: drone, "Bas wysoki": drone2, Trzaski: tick },
-        nodes: [tone, hp, tick, cf, cloud, trem, lf, drone, drone2], tun: [],
+        mix: { Melodia: pluck, "Tło": cloud, Bas: drone, "Bas wysoki": drone2, Stopa: kick, "Hi-hat": hat },
+        nodes: [hp, hat, kick, pluck, cf, cloud, trem, lf, drone, drone2], tun: [],
         step(t, s, bar) {
           flash++;
           // Nowy pomiar z sondy: nowy akord w chmurze. Bez nowych danych akord trwa.
@@ -1062,20 +1067,21 @@ const GENRES = {
             cloud.releaseAll(t); cloud.triggerAttack(ch, t + 0.05, 0.5);
             E.chord(ch.map((f) => Tone.Frequency(f).toNote()), t);
           }
-          // Co 16 błysków nowy wzór: gęstość decyduje, ile błysków gra; pierwszy w grupie zawsze.
-          if (s === 0) gate = rhythm(16, lerp(0.25, 0.9, E.busy()), [0]);
-          if (!gate[s]) return;
-          // Prędkość: wolny wiatr to miękkie ziarno (10 ms), szybki to igła (2 ms).
+          // Prędkość: wolny wiatr to miękkie ziarno, szybki to igła i jaśniejsza struna.
           const len = lerp(0.010, 0.002, E.bright());
-          tick.envelope.decay = len * 0.5;
-          tick.triggerAttackRelease(len, t, 0.6 + Math.random() * 0.3);
-          // Melodia z wiatru wewnątrz klików: jedna nuta trwa 8 błysków, cała fraza około 11 s. Pauza w melodii to sam trzask.
-          const mel = windMelody(), i = Math.floor(flash / 8) % 16, d = mel ? mel[i] : (Math.floor(flash / 8) * 5) % 9;
+          hat.envelope.decay = len;
+          hat.triggerAttackRelease(len, t, s % 4 === 0 ? 0.9 : 0.5 + Math.random() * 0.2);
+          // Co 16 błysków nowy wzór stopy: gęstość decyduje, ile błysków ją dostaje; pierwszy w grupie zawsze.
+          if (s === 0) gate = rhythm(16, lerp(0.1, 0.45, E.busy()), [0]);
+          if (gate[s]) kick.triggerAttackRelease(F * 4, 0.08, t, s === 0 ? 1 : 0.75);
+          // Melodia z wiatru, szybko: nuta co 2 błyski, cała fraza z 16 pomiarów w około 3 s. Pauza w melodii to cisza.
+          if (flash % 2) return;
+          const mel = windMelody(), i = (flash / 2) % 16, d = mel ? mel[i] : (flash / 2 * 5) % 9;
           if (d == null) return;
           const hz = F * HARM[mood()][clamp(d + 3, 0, 13)];
-          tone.envelope.decay = len * 1.5;
-          tone.triggerAttackRelease(hz, len * 2, t, s === 0 ? 0.9 : 0.55);
-          if (flash % 8 === 0) E.note(Tone.Frequency(hz).toNote(), t);
+          pluck.dampening = lerp(2500, 7000, E.bright());
+          pluck.triggerAttack(hz, t, 0.8);
+          if (i % 4 === 0) E.note(Tone.Frequency(hz).toNote(), t);
         },
       };
     },
