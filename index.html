@@ -384,7 +384,7 @@ const PULSARS = [
   { id: "B0950", genre: "deep", name: "PSR B0950+08", short: "B0950+08", P: 0.253065, ra: 9.886, dec: 7.93,
     tag: "A bright, nearby pulsar.",
     about: "It flashes four times a second." },
-  { id: "Vela", genre: "glitch", name: "Vela Pulsar", short: "Vela", P: 0.089328, ra: 8.589, dec: -45.18,
+  { id: "Vela", genre: "vela", name: "Vela Pulsar", short: "Vela", P: 0.089328, ra: 8.589, dec: -45.18,
     tag: "What is left of a supernova in the constellation Vela.",
     about: "11 flashes a second is already a hum, not a rhythm." },
   { id: "Crab", genre: "dub", name: "Crab Pulsar", short: "Crab", P: 0.03374, ra: 5.576, dec: 22.01,
@@ -1018,6 +1018,64 @@ const GENRES = {
             Tone.Draw.schedule(() => vis.beat(), t);
           }
           if (s === 0 && bar % 2 === 1) { clicks = rhythm(16, 0.2 + E.busy() * 0.35, [0, 6]); motif.mutate(0.5); }
+        },
+      };
+    },
+  },
+
+  // Vela, próba (autor, 17.11.2026): muzyka eksperymentalna bez BPM. Krok to jeden prawdziwy błysk (11,19 na sekundę,
+  // tempoFloor 160 daje szesnastkę równą okresowi pulsara). Pulsar synthesis (Curtis Roads): każdy błysk to krótki klik,
+  // a w środku kliku siedzi nuta melodii z wiatru. Nuty to całe wielokrotności częstotliwości Veli, więc wszystko drga z pulsarem.
+  // Gęstość: ile błysków gra. Prędkość: długość i ostrość klików. Akord w chmurze zmienia się tylko przy nowym pomiarze.
+  vela: {
+    label: "Experimental", tempoFloor: 160, pulseBurst: true, flashes: true, scales: ["lydian", "phrygian"],
+    make(B) {
+      const F = 1 / psr.P; // 11,19 Hz
+      // Wielokrotności F jako skala: jasna z czystych interwałów, ciemna z 17., 19. i 51. harmonicznej (dźwięki między naszymi nutami).
+      const HARM = { bright: [32, 36, 40, 45, 48, 54, 60, 64, 72, 80, 90, 96, 108, 120], dark: [32, 34, 38, 43, 48, 51, 57, 64, 68, 76, 86, 96, 102, 114] };
+      const CLOUD = { bright: [[16, 20, 24, 30], [18, 24, 27, 32], [15, 20, 24, 30], [20, 24, 30, 36]], dark: [[16, 19, 24, 34], [17, 24, 26, 34], [19, 24, 29, 38], [16, 21, 24, 32]] };
+      const tone = vol(new Tone.Synth({ oscillator: { type: "sine" }, envelope: { attack: 0.0005, decay: 0.006, sustain: 0, release: 0.002 } }), -3).connect(B.side(B.delay));
+      tone.connect(B.lim);
+      const hp = new Tone.Filter(3000, "highpass").connect(B.lim);
+      const tick = vol(new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.0005, decay: 0.003, sustain: 0 } }), -13).connect(hp);
+      // Chmura: rozmyte akordy daleko w pogłosie.
+      const cf = new Tone.Filter(900, "lowpass").connect(B.rev);
+      const cloud = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fatsine", count: 3, spread: 14 }, envelope: { attack: 5, decay: 2, sustain: 0.8, release: 9 } }), -30).connect(cf);
+      // Dół: ciemny dron na 4. i 6. harmonicznej, drżący dokładnie z częstotliwością pulsara.
+      const trem = new Tone.Tremolo({ frequency: F, depth: 0.7, spread: 0 }).connect(B.lim).start();
+      const lf = new Tone.Filter(160, "lowpass").connect(trem);
+      const drone = vol(new Tone.FatOscillator(F * 4, "sawtooth", 12), -24).connect(lf).start();
+      const drone2 = vol(new Tone.Oscillator(F * 6, "sine"), -34).connect(lf).start();
+      let gate = rhythm(16, 0.6, [0]), flash = 0, stamp = null, ci = 0;
+      const dataStamp = () => (onRecording() ? replayIdx : lastLive ? lastLive.time : 0);
+      const mood = () => (E.dark() ? "dark" : "bright");
+      return {
+        mix: { Melodia: tone, "Tło": cloud, Bas: drone, "Bas wysoki": drone2, Trzaski: tick },
+        nodes: [tone, hp, tick, cf, cloud, trem, lf, drone, drone2], tun: [],
+        step(t, s, bar) {
+          flash++;
+          // Nowy pomiar z sondy: nowy akord w chmurze. Bez nowych danych akord trwa.
+          const st = dataStamp();
+          if (st !== stamp) {
+            stamp = st;
+            const ch = CLOUD[mood()][ci++ % 4].map((h) => F * h);
+            cloud.releaseAll(t); cloud.triggerAttack(ch, t + 0.05, 0.5);
+            E.chord(ch.map((f) => Tone.Frequency(f).toNote()), t);
+          }
+          // Co 16 błysków nowy wzór: gęstość decyduje, ile błysków gra; pierwszy w grupie zawsze.
+          if (s === 0) gate = rhythm(16, lerp(0.25, 0.9, E.busy()), [0]);
+          if (!gate[s]) return;
+          // Prędkość: wolny wiatr to miękkie ziarno (10 ms), szybki to igła (2 ms).
+          const len = lerp(0.010, 0.002, E.bright());
+          tick.envelope.decay = len * 0.5;
+          tick.triggerAttackRelease(len, t, 0.6 + Math.random() * 0.3);
+          // Melodia z wiatru wewnątrz klików: jedna nuta trwa 8 błysków, cała fraza około 11 s. Pauza w melodii to sam trzask.
+          const mel = windMelody(), i = Math.floor(flash / 8) % 16, d = mel ? mel[i] : (Math.floor(flash / 8) * 5) % 9;
+          if (d == null) return;
+          const hz = F * HARM[mood()][clamp(d + 3, 0, 13)];
+          tone.envelope.decay = len * 1.5;
+          tone.triggerAttackRelease(hz, len * 2, t, s === 0 ? 0.9 : 0.55);
+          if (flash % 8 === 0) E.note(Tone.Frequency(hz).toNote(), t);
         },
       };
     },
@@ -2102,6 +2160,10 @@ function drawSky(time) {
 
 function infoHTML(close) {
   const f = psrFacts(psr), label = GENRES[psr.genre].label;
+  if (GENRES[psr.genre].flashes) return `<div class="info"><div class="handle"></div><div class="dot"></div><div class="info-head"><div><b>${psr.name}</b><div class="tag">${psr.tag}</div></div></div>
+    <dl><dt>Genre</dt><dd>${label}</dd><dt>Tempo</dt><dd>none · ${fmt(1 / psr.P, 2)} flashes/s</dd><dt>Rotation</dt><dd>${f.per}</dd><dt>Tuning</dt><dd>multiples of ${fmt(1 / psr.P, 2)} Hz</dd></dl>
+    <p class="about">${psr.about}</p>
+    <div class="how"><span>How it plays</span>No tempo: every flash is a click, ${fmt(1 / psr.P, 1)} a second, right between rhythm and pitch. Each note is a whole multiple of the spin, so everything vibrates with the pulsar. Denser solar wind lets more flashes through; faster wind makes them sharper. The chords change only when the spacecraft sends a new reading.</div></div>`;
   if (GENRES[psr.genre].silent) return `<div class="info"><div class="handle"></div><div class="dot"></div><div class="info-head"><div><b>${psr.name}</b><div class="tag">${psr.tag}</div></div></div>
     <dl><dt>Genre</dt><dd>${label}</dd><dt>Rotation</dt><dd>${f.per}</dd></dl>
     <p class="about">${psr.about}</p>
@@ -2116,7 +2178,8 @@ function renderCard() {
   $("infoPop").innerHTML = infoHTML(true);
   $("psrName").textContent = psr.name;
   const g = GENRES[psr.genre];
-  $("psrLine").innerHTML = `${g.label}${g.silent ? "" : `<span class="bpm">${f.bpm} BPM</span>`}<span class="bpm m-only">Rotation: ${f.per}</span>`;
+  const tempo = g.flashes ? `${fmt(1 / psr.P, 1)} flashes/s` : `${f.bpm} BPM`;
+  $("psrLine").innerHTML = `${g.label}${g.silent ? "" : `<span class="bpm">${tempo}</span>`}<span class="bpm m-only">Rotation: ${f.per}</span>`;
 }
 
 function selectPulsar(p, manual = false) {
