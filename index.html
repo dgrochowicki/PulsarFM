@@ -1028,7 +1028,7 @@ const GENRES = {
   // terkot jak spięcie elektryczne na każdy błysk, co jakiś czas bardzo niski, mruczący bas, rzadki sonar jako melodia.
   // Wszystkie wysokości to wielokrotności częstotliwości Veli.
   vela: {
-    label: "Experimental", tempoFloor: 160, pulseBurst: true, flashes: true, scales: ["lydian", "phrygian"],
+    label: "Experimental", tempoFloor: 160, pulseBurst: true, flashes: true, bzBass: -12, scales: ["lydian", "phrygian"],
     make(B) {
       const F = 1 / psr.P; // 11,19 Hz
       const HARM = { bright: [32, 36, 40, 45, 48, 54, 60, 64, 72, 80, 90, 96, 108, 120], dark: [32, 34, 38, 43, 48, 51, 57, 64, 68, 76, 86, 96, 102, 114] };
@@ -1036,23 +1036,24 @@ const GENRES = {
       // Impuls: wysoka, cicha iskra na każdy błysk, jak spięcie elektryczne (autor: ciszej i wyżej). Prędkość wiatru: jasność iskry.
       const zf = new Tone.Filter({ frequency: 5000, type: "bandpass", Q: 1.5 }).connect(B.lim);
       const crush = new Tone.BitCrusher(4).connect(zf);
-      const zap = vol(new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.0003, decay: 0.005, sustain: 0 } }), -17).connect(crush);
+      const zap = vol(new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.0003, decay: 0.005, sustain: 0 } }), -4).connect(crush); // impulsy są ważne (autor): głośniej
       // Trzaski: nie na każdy błysk, tylko rzadkie serie iskier; gęstość wiatru decyduje, jak często.
       const arc = vol(new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.0005, decay: 0.012, sustain: 0 } }), -24).connect(crush);
-      // Pomruk: czysty sinus 4 × F (45 Hz), mruczy, bo drży z częstotliwością pulsara.
-      const purrGain = new Tone.Gain(0).connect(B.lim);
+      // Bas: sinus 4 × F (45 Hz) i piła 8 × F (90 Hz) przez filtr, żeby był wyraźny także w małych głośnikach. Mruczy, bo drży z częstotliwością pulsara.
+      const bassBus = new Tone.Volume(-2), purrGain = new Tone.Gain(0).connect(bassBus);
+      bassBus.connect(B.lim);
       const trem = new Tone.Tremolo({ frequency: F, depth: 0.85, spread: 0 }).connect(purrGain).start();
-      const purr = vol(new Tone.Oscillator(F * 4, "sine"), -8).connect(trem).start();
-      // Sonar: czysty, wysoki ton, który chwilę trzyma i długo wybrzmiewa, z własnym echem ciemniejącym przy każdym odbiciu.
-      const sEcho = new Tone.FeedbackDelay({ delayTime: 0.62, feedback: 0.5, wet: 1 }), sLow = new Tone.Filter(2500, "lowpass");
-      sEcho.chain(sLow, B.rev); sLow.connect(B.lim);
-      const sonar = vol(new Tone.Synth({ oscillator: { type: "sine" }, envelope: { attack: 0.004, decay: 0.2, sustain: 0.35, release: 2.8 } }), -12);
-      sonar.connect(B.side(sEcho)); sonar.connect(B.lim);
+      const bf = new Tone.Filter(320, "lowpass").connect(trem);
+      const purr = vol(new Tone.Oscillator(F * 4, "sine"), -6).connect(trem).start();
+      const purr2 = vol(new Tone.Oscillator(F * 8, "sawtooth"), -14).connect(bf).start();
+      // Sonar: czysty, wysoki ton, który chwilę trzyma i długo wybrzmiewa w pogłosie. Bez echa: jeden ping (autor).
+      const sonar = vol(new Tone.Synth({ oscillator: { type: "sine" }, envelope: { attack: 0.004, decay: 0.2, sustain: 0.35, release: 2.8 } }), -8);
+      sonar.connect(B.side(B.rev)); sonar.connect(B.lim);
       const dataStamp = () => (onRecording() ? replayIdx : lastLive ? lastLive.time : 0);
       let flash = 0, stamp = null, ping = 0, arcLeft = 0;
       return {
-        mix: { Melodia: sonar, Impuls: zap, Trzaski: arc, Bas: purr },
-        nodes: [zf, crush, zap, arc, purrGain, trem, purr, sEcho, sLow, sonar], tun: [],
+        mix: { Melodia: sonar, Impuls: zap, Trzaski: arc, Bas: { output: bassBus } },
+        nodes: [zf, crush, zap, arc, bassBus, purrGain, trem, bf, purr, purr2, sonar], tun: [],
         step(t, s, bar) {
           const k = flash++;
           // Pomruk co 64 błyski (około 6 s); przy nowym pomiarze z sondy mocniej i dłużej.
@@ -1060,7 +1061,7 @@ const GENRES = {
           if (fresh) stamp = st;
           if (fresh || k % 64 === 32) {
             purrGain.gain.cancelScheduledValues(t);
-            purrGain.gain.setTargetAtTime(fresh ? 1 : 0.6, t, 0.4); purrGain.gain.setTargetAtTime(0, t + (fresh ? 3 : 1.2), fresh ? 2.5 : 1.2);
+            purrGain.gain.setTargetAtTime(fresh ? 1 : 0.7, t, 0.15); purrGain.gain.setTargetAtTime(0, t + (fresh ? 3 : 1.2), fresh ? 2.5 : 1.2);
           }
           zf.frequency.setValueAtTime(lerp(3500, 7000, E.bright()), t);
           zap.triggerAttackRelease(0.005, t, 0.5 + Math.random() * 0.4);
@@ -1386,7 +1387,7 @@ const byPan = () => 0.7 * Math.tanh(cur.by / 6);
 
 function updateAudioParams() {
   if (!A) return;
-  A.droneVol.volume.rampTo(cur.bz < 0 ? map(-cur.bz, 0, 20, -30, -12) : -70, 2);
+  A.droneVol.volume.rampTo(cur.bz < 0 ? map(-cur.bz, 0, 20, -30, -12) + (G?.bzBass || 0) : -70, 2); // gatunek może ściszyć wspólny bas (Vela)
   A.shimmer.volume.rampTo(cur.kp >= 4 ? map(cur.kp, 4, 9, -32, -16) : -60, 2);
   A.delay.feedback.rampTo(map(cur.wind, 300, 800, 0.3, 0.55), 2);
   if (G) for (const p of G.bus.panners) p.pan.rampTo(byPan(), 2);
