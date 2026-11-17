@@ -764,7 +764,7 @@ const GENRES = {
       let wk = 0;
       const motif = new Motif(8, [7, 14], 0.6);
       return {
-        mix: { "Dźwięk 1": o1, "Dźwięk 2": o2, Szum: noise, Bit: boom, Dzwon: bell, Szepty: { output: wBus } },
+        mix: { Melodia: bell, "Tło 1": o1, "Tło 2": o2, Szum: noise, Stopa: boom, Szepty: { output: wBus } },
         nodes: [f, lfo, o1, o2, nf, noise, boom, bell, wBus, wHi, ...whispers.flatMap((w) => [w.pan, w.bp, w.pl]), dip, dipRead], tun: [o1, o2, boom, bell],
         step(t, s, bar) {
           if (s === 0 && bar % 8 === 0) {
@@ -808,7 +808,7 @@ const GENRES = {
       const melody = new Motif(8, [7, 12], 0.85);
       let k = 0, lastTop = 7;
       return {
-        mix: { Organy: organ, Chór: choir, Kotły: timp },
+        mix: { Melodia: choir, Akordy: organ, Stopa: timp },
         nodes: [organ, vf, vib, choir, timp], tun: [organ, choir, timp],
         step(t, s, bar) {
           vf.frequency.rampTo(map(E.bright(), 0, 1, 600, 1600), 2);
@@ -850,7 +850,7 @@ const GENRES = {
       let chordDeg = prog[0];
       const motif = new Motif(16, [4, 12], 0.45);
       return {
-        mix: { Pad: pad, Harfa: harp, Kontrabas: low, Bit: kick, Bas: bass, Werbel: snare },
+        mix: { Melodia: harp, "Tło": pad, Bas: bass, "Bas rytmiczny": low, Stopa: kick, Werbel: snare },
         nodes: [pf, pad, harp, kick, bass, low, snare], tun: [pad, kick, bass],
         step(t, s, bar) {
           pf.frequency.rampTo(map(E.bright(), 0, 1, 700, 4200), 1.5);
@@ -925,7 +925,7 @@ const GENRES = {
       const bassLine = new Motif(4, [0, 4], 0.8);
       let stabR = rhythm(16, 0.18, [3]);
       return {
-        mix: { Stopa: kick, "Hi-hat": hat, "Otwarty hi-hat": ohat, Klaps: clap, Bas: bass, ...(deep ? { Akordy: stab, "Tło": plama, Melodia: melody } : { "Tło": plama, Melodia: melody, Szepty: whisper }) },
+        mix: { Melodia: melody, ...(deep ? { Akordy: stab } : {}), "Tło": plama, Bas: bass, Stopa: kick, Klaps: clap, "Hi-hat": hat, "Otwarty hi-hat": ohat, ...(deep ? {} : { Szepty: whisper }) },
         nodes: [kick, hf, hat, ohat, cf, clap, subSat, bass, stab, melody, melF, whF, whisper, pump, pump2, plF, plLfo, plama].filter(Boolean), tun: [bass, stab, melody, kick, plama].filter(Boolean),
         step(t, s, bar) {
           const phrase = bar % 16;
@@ -999,7 +999,7 @@ const GENRES = {
       let clicks = rhythm(16, 0.35, [0, 6]), subs = rhythm(16, 0.12, [0]);
       let clickEnd = 0;
       return {
-        mix: { Trzaski: click, Piknięcia: blip, Sub: sub, Pad: pad },
+        mix: { Melodia: blip, "Tło": pad, Stopa: sub, Trzaski: click },
         nodes: [crush, click, blip, sub, pf, pad], tun: [blip, sub, pad],
         step(t, s, bar) {
           crush.distortion = map(E.bright(), 0, 1, 0.5, 0.95);
@@ -1037,7 +1037,7 @@ const GENRES = {
       const line = new Motif(16, [-7, 0], 0.35);
       const prog = [0, 0, 3, 4];
       return {
-        mix: { Akordy: skank, Bas: bass, Stopa: kick, Rimshot: rim },
+        mix: { "Bas (melodia)": bass, Akordy: skank, Stopa: kick, Rimshot: rim },
         nodes: [echo, ef, skank, bass, kick, rf, rim], tun: [skank, bass, kick],
         step(t, s, bar) {
           ef.frequency.rampTo(map(E.bright(), 0, 1, 700, 3500), 2);
@@ -1087,7 +1087,7 @@ const GENRES = {
       let chordDeg = prog[0];
       const fire = (node, note, t, v) => { if (node.loaded) node.triggerAttack(note, t, v); };
       return {
-        mix: { Stopa: kick, Werbel: snare, "Werbel cichy": ghost, "Hi-hat": hat, "Otwarty hi-hat": ohat, Shaker: shaker, Bas: sub, "Chór": choir, "Tło melodyczne": pad2, Melodia: glass },
+        mix: { Melodia: glass, Akordy: choir, "Tło": pad2, Bas: sub, Stopa: kick, Werbel: snare, "Werbel cichy": ghost, "Hi-hat": hat, "Otwarty hi-hat": ohat, Shaker: shaker },
         nodes: [vf, choir, pad2, vib, glass, kick, snare, ghost, hat, ohat, shaker, sub], tun: [choir, pad2, glass, sub],
         step(t, s, bar) {
           vf.frequency.rampTo(map(E.bright(), 0, 1, 600, 1600), 2, t);
@@ -1150,7 +1150,7 @@ const GENRES = {
       const motif = new Motif(12, [7, 16], 0.55);
       const prog = [0, 4, 5, 3];
       return {
-        mix: { Pozytywka: box, "Niskie nuty": low },
+        mix: { Melodia: box, Bas: low },
         nodes: [box, lowF, low], tun: [box, low],
         step(t, s, bar) {
           const deg = prog[Math.floor(bar / 2) % 4];
@@ -1250,11 +1250,12 @@ function schedulePulse() {
   pulseId = Tone.Transport.scheduleRepeat(onPulse, psr.P, "0i");
 }
 
-// Włączniki warstw pod ?dev, do rozmowy o konkretnych dźwiękach. Wyciszony zostaje wyciszony także po zmianie gatunku.
+// Włączniki warstw pod ?dev, do rozmowy o konkretnych dźwiękach. Nazwy to role, wspólne dla wszystkich gatunków (autor, 17.11.2026):
+// Melodia, Akordy, Tło, Bas, Stopa, Werbel, Hi-hat…; instrument jest w kodzie i w docs/DZWIEK.md. Wyciszony zostaje wyciszony także po zmianie gatunku.
 const mutedLayers = new Set(), savedLayerVolume = new Map();
 const devMode = new URLSearchParams(location.search).has("dev");
 function sharedLayers() {
-  return { "Dron z Bz": A.drone, "Poświata z Kp": A.shimmer, "Impuls pulsara": A.star, "Wybuch: bęben": A.drumHit, "Wybuch: pocieranie": A.drumRub, "Wybuch: buum": A.boom, "Wybuch: braam": A.braam };
+  return { "Bas z Bz": A.drone, "Poświata z Kp": A.shimmer, "Impuls pulsara": A.star, "Wybuch: bęben": A.drumHit, "Wybuch: pocieranie": A.drumRub, "Wybuch: buum": A.boom, "Wybuch: braam": A.braam };
 }
 function layerEntries() {
   if (!A || !G) return [];

@@ -101,7 +101,7 @@ Ekrany wzorcowe: `docs/research/Pulsar 1600_00.png` (mapa) i `Pulsar 1600_01.png
 
 ## Tylko prawdziwe dane
 
-Decyzja autora (2.11.2026): słuchacz niczego nie wywołuje sam. Słuchacz ma tylko Live (decyzja autora, 8.11.2026: przełącznik Live/Replay usunięty, nagranie włącza się samo przy braku danych). U góry na środku jest pasek `#livebar`: „Live · SOLAR-1 at L1 … measured 13:52”, przy kłopotach „Live · waiting for NOAA … last 13:52” albo „Recording · 18 Oct 2026”. Przycisk trybu z Replay 3 h zostaje pod `?dev`. Przycisk Burza, „Wywołaj rozbłysk” i suwaki działają wyłącznie pod adresem z `?dev`, do dopracowywania obrazu. Pod `?dev` są też włączniki każdej warstwy dźwięku z nazwą (pole `mix` w `make()` gatunku): używać tych nazw w rozmowie z autorem.
+Decyzja autora (2.11.2026): słuchacz niczego nie wywołuje sam. Słuchacz ma tylko Live (decyzja autora, 8.11.2026: przełącznik Live/Replay usunięty, nagranie włącza się samo przy braku danych). U góry na środku jest pasek `#livebar`: „Live · SOLAR-1 at L1 … measured 13:52”, przy kłopotach „Live · waiting for NOAA … last 13:52” albo „Recording · 18 Oct 2026”. Przycisk trybu z Replay 3 h zostaje pod `?dev`. Przycisk Burza, „Wywołaj rozbłysk” i suwaki działają wyłącznie pod adresem z `?dev`, do dopracowywania obrazu. Pod `?dev` są też włączniki każdej warstwy dźwięku z nazwą (pole `mix` w `make()` gatunku): używać tych nazw w rozmowie z autorem. Nazwy to role, takie same we wszystkich gatunkach (autor, 17.11.2026): Melodia, Akordy, Tło, Bas, Stopa, Werbel, Hi-hat itd., a nie instrumenty (np. nie „Piknięcia”, tylko „Melodia”). Włączniki pokazują się dopiero po Play.
 
 ## Plan (zatwierdzony przez autora 1.11.2026)
 
