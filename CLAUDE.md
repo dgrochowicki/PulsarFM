@@ -75,6 +75,13 @@ Pełny opis syntezy i instrumentów: `docs/DZWIEK.md` (aktualizować przy zmiana
 
 **Zasada autora (3.11.2026): każdy pulsar to inna muzyka.** Gatunki mogą być podobne, ale zawsze coś musi być inne, poza tempem przede wszystkim instrumenty.
 
+**Podział autora (17.11.2026): wolne pulsary to zwykłe gatunki, szybkie to muzyka eksperymentalna.** Wolny pulsar (okres ≥ 0,2 s) gra rytm, więc dostaje zwykły gatunek. Szybki (< 0,2 s) gra ton, więc dostaje mroczną muzykę eksperymentalną w duchu Aphex Twina (kierunek, nie kopiowanie utworów); drgający pierścień na mapie to znak „tu jest dziwnie”. Wspólny pomysł dla szybkich: skala budowana od dokładnej częstotliwości pulsara (dźwięki między naszymi nutami) zamiast strojenia całego utworu do najbliższej nuty. Każdy szybki inaczej:
+- Vela (11 Hz, poniżej słyszalności): drżenie zamiast dźwięku, poszarpane, bardzo szybkie cięcia rytmu (teraz Glitch);
+- Krab (30 Hz): ciężki, niski dron, bardziej czuć niż słychać, mrok (teraz Dub);
+- J0437 (174 Hz): ton pulsara jako oś utworu, wokół cięte, przesunięte w czasie dźwięki (teraz Liquid);
+- Terzan 5 (716 Hz): wysoki, przenikliwy, zepsuta, rozstrojona pozytywka z melodią, która się rozpada (teraz Music box).
+Liquid (wzór: LTJ Bukem, Calibre) przenosi się na wolny pulsar z tempem około 160–175 BPM (okres np. około 0,35 s), kandydat z katalogu ATNF. Dub do decyzji: też może dostać wolny pulsar.
+
 ## Style graficzne
 
 Przełącznik u góry ma najpierw szkice nowych kierunków z `docs/WIZUALIZACJE.md`: **Grzbiety** (domyślny), **Fale** (Słońce w środku, fale we wszystkie strony; od 8.11.2026 to dawne Rings: grube linie, których grubość wzdłuż obwodu to widmo dźwięku jak w Grzbietach, basy na dole; fala przy Słońcu żyje z muzyką, odpływając zastyga; stare cienkie Fale usunięte), **Cymatyka**, **Kolor** (kod w sekcjach „Kierunek” w `index.html`, numeracja jak w `docs/WIZUALIZACJE.md`). Potem stare style: **Bauhaus** (płaskie koła i łuki), **Oscyloskop** (jedna świecąca linia; Słońce to kształt fali dźwięku z `Tone.Waveform`). Autor: Słońce i Ziemia w wersji dosłownej były „zbyt dosłowne”; szuka abstrakcji, z której nadal wiadomo, o co chodzi. Kierunek graficzny **niezdecydowany**; obecne style autor uznał za „dość łopatologiczne”. Nowe propozycje z opisem i rekomendacją: `docs/WIZUALIZACJE.md`. Linie pola, Partytura i Kosmos usunięte na prośbę autora (2.11.2026).
@@ -136,6 +143,7 @@ Na razie muzyka ważniejsza od obrazu. Autorowi podoba się brzmienie gatunków 
 - [ ] Forma utworu z danych zamiast zegara: gęstość układa warstwy, skręt Bz na południe działa jak drop.
 - [ ] Deep i Geminga: klaps i hi-haty są cicho; inna perkusja i bas w każdym z nich. Szepty to imitacja, ewentualnie prawdziwe nagranie CC0.
 - [ ] Dopracować Drone, Chorał, Glitch, Dub (przy 111 BPM i z melodią w basie) i Pozytywkę: wciąż stare brzmienia z syntezy.
+- [ ] Szybkie pulsary po kolei na muzykę eksperymentalną (podział wyżej, 17.11.2026); najpierw znaleźć w ATNF wolny pulsar dla Liquidu.
 - [ ] Szybkie pulsary (Vela, Krab, J0437, Terzan 5): animacja pierścienia zostaje (autor, 16.11.2026: „w sumie fajnie”; prawdziwych 11–716 Hz oko nie zobaczy, a szybkie miganie byłoby niebezpieczne), ale muzykę „z nich” trzeba dopracować. Pomysł: skoro słychać je jako ton, zrobić z tonu pulsara oś utworu (dron, wokół którego wszystko się buduje), a nie tylko tło.
 - [ ] Liquid: autor chce porównać z ulubionymi utworami LTJ Bukema i Calibre (nagranie telefonem do `docs/`).
 
