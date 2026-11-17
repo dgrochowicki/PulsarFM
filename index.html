@@ -746,11 +746,12 @@ const GENRES = {
       // Szepty tam, gdzie tło przycicha (autor, 17.11.2026): krótkie kawałki prawdziwego szeptu (CC0), część od tyłu,
       // obniżone, każdy w innym miejscu stereo, prawie cały w pogłosie, więc słów nie słychać.
       // Dołek to druga, odwrócona fala tej samej częstotliwości co filtr tła; czytamy ją co krok.
-      const wBus = new Tone.Volume(-28), wHi = new Tone.Filter(350, "highpass").connect(wBus);
+      const wBus = new Tone.Volume(-26), wHi = new Tone.Filter(350, "highpass").connect(wBus); // szepty jeszcze ciszej (autor, 17.11.2026)
       wBus.connect(B.rev); wBus.connect(B.delay);
       const whispers = [false, false, false, true, true, true].map((reverse) => {
-        const pan = new Tone.Panner(0).connect(wHi);
-        return { pan, pl: new Tone.Player({ url: "audio/szept.m4a", reverse, fadeIn: 0.06, fadeOut: 0.12 }).connect(pan) };
+        // Każdy głos z własnym filtrem pasmowym: inne „gardło” przy każdym kawałku, mniej powtarzalnie.
+        const pan = new Tone.Panner(0).connect(wHi), bp = new Tone.Filter({ type: "bandpass", frequency: 1500, Q: 1.2 }).connect(pan);
+        return { pan, bp, pl: new Tone.Player({ url: "audio/szept.m4a", reverse, fadeIn: 0.06, fadeOut: 0.12 }).connect(bp) };
       });
       const dip = new Tone.LFO(0.03, 1, 0).start(), dipRead = new Tone.Waveform(32);
       dip.connect(dipRead);
@@ -758,7 +759,7 @@ const GENRES = {
       const motif = new Motif(8, [7, 14], 0.6);
       return {
         mix: { "Dźwięk 1": o1, "Dźwięk 2": o2, Szum: noise, Bit: boom, Dzwon: bell, Szepty: { output: wBus } },
-        nodes: [f, lfo, o1, o2, nf, noise, boom, bell, wBus, wHi, ...whispers.flatMap((w) => [w.pan, w.pl]), dip, dipRead], tun: [o1, o2, boom, bell],
+        nodes: [f, lfo, o1, o2, nf, noise, boom, bell, wBus, wHi, ...whispers.flatMap((w) => [w.pan, w.bp, w.pl]), dip, dipRead], tun: [o1, o2, boom, bell],
         step(t, s, bar) {
           if (s === 0 && bar % 8 === 0) {
             const second = E.dark() ? 2 : 4;
@@ -776,7 +777,8 @@ const GENRES = {
           if (w.pl.loaded && chance(deep * 0.2)) {
             wk++;
             const len = w.pl.buffer.duration, dur = 0.18 + Math.random() * 0.3;
-            w.pl.playbackRate = 0.72 + Math.random() * 0.2;
+            w.pl.playbackRate = 0.6 + Math.random() * 0.35;
+            w.bp.frequency.setValueAtTime(600 * 5 ** Math.random(), t);
             w.pan.pan.setValueAtTime(Math.random() * 1.6 - 0.8, t);
             w.pl.start(t, Math.random() * Math.max(0, len - dur), dur);
           }
