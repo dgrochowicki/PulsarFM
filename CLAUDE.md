@@ -64,7 +64,7 @@ Automatyczny wybór pulsara używa geolokalizacji i czasu UTC, aby co minutę wy
 | PSR B0950+08 | 0,2531 s | Deep | 30/P = 118,6 BPM; pomysł autora: akordy z przodu, melodia tym samym brzmieniem jako uzupełnienie |
 | Vela | 89,3 ms | Glitch | 11,2 Hz = trzydziestodwójki przy 84 BPM |
 | Krab | 33,7 ms | Dub | ok. 30 Hz, najniższy bas; 111,1 BPM |
-| PSR B1508+55 | 0,7397 s | Liquid drum and bass | od 17.11.2026 (wcześniej J0437); 81,1 błysku/min × 2 = 162,2 BPM; z ATNF |
+| PSR B2255+58 | 0,3682 s | Liquid drum and bass | od 17.11.2026 (wcześniej J0437); 162,9 błysku/min, każdy błysk = uderzenie; z ATNF |
 | PSR J0437−4715 | 5,757 ms | Coming soon (cisza) | na mapie, ale nie gra (gatunek `soon`, `silent`), czeka na muzykę eksperymentalną; Auto go pomija |
 | PSR J1748−2446ad (Terzan 5) | 1,396 ms | Pozytywka (3/4) | 716 Hz |
 
@@ -81,7 +81,7 @@ Pełny opis syntezy i instrumentów: `docs/DZWIEK.md` (aktualizować przy zmiana
 - Krab (30 Hz): ciężki, niski dron, bardziej czuć niż słychać, mrok (teraz Dub);
 - J0437 (174 Hz): ton pulsara jako oś utworu, wokół cięte, przesunięte w czasie dźwięki (teraz cisza);
 - Terzan 5 (716 Hz): wysoki, przenikliwy, zepsuta, rozstrojona pozytywka z melodią, która się rozpada (teraz Music box).
-Liquid (wzór: LTJ Bukem, Calibre) przeniesiony 17.11.2026 na B1508+55 (162,2 BPM, prawie jak wcześniej 162,8); J0437 do czasu nowej muzyki milczy. Dub do decyzji: też może dostać wolny pulsar.
+Liquid (wzór: LTJ Bukem, Calibre) przeniesiony 17.11.2026 na B2255+58 (162,9 BPM, prawie jak wcześniej 162,8); J0437 do czasu nowej muzyki milczy. Zasada autora: tempo z samych błysków, bez mnożenia, jeśli się da; pulsar z 81 błyskami na minutę to tempo hip-hopu, R&B, trip-hopu, nie liquidu (B1508+55, 0,7397 s, 81,1/min, kandydat na trip-hop). Dub do decyzji: też może dostać wolny pulsar.
 
 ## Style graficzne
 
@@ -144,7 +144,7 @@ Na razie muzyka ważniejsza od obrazu. Autorowi podoba się brzmienie gatunków 
 - [ ] Forma utworu z danych zamiast zegara: gęstość układa warstwy, skręt Bz na południe działa jak drop.
 - [ ] Deep i Geminga: klaps i hi-haty są cicho; inna perkusja i bas w każdym z nich. Szepty to imitacja, ewentualnie prawdziwe nagranie CC0.
 - [ ] Dopracować Drone, Chorał, Glitch, Dub (przy 111 BPM i z melodią w basie) i Pozytywkę: wciąż stare brzmienia z syntezy.
-- [ ] Szybkie pulsary po kolei na muzykę eksperymentalną (podział wyżej, 17.11.2026). Liquid już na B1508+55; kolejność: Terzan 5, J0437, Krab, Vela.
+- [ ] Szybkie pulsary po kolei na muzykę eksperymentalną (podział wyżej, 17.11.2026). Liquid już na B2255+58; kolejność: Terzan 5, J0437, Krab, Vela.
 - [ ] Szybkie pulsary (Vela, Krab, J0437, Terzan 5): animacja pierścienia zostaje (autor, 16.11.2026: „w sumie fajnie”; prawdziwych 11–716 Hz oko nie zobaczy, a szybkie miganie byłoby niebezpieczne), ale muzykę „z nich” trzeba dopracować. Pomysł: skoro słychać je jako ton, zrobić z tonu pulsara oś utworu (dron, wokół którego wszystko się buduje), a nie tylko tło.
 - [ ] Liquid: autor chce porównać z ulubionymi utworami LTJ Bukema i Calibre (nagranie telefonem do `docs/`).
 

@@ -391,9 +391,10 @@ const PULSARS = [
     tag: "The heart of the Crab Nebula, left by the supernova of 1054.",
     about: "30 turns a second: the deepest bass." },
   // Liquid przeniesiony z J0437 (autor, 17.11.2026): wolne pulsary grają zwykłe gatunki, szybkie dostaną muzykę eksperymentalną.
-  { id: "B1508", genre: "glass", name: "PSR B1508+55", short: "B1508+55", P: 0.739682, ra: 15.157, dec: 55.53,
-    tag: "One of the fastest-moving stars known, fast enough to leave the Milky Way.",
-    about: "81 flashes a minute, doubled into a rolling 162 BPM." },
+  // Sam błyska 162,9 razy na minutę, bez mnożenia (autor: 81 BPM to hip-hop, nie liquid).
+  { id: "B2255", genre: "glass", name: "PSR B2255+58", short: "B2255+58", P: 0.368246, ra: 22.966, dec: 59.15,
+    tag: "A pulsar in Cepheus that never sets over Europe.",
+    about: "163 flashes a minute: every flash is a beat." },
   // Na mapie zostaje, ale nie gra, dopóki nie ma swojej eksperymentalnej muzyki.
   { id: "J0437", genre: "soon", name: "PSR J0437−4715", short: "J0437", P: 0.005757452, ra: 4.621, dec: -47.25,
     tag: "The nearest and brightest millisecond pulsar.",
@@ -1055,7 +1056,7 @@ const GENRES = {
     },
   },
 
-  // B1508+55 (od 17.11.2026, wcześniej J0437): 81 błysków na minutę razy 2 = 162,2 BPM, tempo liquid drum and bass. Szybki rytm pod wolnym chórem i szkłem.
+  // B2255+58 (od 17.11.2026, wcześniej J0437): 162,9 błysku na minutę, każdy błysk to uderzenie, tempo liquid drum and bass. Szybki rytm pod wolnym chórem i szkłem.
   glass: {
     label: "Liquid drum and bass", tempoFloor: 100, pulseBurst: true, scales: ["lydian", "aeolian"],
     make(B) {

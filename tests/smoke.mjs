@@ -64,7 +64,7 @@ const rms = () => page.evaluate(async () => {
 });
 
 let failed = false;
-for (const id of ["B0329", "B1919", "J2144", "Geminga", "B0950", "Vela", "Crab", "B1508", "Ter5"]) {
+for (const id of ["B0329", "B1919", "J2144", "Geminga", "B0950", "Vela", "Crab", "B2255", "Ter5"]) {
   await page.evaluate((id) => selectPulsar(PULSARS.find((p) => p.id === id)), id);
   await page.waitForTimeout(4000);
   const r = await rms();

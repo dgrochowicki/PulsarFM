@@ -84,7 +84,7 @@ Styl to prawdziwy rodzaj muzyki, do którego dany gatunek ma się zbliżać, z h
 | B0950+08 | Deep | 118,5 BPM | co 2. błysk | D, stała | dub techno, deep techno | Basic Channel, Deepchord |
 | Vela | Glitch | 84,0 BPM | co 8. błysk | F | glitch, IDM | Autechre, Alva Noto |
 | Krab | Dub | 111,1 BPM | co 16. błysk | B | dub, roots reggae | King Tubby, Rhythm & Sound |
-| B1508+55 (od 17.11.2026, wcześniej J0437) | Liquid | 162,2 BPM | co błysk 2 uderzenia | D | liquid drum and bass, jungle | LTJ Bukem (łamany bit, melodyczne tło, wyraźny, melodyczny bas), Calibre |
+| B2255+58 (od 17.11.2026, wcześniej J0437) | Liquid | 162,9 BPM | każdy błysk | D | liquid drum and bass, jungle | LTJ Bukem (łamany bit, melodyczne tło, wyraźny, melodyczny bas), Calibre |
 | J1748−2446ad (Terzan 5) | Pozytywka | 83,9 BPM | co 512. błysk | F | pozytywka, kołysanka, walc 3/4 | Yann Tiersen, „music box” |
 
 ### Instrumenty
@@ -98,7 +98,7 @@ Styl to prawdziwy rodzaj muzyki, do którego dany gatunek ma się zbliżać, z h
 | **Deep** (B0950+08) | perkusja i bas jak w Minimal techno, ale głośne krótkie akordy z prostokątów, cicha plama jako tło, melodia brzmieniem akordów z nutami na miejscach największych zmian wiatru (4–7 nut w dwóch taktach, zależnie od gęstości), otwarty hi-hat na stałe |
 | **Glitch** (Vela) | pulsar jako ciąg impulsów 11 Hz, trzaski z białego szumu przez przester (czasem „zacięte”), piknięcia FM, sub-stopa, ziarnisty pad |
 | **Dub** (Krab) | pulsar jako ciąg impulsów 30 Hz, głęboki bas (sinus), akordy z prostokątów na słabą część taktu w długim echu, stopa i rimshot na trzy |
-| **Liquid drum and bass** (B1508+55, do 17.11.2026 J0437, który teraz milczy) | 81,1 błysku na minutę razy 2, 162,2 BPM. Rytm z próbek: stopa prosta i cicha, łamie się werbel (spóźniony co drugi takt, między mocnymi uderzeniami ciche), hi-hat, otwarty hi-hat, shaker. Łagodny, melodyczny bas na wzór autora „buum buum bum bum bum buum” (nisko, około F1, wysokości z wiatru), chór z grubych sinusów jako tło z akordami z wiatru co 8 taktów, tło melodyczne idące po dźwiękach akordu, szklana harmonijka (sinus z vibrato, wiele głosów, nuty wybrzmiewają) z melodią z wiatru na ćwierćnutach |
+| **Liquid drum and bass** (B2255+58, do 17.11.2026 J0437, który teraz milczy) | każdy błysk to uderzenie, 162,9 BPM. Rytm z próbek: stopa prosta i cicha, łamie się werbel (spóźniony co drugi takt, między mocnymi uderzeniami ciche), hi-hat, otwarty hi-hat, shaker. Łagodny, melodyczny bas na wzór autora „buum buum bum bum bum buum” (nisko, około F1, wysokości z wiatru), chór z grubych sinusów jako tło z akordami z wiatru co 8 taktów, tło melodyczne idące po dźwiękach akordu, szklana harmonijka (sinus z vibrato, wiele głosów, nuty wybrzmiewają) z melodią z wiatru na ćwierćnutach |
 | **Pozytywka** (Terzan 5) | pozytywka FM (lekko nierówna w czasie, jak mechanizm), walczyk z trójkątów, pulsar 716 Hz |
 
 **Warstwy wspólne dla wszystkich gatunków:** niski bas, który rośnie przy Bz na południe; wysoka poświata przy Kp ≥ 4; trailerowe uderzenie przy rozbłysku (membrana opadająca z wysokości + przesterowany akord „braam” z otwierającym się filtrem).
