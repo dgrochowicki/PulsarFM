@@ -1035,7 +1035,8 @@ const GENRES = {
       const HARM = { bright: [32, 34, 38, 43, 48, 51, 57, 64, 68, 76, 86, 96, 102, 114], dark: [32, 34, 37, 45, 46, 51, 55, 64, 68, 74, 90, 92, 102, 110] };
       const mood = () => (E.dark() ? "dark" : "bright");
       // Impuls: wysoka, cicha iskra na każdy błysk, jak spięcie elektryczne (autor: ciszej i wyżej). Prędkość wiatru: jasność iskry.
-      const zf = new Tone.Filter({ frequency: 9000, type: "bandpass", Q: 1.5 }).connect(B.lim);
+      const zPan = new Tone.Panner(0).connect(B.lim); // stereo (autor): iskry na zmianę lewo i prawo
+      const zf = new Tone.Filter({ frequency: 9000, type: "bandpass", Q: 1.5 }).connect(zPan);
       const crush = new Tone.BitCrusher(4).connect(zf);
       const zap = vol(new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.0003, decay: 0.005, sustain: 0 } }), -4).connect(crush); // impulsy są ważne (autor): głośniej
       // Piknięcie jak monitor w szpitalu (autor): krótki ton 88 × F (985 Hz) co 64 błyski, podwójne przy nowym pomiarze.
@@ -1056,7 +1057,7 @@ const GENRES = {
       let flash = 0, stamp = null, ping = 0;
       return {
         mix: { Melodia: sonar, "Tło": pad, Impuls: zap, "Piknięcie": beep, Bas: { output: bassBus } },
-        nodes: [zf, crush, zap, bf2, beep, bassBus, purr, cf, pad, sonar], tun: [],
+        nodes: [zPan, zf, crush, zap, bf2, beep, bassBus, purr, cf, pad, sonar], tun: [],
         step(t, s, bar) {
           const k = flash++;
           // Pomruk co 64 błyski (około 6 s); przy nowym pomiarze z sondy mocniej i dłużej.
@@ -1068,6 +1069,7 @@ const GENRES = {
           }
           if (fresh || k % 64 === 32) purr.triggerAttackRelease(F * 4, 1.2, t, fresh ? 1 : 0.75);
           zf.frequency.setValueAtTime(lerp(7000, 11000, E.bright()), t);
+          zPan.pan.setValueAtTime((k % 2 ? 0.75 : -0.75) * (0.6 + Math.random() * 0.4), t);
           zap.triggerAttackRelease(0.005, t, 0.5 + Math.random() * 0.4);
           // Piknięcie w połowie między pomrukami; przy nowym pomiarze dwa razy.
           if (k % 64 === 0 && !fresh) beep.triggerAttackRelease(F * 88, 0.11, t, 0.8);
