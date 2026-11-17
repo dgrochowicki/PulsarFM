@@ -1033,39 +1033,45 @@ const GENRES = {
       const F = 1 / psr.P; // 11,19 Hz
       const HARM = { bright: [32, 36, 40, 45, 48, 54, 60, 64, 72, 80, 90, 96, 108, 120], dark: [32, 34, 38, 43, 48, 51, 57, 64, 68, 76, 86, 96, 102, 114] };
       const mood = () => (E.dark() ? "dark" : "bright");
-      // Terkot: krótki, przesterowany impuls prostokątny 8 × F (90 Hz) i trzask szumu, na każdy błysk. Prędkość wiatru: jasność iskry.
-      const zf = new Tone.Filter(2000, "lowpass").connect(B.lim);
-      const dist = new Tone.Distortion(0.7).connect(zf);
-      const zap = vol(new Tone.Synth({ oscillator: { type: "square" }, envelope: { attack: 0.001, decay: 0.014, sustain: 0, release: 0.004 } }), -16).connect(dist);
-      const crackle = vol(new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.0005, decay: 0.006, sustain: 0 } }), -22).connect(dist);
-      // Pomruk: czysty sinus 4 × F (45 Hz), mruczy, bo drży z częstotliwością pulsara. Wchodzi przy nowym pomiarze i powoli gaśnie.
+      // Impuls: wysoka, cicha iskra na każdy błysk, jak spięcie elektryczne (autor: ciszej i wyżej). Prędkość wiatru: jasność iskry.
+      const zf = new Tone.Filter({ frequency: 5000, type: "bandpass", Q: 1.5 }).connect(B.lim);
+      const crush = new Tone.BitCrusher(4).connect(zf);
+      const zap = vol(new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.0003, decay: 0.005, sustain: 0 } }), -17).connect(crush);
+      // Trzaski: nie na każdy błysk, tylko rzadkie serie iskier; gęstość wiatru decyduje, jak często.
+      const arc = vol(new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.0005, decay: 0.012, sustain: 0 } }), -24).connect(crush);
+      // Pomruk: czysty sinus 4 × F (45 Hz), mruczy, bo drży z częstotliwością pulsara.
       const purrGain = new Tone.Gain(0).connect(B.lim);
       const trem = new Tone.Tremolo({ frequency: F, depth: 0.85, spread: 0 }).connect(purrGain).start();
-      const purr = vol(new Tone.Oscillator(F * 4, "sine"), -11).connect(trem).start();
-      // Sonar: czysty sinus z długim wybrzmieniem i echem, nuta melodii z wiatru, raz na 32 błyski (około 3 s), pauza w melodii to cisza.
-      const sonar = vol(new Tone.Synth({ oscillator: { type: "sine" }, envelope: { attack: 0.002, decay: 1.4, sustain: 0, release: 1.2 } }), -14);
-      sonar.connect(B.side(B.delay)); sonar.connect(B.lim);
+      const purr = vol(new Tone.Oscillator(F * 4, "sine"), -8).connect(trem).start();
+      // Sonar: czysty, wysoki ton, który chwilę trzyma i długo wybrzmiewa, z własnym echem ciemniejącym przy każdym odbiciu.
+      const sEcho = new Tone.FeedbackDelay({ delayTime: 0.62, feedback: 0.5, wet: 1 }), sLow = new Tone.Filter(2500, "lowpass");
+      sEcho.chain(sLow, B.rev); sLow.connect(B.lim);
+      const sonar = vol(new Tone.Synth({ oscillator: { type: "sine" }, envelope: { attack: 0.004, decay: 0.2, sustain: 0.35, release: 2.8 } }), -12);
+      sonar.connect(B.side(sEcho)); sonar.connect(B.lim);
       const dataStamp = () => (onRecording() ? replayIdx : lastLive ? lastLive.time : 0);
-      let flash = 0, stamp = null, ping = 0;
+      let flash = 0, stamp = null, ping = 0, arcLeft = 0;
       return {
-        mix: { Melodia: sonar, Impuls: zap, Trzaski: crackle, Bas: purr },
-        nodes: [zf, dist, zap, crackle, purrGain, trem, purr, sonar], tun: [],
+        mix: { Melodia: sonar, Impuls: zap, Trzaski: arc, Bas: purr },
+        nodes: [zf, crush, zap, arc, purrGain, trem, purr, sEcho, sLow, sonar], tun: [],
         step(t, s, bar) {
           const k = flash++;
-          // Nowy pomiar z sondy: pomruk narasta przez 2 s i gaśnie przez około 10 s.
-          const st = dataStamp();
-          if (st !== stamp) {
-            stamp = st;
-            purrGain.gain.cancelScheduledValues(t); purrGain.gain.setTargetAtTime(1, t, 0.7); purrGain.gain.setTargetAtTime(0, t + 3, 3);
+          // Pomruk co 64 błyski (około 6 s); przy nowym pomiarze z sondy mocniej i dłużej.
+          const st = dataStamp(), fresh = st !== stamp;
+          if (fresh) stamp = st;
+          if (fresh || k % 64 === 32) {
+            purrGain.gain.cancelScheduledValues(t);
+            purrGain.gain.setTargetAtTime(fresh ? 1 : 0.6, t, 0.4); purrGain.gain.setTargetAtTime(0, t + (fresh ? 3 : 1.2), fresh ? 2.5 : 1.2);
           }
-          zf.frequency.setValueAtTime(lerp(900, 3500, E.bright()), t);
-          zap.triggerAttackRelease(F * 8, 0.012, t, 0.7 + Math.random() * 0.3);
-          crackle.triggerAttackRelease(0.006, t, 0.4 + Math.random() * 0.4);
+          zf.frequency.setValueAtTime(lerp(3500, 7000, E.bright()), t);
+          zap.triggerAttackRelease(0.005, t, 0.5 + Math.random() * 0.4);
+          // Seria iskier: kilka błysków pod rząd, potem cisza.
+          if (arcLeft > 0) { arcLeft--; arc.triggerAttackRelease(0.012, t + Math.random() * 0.03, 0.4 + Math.random() * 0.6); }
+          else if (chance(lerp(0.004, 0.03, E.busy()))) arcLeft = 3 + Math.floor(Math.random() * 6);
           if (k % 32 !== 0) return;
           const mel = windMelody(), d = mel ? mel[ping++ % 16] : chance(0.4) ? (ping++ * 5) % 9 : null;
           if (d == null) return;
-          const hz = F * HARM[mood()][clamp(d + 3, 0, 13)];
-          sonar.triggerAttackRelease(hz, 0.1, t, 0.8); E.note(Tone.Frequency(hz).toNote(), t);
+          const hz = F * 2 * HARM[mood()][clamp(d + 3, 0, 13)];
+          sonar.triggerAttackRelease(hz, 0.18, t, 0.8); E.note(Tone.Frequency(hz).toNote(), t);
         },
       };
     },
