@@ -1161,10 +1161,23 @@ const GENRES = {
       const pf = new Tone.Filter({ frequency: 4000, type: "lowpass", rolloff: -12 });
       // Wzór autora: Aphex Twin, #3. Z pomiaru nagrania: prawie czyste tony około 150–300 Hz, trzy dźwięki blisko siebie, akord trzyma wiele sekund,
       // a nad nimi bardzo cichy, długi ogon alikwotów aż do kilku kHz. Stąd ciepło i poczucie wysokości naraz.
-      const wow = new Tone.Vibrato({ frequency: 0.33, depth: 0.05 }).connect(chorus);
-      pf.connect(wow);
-      const pad = vol(new Tone.PolySynth({ maxPolyphony: 24, voice: Tone.MonoSynth, options: { oscillator: { type: "fatcustom", partials: [1, 0.09, 0.06, 0.03, 0.02, 0.012, 0.006, 0.003, 0.002, 0.002, 0.0016, 0.0016, 0.0013, 0.0013, 0.001, 0.001, 0.0007, 0.0007], count: 3, spread: 7 }, envelope: { attack: 2.2, decay: 7, sustain: 0.35, release: 5.5 },
-        filter: { type: "lowpass", Q: 0.7, rolloff: -12 }, filterEnvelope: { attack: 2.2, decay: 5, sustain: 0.6, release: 5.5, baseFrequency: 2400, octaves: 0.6, exponent: 2 } } }), -15).connect(pf);
+      pf.connect(chorus);
+      // Organy stoją w miejscu, a w nagraniu #3 każdy dźwięk pływa niezależnie (około 10 centów) i ma wokół siebie szum. Dlatego trzy osobne głosy,
+      // każdy z własnym, losowo pływającym opóźnieniem, a pod akordem szum strojony do jego dźwięków, który oddycha razem z nim.
+      const padBus = new Tone.Volume(0).connect(pf);
+      const voices = [0, 1, 2].map(() => {
+        const d = new Tone.Delay(0.014, 0.04).connect(padBus);
+        const n = new Tone.Noise("white").start(), lp = new Tone.Filter({ frequency: 2.5, type: "lowpass", rolloff: -24 }), g = new Tone.Gain(0.075);
+        n.connect(lp); lp.connect(g); g.connect(d.delayTime);
+        return { syn: vol(new Tone.PolySynth({ maxPolyphony: 10, voice: Tone.MonoSynth, options: { oscillator: { type: "fatcustom", partials: [1, 0.09, 0.06, 0.03, 0.02, 0.012, 0.006, 0.003, 0.002, 0.002, 0.0016, 0.0016, 0.0013, 0.0013, 0.001, 0.001, 0.0007, 0.0007], count: 3, spread: 7 }, envelope: { attack: 2.2, decay: 7, sustain: 0.35, release: 5.5 },
+        filter: { type: "lowpass", Q: 0.7, rolloff: -12 }, filterEnvelope: { attack: 2.2, decay: 5, sustain: 0.6, release: 5.5, baseFrequency: 2400, octaves: 0.6, exponent: 2 } } }), -15).connect(d), parts: [d, n, lp, g] };
+      });
+      let vi = 0;
+      const play = (f, dur, t, v) => voices[vi++ % 3].syn.triggerAttackRelease(f, dur, t, v);
+      const airOut = new Tone.Volume(-12).connect(padBus);
+      const airEnv = new Tone.AmplitudeEnvelope({ attack: 2.5, decay: 7, sustain: 0.35, release: 5 }).connect(airOut);
+      const air = new Tone.Noise("pink").start();
+      const airF = [0, 1, 2].map(() => { const b = new Tone.Filter({ frequency: 220, type: "bandpass", Q: 9 }).connect(airEnv); air.connect(b); return b; });
       // Bas wchodzi tylko w dłuższe przerwy melodii (autor): miękki, nisko, na dźwięku, na którym melodia skończyła.
       const bass = vol(new Tone.Synth({ oscillator: { type: "custom", partials: [1, 0.22, 0.05] }, envelope: { attack: 0.18, decay: 0.9, sustain: 0.7, release: 2.4 } }), -15).connect(B.lim);
       const SC = { bright: [1, 9 / 8, 5 / 4, 4 / 3, 3 / 2, 5 / 3, 15 / 8], dark: [1, 9 / 8, 6 / 5, 4 / 3, 3 / 2, 8 / 5, 9 / 5] };
@@ -1175,8 +1188,8 @@ const GENRES = {
       const drift = (bar) => (4 + 22 * Math.sin(Math.PI * orbitPhase(psr.orbit)) ** 2) * (1 - Math.abs((bar % 16) / 8 - 1)); // odpływ od tonu pulsara w centach
       let spark = 0, fallback = 0, rests = 0, lastLow = F / 2, root = 0;
       return {
-        mix: { Melodia: pad, "Tło": { output: axisOut }, Impuls: zap, Bas: bass },
-        nodes: [axisOut, axis, zPan, zf, crush, zap, chorus, dry, wow, tail, tailIn, pf, pad, bass], tun: [],
+        mix: { Melodia: { output: padBus }, "Tło": { output: axisOut }, Impuls: zap, Bas: bass },
+        nodes: [axisOut, axis, zPan, zf, crush, zap, chorus, dry, tail, tailIn, pf, padBus, ...voices.flatMap((v) => [v.syn, ...v.parts]), airOut, airEnv, air, ...airF, bass], tun: [],
         step(t, s, bar) {
           const k = spark++;
           zf.frequency.setValueAtTime(lerp(9000, 13000, E.bright()), t);
@@ -1189,7 +1202,9 @@ const GENRES = {
             root = (root + way * WALK[Math.floor(orbitPhase(psr.orbit) * 4) % 4] + 14) % 7;
             const ch = [root, root + 2, root + 4].map((x) => tune(fold(hz(x)), bar));
             lastLow = fold(hz(root)); while (lastLow > 130) lastLow /= 2;
-            pad.triggerAttackRelease(ch, Tone.Time("1m").toSeconds() * 3.8, t, 0.55);
+            const len = Tone.Time("1m").toSeconds() * 3.8;
+            ch.forEach((f, i) => { play(f, len, t, 0.55); airF[i].frequency.rampTo(f, 1.5, t); });
+            airEnv.triggerAttackRelease(len, t);
             E.chord(ch.map((f) => Tone.Frequency(f).toNote()), t);
           }
           // Co pół taktu następna nuta frazy z wiatru. Pad odpływa od tonu pulsara i wraca w ciągu 16 taktów, najdalej w połowie orbity.
@@ -1208,7 +1223,7 @@ const GENRES = {
           }
           rests = 0;
           const n = tune(hz(d), bar);
-          pad.triggerAttackRelease(n, Tone.Time("1m").toSeconds() * 1.1, t, 0.7);
+          play(n, Tone.Time("1m").toSeconds() * 1.1, t, 0.7);
           E.note(Tone.Frequency(n).toNote(), t);
         },
       };
