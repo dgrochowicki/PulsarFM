@@ -12,7 +12,7 @@ Osobny projekt od Aurora Now (`dgrochowicki/Aurora`, prognoza zorzy). Ten sam au
 
 ## Technika
 
-- Jeden plik `index.html` plus próbki w `audio/` (CC0, opis w `audio/README.md`), bez kroku budowania. Język interfejsu: **angielski** (decyzja autora, 8.11.2026); rozmowa z autorem, komentarze w kodzie, narzędzia pod `?dev` i dokumenty zostają po polsku. W interfejsie Chorał to „Chorale”, Pozytywka to „Music box”.
+- Jeden plik `index.html` plus próbki w `audio/` (CC0, opis w `audio/README.md`), bez kroku budowania. Język interfejsu: **angielski** (decyzja autora, 8.11.2026); rozmowa z autorem, komentarze w kodzie, narzędzia pod `?dev` i dokumenty zostają po polsku. W interfejsie Chorał to „Chorale”.
 - Dźwięk: **Tone.js 14.8.49** z jsDelivr (`Tone.Transport`, `Tone.Draw`; nie przechodzić na v15 bez potrzeby, tam zmieniło się API).
 - Obraz: Canvas 2D, własne rysowanie, bez bibliotek.
 - Hosting: GitHub Pages z gałęzi `main` (plik `.nojekyll` jest w repo).
@@ -66,7 +66,7 @@ Automatyczny wybór pulsara używa geolokalizacji i czasu UTC, aby co minutę wy
 | Krab | 33,7 ms | Experimental | od 18.11.2026 (gatunek `crab`, wzór Jon Hassell): bez perkusji; trąbka z tłumikiem Harmon z próbek gra melodię z wiatru, miękkie rozstrojone tło w pogłosie, wysoka iskra co 4. obrót krążąca w stereo; wysokości to wielokrotności 29,6 Hz |
 | PSR B2255+58 | 0,3682 s | Liquid drum and bass | od 17.11.2026 (wcześniej J0437); 162,9 błysku/min, każdy błysk = uderzenie; z ATNF |
 | PSR J0437−4715 | 5,757 ms | Experimental | od 18.11.2026 (gatunek `orbit`): czysty ton 173,69 Hz jako oś, pad z melodią z wiatru, iskra jak w Krabie, miękki bas w dłuższych przerwach; forma z prawdziwej orbity 5,74 dnia (`orbitPhase()`, dane z ATNF) |
-| PSR J1748−2446ad (Terzan 5) | 1,396 ms | Pozytywka (3/4) | 716 Hz |
+| PSR J1748−2446ad (Terzan 5) | 1,396 ms | Experimental | od 18.11.2026 (gatunek `terzan`, kierunek Aphex Twin #3): akord co 4096 obrotów (5,7 s) narasta i rozpływa się w następny, bas idzie dalej, gdy melodia stoi, jedna nuta melodii z wiatru na takt, iskra co 128 obrotów, ton 716 Hz cicho wewnątrz akordu |
 
 Okresy i położenia są z pamięci modelu (literatura/ATNF). **Do zweryfikowania z katalogiem** przy etapie 2.
 
@@ -80,7 +80,7 @@ Pełny opis syntezy i instrumentów: `docs/DZWIEK.md` (aktualizować przy zmiana
 - Vela (11 Hz, poniżej słyszalności): zrobiona 18.11.2026 (gatunek `vela`, flaga `flashes`: zamiast BPM „11.2 flashes/s”), Glitch usunięty;
 - Krab (30 Hz): zrobiony 18.11.2026 (gatunek `crab`); terkot 30 razy na sekundę autor odrzucił („pierdzenie”), gra iskra co 4. obrót; kod Dubu został nieużywany, czeka na wolny pulsar;
 - J0437 (174 Hz): zrobiony 18.11.2026 (gatunek `orbit`), ton pulsara jako oś utworu; gatunek `soon` (cisza) został w kodzie tylko dla testu dymnego;
-- Terzan 5 (716 Hz): wysoki, przenikliwy, zepsuta, rozstrojona pozytywka z melodią, która się rozpada (teraz Music box).
+- Terzan 5 (716 Hz): zrobiony 18.11.2026 (gatunek `terzan`), kierunek #3 zamiast zepsutej pozytywki; autor: „podobny do J0437, ale jednak nieco inny”.
 Liquid (wzór: LTJ Bukem, Calibre) przeniesiony 17.11.2026 na B2255+58 (162,9 BPM, prawie jak wcześniej 162,8). Zasada autora: tempo z samych błysków, bez mnożenia, jeśli się da; pulsar z 81 błyskami na minutę to tempo hip-hopu, R&B, trip-hopu, nie liquidu (B1508+55, 0,7397 s, 81,1/min, kandydat na trip-hop). Dub do decyzji: też może dostać wolny pulsar.
 
 ## Style graficzne
@@ -143,17 +143,16 @@ Na razie muzyka ważniejsza od obrazu. Autorowi podoba się brzmienie gatunków 
 - [ ] Akordy z wiatru wszędzie, ta sama zasada co melodia: wspólne akordy i ich kolejność, tempo zmian przy stylu. Autor jeszcze się zastanawia. Najpierw próba na Ambiencie, porównanie ze słuchu; ostrożnie z Ambientem i Chorałem.
 - [ ] Forma utworu z danych zamiast zegara: gęstość układa warstwy, skręt Bz na południe działa jak drop.
 - [ ] Deep i Geminga: klaps i hi-haty są cicho; inna perkusja i bas w każdym z nich. Szepty to imitacja, ewentualnie prawdziwe nagranie CC0.
-- [ ] Dopracować Chorał, Dub (przy 111 BPM i z melodią w basie) i Pozytywkę: wciąż stare brzmienia z syntezy.
-- [ ] Szybkie pulsary po kolei na muzykę eksperymentalną (podział wyżej, 17.11.2026). Liquid już na B2255+58, Vela, Krab i J0437 zrobione 18.11.2026; został Terzan 5.
+- [ ] Dopracować Chorał i Dub (przy 111 BPM i z melodią w basie): wciąż stare brzmienia z syntezy.
+- [x] Szybkie pulsary po kolei na muzykę eksperymentalną (podział wyżej, 17.11.2026). Liquid na B2255+58; Vela, Krab, J0437 i Terzan 5 zrobione 18.11.2026.
 - [ ] Szybkie pulsary (Vela, Krab, J0437, Terzan 5): animacja pierścienia zostaje (autor, 16.11.2026: „w sumie fajnie”; prawdziwych 11–716 Hz oko nie zobaczy, a szybkie miganie byłoby niebezpieczne), ale muzykę „z nich” trzeba dopracować. Pomysł: skoro słychać je jako ton, zrobić z tonu pulsara oś utworu (dron, wokół którego wszystko się buduje), a nie tylko tło.
-- [ ] Terzan 5, następny i ostatni szybki pulsar (autor, 18.11.2026): kierunek Aphex Twin, „#3” (bez kopiowania utworu): 1) dużo wolniej, nowy akord co około 6 s; 2) każdy akord narasta przez kilka sekund i rozpływa się w następny; 3) dolne głosy idą dalej, gdy melodia stoi; 4) iskra zostaje, bo to wyznacznik pulsara. Pomysł zastępuje wcześniejszą „zepsutą pozytywkę”, chyba że autor zdecyduje inaczej.
 - [ ] J0437, pad: autor (18.11.2026): zostaje na razie, ale „organowy charakter mi nie siedzi”; „czasem jak dźwięk się zaczyna, jest fajnie”, więc przy powrocie zacząć od tego, co dzieje się w pierwszych sekundach nuty, i utrzymać to dłużej. Wzór: Aphex Twin, #3 (nagranie autora `docs/research/AT#3.m4a`, nie commitować). Z pomiaru: prawie czyste tony 150–300 Hz, każdy pływa o 5–14 centów, szum wokół dźwięków, cichy ogon alikwotów do kilku kHz. Odrzucone: piła, PWM z taśmą, ciemniejszy filtr.
 - [ ] Vela, bas: autor (18.11.2026): „to jeszcze nie to”, wrócić do niego później. Teraz: sinus 45 Hz (4 × F) z 2. harmoniczną, szybkie wejście, trwa około 3 s, co 64 błyski i przy nowym pomiarze (`bassBus` −7 dB). Odrzucone wcześniej: drżenie („bububu”), buczenie piły, opadająca wysokość („jak bęben”), wolne wejście („jak pad”), za cichy („ginie w tle”).
 - [ ] Liquid: autor chce porównać z ulubionymi utworami LTJ Bukema i Calibre (nagranie telefonem do `docs/`).
 
 **Charakter techniczny i ekran „Signal” (autor, 10.11.2026)**
 - [ ] Pomysły zebrane w `docs/POMYSLY.md`: typografia danych, nazwa sondy i licznik pakietów w pasku Live, czas przelotu wiatru, osobny ekran „Signal” (dane → dźwięk), pięciolinia z wykresu wiatru, nazwa i domeny. Autor najpierw projektuje w Figmie, potem wdrażamy.
-- [ ] Wyrównać głośność gatunków i dodać limiter (suwak głośności niepotrzebny). Gatunek ma pole `level` (dB na całej szynie gatunku, 18.11.2026): Vela −4, Krab −7,5; cel to około −36 dB z A-ważeniem, jak większość pulsarów.
+- [ ] Wyrównać głośność gatunków i dodać limiter (suwak głośności niepotrzebny). Gatunek ma pole `level` (dB na całej szynie gatunku, 18.11.2026): Vela −4, Krab −7,5; cel to około −36 dB z A-ważeniem, jak większość pulsarów. Trąbka w Krabie −18 dB (autor, 18.11.2026): przy −14 dominowała na głośnikach laptopa, przy −21 ginęła. Kiedyś sprawdzić wszystkie gatunki na lepszych głośnikach.
 - [ ] Pomysł autora (18.11.2026), na kiedyś: przycisk „losowo” jak w Spotify, który co około 3 minuty płynnie przechodzi (mix) na inny pulsar.
 
 **Później / do rozważenia**

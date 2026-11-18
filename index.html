@@ -390,7 +390,7 @@ const PULSARS = [
   // Na mapie zostaje, ale nie gra, dopóki nie ma swojej eksperymentalnej muzyki.
   { id: "J0437", genre: "orbit", name: "PSR J0437−4715", short: "J0437", P: 0.005757452, ra: 4.621, dec: -47.25, orbit: { pb: 5.7410459, t0: 54530.1722 }, // orbita z ATNF: okres w dniach, T0 w MJD
     dist: 0.157, desc: "The nearest and brightest millisecond pulsar, spinning 174 times a second. It circles a white dwarf every 5.7 days and keeps time so precisely that astronomers use it to listen for gravitational waves." },
-  { id: "Ter5", genre: "musicbox", name: "PSR J1748−2446ad", short: "Terzan 5", P: 0.00139595, ra: 17.810, dec: -24.77,
+  { id: "Ter5", genre: "terzan", name: "PSR J1748−2446ad", short: "Terzan 5", P: 0.00139595, ra: 17.810, dec: -24.77,
     dist: 6.62, desc: "The fastest-spinning pulsar known: 716 turns a second. It lives in Terzan 5, a dense cluster of stars near the centre of our Galaxy, and circles a companion star every 26 hours." },
 ];
 // Gdzie na orbicie jest teraz pulsar podwójny: 0–1 od periastronu, z prawdziwego czasu (MJD).
@@ -1100,7 +1100,7 @@ const GENRES = {
       const pad = new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fatsine", count: 4, spread: 32 }, envelope: { attack: 5, decay: 2, sustain: 0.8, release: 8 } }).connect(pf);
       // Trąbka z tłumikiem Harmon: prawdziwe próbki (VSCO 2 CE), długie nuty z echem i pogłosem.
       const echo = new Tone.FeedbackDelay({ delayTime: "4n.", feedback: 0.42, wet: 1 }).connect(B.rev);
-      const tpt = vol(sampler({ "A#3": "trabka-As3", C4: "trabka-C4", "D#4": "trabka-Ds4", "G#4": "trabka-Gs4", "A#4": "trabka-As4", D5: "trabka-D5", F5: "trabka-F5", A5: "trabka-A5" }, 0.9), -14); // autor: zniknęła pod tłem przy -21
+      const tpt = vol(sampler({ "A#3": "trabka-As3", C4: "trabka-C4", "D#4": "trabka-Ds4", "G#4": "trabka-Gs4", "A#4": "trabka-As4", D5: "trabka-D5", F5: "trabka-F5", A5: "trabka-A5" }, 0.9), -18); // autor: zniknęła pod tłem przy -21, przy -14 dominowała na głośnikach laptopa
       tpt.connect(B.lim); tpt.connect(B.side(echo)); tpt.connect(B.rev);
       const TPT = { bright: [8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 22, 24], dark: [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19, 21, 22, 23] };
       let fallback = 0;
@@ -1314,32 +1314,82 @@ const GENRES = {
     make() { return { mix: {}, nodes: [], tun: [], step() {} }; },
   },
 
-  // Terzan 5: 716 obrotów na sekundę, wysoki pisk. Pozytywka w metrum na trzy.
-  musicbox: {
-    label: "Music box", barSteps: 12, scales: ["major", "aeolian"],
+  // Terzan 5: 716 obrotów na sekundę. Kierunek autora (18.11.2026): Aphex Twin, #3, bez kopiowania utworu. Bardzo wolno: nowy akord co 4096 obrotów (około 5,7 s),
+  // każdy narasta przez kilka sekund i rozpływa się w następny, dolny głos idzie dalej, gdy melodia stoi. Iskra zostaje, bo to wyznacznik pulsara.
+  terzan: {
+    label: "Experimental", pulseBurst: true, flashes: true, scales: ["lydian", "aeolian"],
+    tuning: (psr) => `pure intervals from ${fmt(1 / psr.P, 1)} Hz`,
+    how: (psr) => {
+      const rate = bpmFor(psr) * 4 / 60, turns = Math.round(1 / rate / psr.P);
+      return `No drums and almost no hurry. Every ${turns * 32} turns of the pulsar, about ${fmt(turns * 32 * psr.P, 1)} seconds, a new chord swells up and melts into the next, with the low voice still moving underneath. The solar wind writes the slow melody on top. Once every ${turns} turns there is a high electric spark, ${fmt(rate, 1)} a second, and inside each chord you can faintly hear the pulsar itself, a ${fmt(1 / psr.P, 0)} Hz tone. Every pitch is a pure interval from that tone.`;
+    },
     make(B) {
-      const box = vol(new Tone.PolySynth(Tone.FMSynth, { harmonicity: 8, modulationIndex: 2.5, envelope: { attack: 0.001, decay: 1.4, sustain: 0, release: 1.2 }, modulationEnvelope: { attack: 0.001, decay: 0.4, sustain: 0, release: 0.3 } }), -9).connect(B.side(B.rev));
-      const lowF = new Tone.Filter(1200, "lowpass").connect(B.rev);
-      const low = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "triangle" }, envelope: { attack: 0.005, decay: 0.6, sustain: 0, release: 0.5 } }), -15).connect(lowF);
-      const motif = new Motif(12, [7, 16], 0.55);
-      const prog = [0, 4, 5, 3];
+      const F = 1 / psr.P; // 716,4 Hz
+      // Iskra: filtr stoi zawsze na całkowitej wielokrotności obrotu, wiatr wybiera którą.
+      const zPan = new Tone.Panner(0).connect(B.lim);
+      const zf = new Tone.Filter({ frequency: F * 16, type: "bandpass", Q: 1.5 }).connect(zPan);
+      const crush = new Tone.BitCrusher(4).connect(zf);
+      const zap = vol(new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.0003, decay: 0.004, sustain: 0 } }), -3).connect(crush);
+      // Tło: czysty ton pulsara, który pojawia się tylko wewnątrz akordu, razem z jego narastaniem.
+      const axisOut = new Tone.Volume(-36).connect(B.rev);
+      const axisEnv = new Tone.AmplitudeEnvelope({ attack: 3.2, decay: 1, sustain: 0.7, release: 4 }).connect(axisOut);
+      const axis = new Tone.Oscillator(F, "sine").connect(axisEnv).start();
+      // Głos pływa jak taśma: wolna fala i losowe drżenie opóźnienia, razem około 5–10 centów, każdy głos inaczej.
+      const wander = (out, rate) => {
+        const d = new Tone.Delay(0.018, 0.05).connect(out);
+        const lfo = new Tone.LFO({ frequency: rate, min: -0.005, max: 0.005 }).connect(d.delayTime).start();
+        const n = new Tone.Noise("white").start(), lp = new Tone.Filter({ frequency: 2.5, type: "lowpass", rolloff: -24 }), g = new Tone.Gain(0.06);
+        n.connect(lp); lp.connect(g); g.connect(d.delayTime);
+        return { in: d, parts: [d, lfo, n, lp, g] };
+      };
+      // Akordy: barwa żyje, bo filtr otwiera się razem z narastaniem i zamyka przy wybrzmiewaniu. Trójkąt zamiast zestawu alikwotów, żeby nie szło w organy.
+      const padBus = new Tone.Volume(0);
+      padBus.connect(B.side(B.rev));
+      const padDry = new Tone.Gain(0.4).connect(B.side(B.lim)); padBus.connect(padDry);
+      const padOpts = (attack, release, base, oct) => ({ maxPolyphony: 4, voice: Tone.MonoSynth, options: { oscillator: { type: "fattriangle", count: 2, spread: 11 }, envelope: { attack, decay: 3, sustain: 0.75, release },
+        filter: { type: "lowpass", Q: 0.8, rolloff: -12 }, filterEnvelope: { attack: attack * 1.15, decay: 3, sustain: 0.45, release, baseFrequency: base, octaves: oct, exponent: 2 } } });
+      const voices = [0.073, 0.097, 0.131].map((rate) => { const w = wander(padBus, rate); return { syn: vol(new Tone.PolySynth(padOpts(3.2, 6, 260, 2.4)), -19).connect(w.in), parts: w.parts }; });
+      // Bas: dolny głos akordu, szybciej wchodzi, bo przechodzi po dźwiękach także w połowie akordu.
+      const lowW = wander(B.lim, 0.053);
+      const low = vol(new Tone.PolySynth(padOpts(1.3, 4.5, 180, 1.4)), -13).connect(lowW.in);
+      // Melodia: miękki, szklisty dźwięk wysoko, blisko tonu pulsara, niesiony przez długie echo.
+      const echo = new Tone.FeedbackDelay({ delayTime: "2n.", feedback: 0.4, wet: 0.35 }).connect(B.rev);
+      const lead = vol(new Tone.PolySynth(Tone.FMSynth, { harmonicity: 2, modulationIndex: 1.1, oscillator: { type: "sine" }, modulation: { type: "sine" }, envelope: { attack: 0.35, decay: 3, sustain: 0.2, release: 5 }, modulationEnvelope: { attack: 0.3, decay: 2, sustain: 0.1, release: 3 } }), -8).connect(B.side(echo));
+      const SC = { bright: [1, 9 / 8, 5 / 4, 4 / 3, 3 / 2, 5 / 3, 15 / 8], dark: [1, 9 / 8, 6 / 5, 4 / 3, 3 / 2, 8 / 5, 9 / 5] };
+      const hz = (d) => F * 2 ** Math.floor(d / 7) * SC[E.dark() ? "dark" : "bright"][((d % 7) + 7) % 7];
+      const into = (f, lo) => { while (f >= lo * 2) f /= 2; while (f < lo) f *= 2; return f; };
+      let spark = 0, root = 0, fallback = 0, vi = 0;
       return {
-        mix: { Melodia: box, Bas: low },
-        nodes: [box, lowF, low], tun: [box, low],
+        mix: { Melodia: lead, Akordy: { output: padBus }, "Tło": { output: axisOut }, Impuls: zap, Bas: low },
+        nodes: [zPan, zf, crush, zap, axisOut, axisEnv, axis, padBus, padDry, ...voices.flatMap((v) => [v.syn, ...v.parts]), low, ...lowW.parts, echo, lead], tun: [],
         step(t, s, bar) {
-          const deg = prog[Math.floor(bar / 2) % 4];
-          if (s === 0) { low.triggerAttackRelease(E.n(deg, 0), "4n", t, 0.7); Tone.Draw.schedule(() => vis.beat(), t); if (bar % 2 === 0) E.chord(chordDegs(deg, 3).map((x) => E.n(x, 0)), t); }
-          if (s === 4 || s === 8) low.triggerAttackRelease([E.n(deg + 2, 0), E.n(deg + 4, 0)], "8n", t, 0.45);
-          const mel = windMelody(), mi = ((bar * 12 + s) >> 1) % 16; // fraza 16 ósemek przechodzi przez takty na 3/4
-          if (mel ? s % 2 === 0 : s % 2 === 0 || E.busy() > 0.5) {
-            const d = mel ? (mel[mi] != null ? 7 + mel[mi] : null) : motif.at(s);
-            if (d != null) {
-              const n = E.n(d, 0);
-              // Pozytywka lekko rozstrojona i nierówna, jak mechanizm.
-              box.triggerAttackRelease(n, "8n", t + Math.random() * 0.012, 0.5 + Math.random() * 0.3); E.note(n, t);
-            }
+          const k = spark++;
+          zf.frequency.setValueAtTime(F * Math.round(lerp(13, 18, E.bright())), t);
+          zPan.pan.setValueAtTime(clamp(byPan() + 0.7 * Math.sin(k * Math.PI / 32), -1, 1), t);
+          zap.triggerAttackRelease(0.004, t, (k % 8 ? 0.45 : 0.95) + Math.random() * 0.05);
+          const len = Tone.Time("1m").toSeconds();
+          // Nowy akord co dwa takty. Idzie w stronę, w którą zmienił się wiatr; przy gęstym wietrze dalej.
+          if (s === 0 && bar % 2 === 0) {
+            const raw = windDegrees(0, 7), way = raw ? Math.sign(raw[15] - raw[0]) || 1 : 1;
+            root = (root + way * (E.busy() > 0.4 ? 3 : 2) + 14) % 7;
+            const ch = [root + 2, root + 4, root + 6].map((d) => into(hz(d), 180));
+            ch.forEach((f) => voices[vi++ % 3].syn.triggerAttackRelease(f, len * 1.9, t, 0.6));
+            low.triggerAttackRelease(into(hz(root), 87), len * 0.95, t, 0.8);
+            axisEnv.triggerAttackRelease(len * 1.6, t);
+            E.chord(ch.map((f) => Tone.Frequency(f).toNote()), t);
+            Tone.Draw.schedule(() => vis.beat(), t);
           }
-          if (s === 0 && bar % 4 === 3) motif.mutate(0.6);
+          // W połowie akordu dolny głos schodzi lub wchodzi na inny dźwięk, także gdy melodia stoi.
+          if (s === 0 && bar % 2 === 1) low.triggerAttackRelease(into(hz(root + (bar % 4 === 1 ? 4 : 2)), 87), len * 0.95, t, 0.7);
+          // Jedna nuta frazy z wiatru na takt.
+          if (s !== 0) return;
+          const mel = windMelody();
+          let d = mel ? mel[bar % 16] : null;
+          if (!mel && chance(0.5)) d = [2, 4, 3, 5, 1, 4][fallback++ % 6];
+          if (d == null) return;
+          const n = into(hz(d), F / 2);
+          lead.triggerAttackRelease(n, len * 0.9, t, 0.6);
+          E.note(Tone.Frequency(n).toNote(), t);
         },
       };
     },
