@@ -138,7 +138,7 @@
   .info-pop .handle { width: 36px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.3); margin: 0 auto 18px; }
   .info-pop .dot { width: 10px; height: 10px; background: rgba(238,240,246,0.45); margin-bottom: 16px; }
   .info-pop .info-head b { font-size: 21px; font-weight: 500; }
-  .info-pop .info .tag { margin-top: 4px; }
+  .info-pop .info .tag { margin-top: 10px; }
   .info-pop .info dl { margin-top: 18px; gap: 4px 0; }
   .info-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
   .info-head b { font-size: 14px; font-weight: 500; }
@@ -147,8 +147,7 @@
   .info dl { display: grid; grid-template-columns: 100px 1fr; gap: 3px 0; margin: 14px 0 0; }
   .info dt { color: var(--dim); }
   .info dd { margin: 0; color: var(--text); font-variant-numeric: tabular-nums; }
-  .info .about { margin: 14px 0 0; color: rgba(238,240,246,0.8); }
-  .info .how { margin-top: 12px; color: var(--dim); }
+  .info .how { margin-top: 18px; color: var(--dim); }
   .info .how span { display: block; color: rgba(238,240,246,0.8); margin-bottom: 2px; }
 
   /* Dane: kolumna po lewej. */
@@ -368,40 +367,31 @@ document.getElementById("play").innerHTML = ICONS.play;
 
 // ---------- Pulsary ----------
 // Okresy i położenia z literatury (katalog ATNF). ra w godzinach, dec w stopniach.
+// dist: odległość w kpc z katalogu ATNF (2.6.1, pole DIST), na karcie w latach świetlnych; desc: opis na karcie (autor, 18.11.2026).
 const PULSARS = [
   { id: "B0329", genre: "ambient", name: "PSR B0329+54", short: "B0329+54", P: 0.714520, ra: 3.550, dec: 54.58,
-    tag: "One of the brightest pulsars in the northern sky.",
-    about: "A calm, steady march." },
+    dist: 1.68, desc: "The brightest pulsar in the northern sky, in the constellation Camelopardalis. Found in 1968, it is loud enough that radio amateurs with a big dish can hear its ticks themselves." },
   { id: "B1919", genre: "choral", name: "PSR B1919+21", short: "B1919+21", P: 1.337302, ra: 19.362, dec: 21.88,
-    tag: "The first pulsar ever found (Jocelyn Bell Burnell, 1967).",
-    about: "Slow and solemn." },
+    dist: 0.3, desc: "The first pulsar ever found. Jocelyn Bell Burnell spotted its pulses in 1967 at Cambridge; they were so regular that it was nicknamed LGM-1, for “little green men”. A plot of its pulses became the cover of Joy Division’s Unknown Pleasures." },
   { id: "J2144", genre: "drone", name: "PSR J2144−3933", short: "J2144", P: 8.509827, ra: 21.737, dec: -39.57,
-    tag: "One of the slowest pulsars known: one flash every 8.5 s.",
-    about: "Near silence between the beats." },
+    dist: 0.16, desc: "One of the slowest radio pulsars known: it turns once every 8.5 seconds. By theory a neutron star this slow should have stopped shining in radio waves long ago, yet it still does." },
   { id: "Geminga", genre: "techno", name: "Geminga", short: "Geminga", P: 0.237099, ra: 6.565, dec: 17.77,
-    tag: "A nearby pulsar that shines in gamma rays.",
-    about: "Four flashes a second: a quick, nervous pulse." },
+    dist: 0.19, desc: "A neutron star in Gemini, bright in gamma rays and X-rays but almost silent in radio. Its name is a pun in Milanese dialect: “gh’è minga”, “it isn’t there”. About 300,000 years old and one of the nearest pulsars." },
   { id: "B0950", genre: "deep", name: "PSR B0950+08", short: "B0950+08", P: 0.253065, ra: 9.886, dec: 7.93,
-    tag: "A bright, nearby pulsar.",
-    about: "It flashes four times a second." },
+    dist: 0.261, desc: "One of the nearest and brightest pulsars in the radio sky, found in 1968, the year after the first. It is old and calm: about 17 million years, judging by how slowly its spin winds down." },
   { id: "Vela", genre: "vela", name: "Vela Pulsar", short: "Vela", P: 0.089328, ra: 8.589, dec: -45.18,
-    tag: "What is left of a supernova in the constellation Vela.",
-    about: "11 flashes a second is already a hum, not a rhythm." },
+    dist: 0.28, desc: "Born in a supernova about 11,000 years ago, it sits inside the Vela supernova remnant. It is the brightest pulsar in gamma rays and famous for its glitches: every few years it suddenly spins a little faster." },
   { id: "Crab", genre: "dub", name: "Crab Pulsar", short: "Crab", P: 0.03374, ra: 5.576, dec: 22.01,
-    tag: "The heart of the Crab Nebula, left by the supernova of 1054.",
-    about: "30 turns a second: the deepest bass." },
+    dist: 2.0, desc: "The heart of the Crab Nebula, left by a supernova that Chinese astronomers recorded in 1054. It shines from radio waves to gamma rays and powers the glow of the whole nebula." },
   // Liquid przeniesiony z J0437 (autor, 17.11.2026): wolne pulsary grają zwykłe gatunki, szybkie dostaną muzykę eksperymentalną.
   // Sam błyska 162,9 razy na minutę, bez mnożenia (autor: 81 BPM to hip-hop, nie liquid).
   { id: "B2255", genre: "glass", name: "PSR B2255+58", short: "B2255+58", P: 0.368246, ra: 22.966, dec: 59.15,
-    tag: "A pulsar in Cepheus that never sets over Europe.",
-    about: "163 flashes a minute: every flash is a beat." },
+    dist: 3.0, desc: "A pulsar in Cepheus, so far north that it never sets over Europe. Found in 1972, it is about a million years old." },
   // Na mapie zostaje, ale nie gra, dopóki nie ma swojej eksperymentalnej muzyki.
   { id: "J0437", genre: "soon", name: "PSR J0437−4715", short: "J0437", P: 0.005757452, ra: 4.621, dec: -47.25,
-    tag: "The nearest and brightest millisecond pulsar.",
-    about: "It spins 174 times a second." },
+    dist: 0.157, desc: "The nearest and brightest millisecond pulsar, spinning 174 times a second. It circles a white dwarf every 5.7 days and keeps time so precisely that astronomers use it to listen for gravitational waves." },
   { id: "Ter5", genre: "musicbox", name: "PSR J1748−2446ad", short: "Terzan 5", P: 0.00139595, ra: 17.810, dec: -24.77,
-    tag: "The fastest pulsar known, in the globular cluster Terzan 5.",
-    about: "716 turns a second." },
+    dist: 6.62, desc: "The fastest-spinning pulsar known: 716 turns a second. It lives in Terzan 5, a dense cluster of stars near the centre of our Galaxy, and circles a companion star every 26 hours." },
 ];
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 const NOTE_PL = { "C#": "Cis", "D#": "Dis", "F#": "Fis", "G#": "Gis", "A#": "B", B: "H" };
@@ -2126,20 +2116,26 @@ function drawSky(time) {
   }
 }
 
+// Karta pulsara wg projektu autora (18.11.2026): nazwa, opis, tabelka (obrót, błyski, odległość, gatunek, tempo, tonacja), jak gra.
+function lightYears(kpc) { const ly = kpc * 3261.56; return "about " + (Math.round(ly / (ly < 1000 ? 10 : 100)) * (ly < 1000 ? 10 : 100)).toLocaleString("en-US") + " light-years"; }
+function flashesTxt(p) {
+  const r = 1 / p.P;
+  if (p.P >= 0.5) return `${fmt(60 * r, 1)} a minute`;
+  return `${fmt(r, r >= 100 ? 0 : 1)} a second · ${fmt(r, r >= 100 ? 0 : 1)} Hz`;
+}
 function infoHTML(close) {
-  const f = psrFacts(psr), label = GENRES[psr.genre].label;
-  if (GENRES[psr.genre].flashes) return `<div class="info"><div class="handle"></div><div class="dot"></div><div class="info-head"><div><b>${psr.name}</b><div class="tag">${psr.tag}</div></div></div>
-    <dl><dt>Genre</dt><dd>${label}</dd><dt>Tempo</dt><dd>none · ${fmt(1 / psr.P, 2)} flashes/s</dd><dt>Rotation</dt><dd>${f.per}</dd><dt>Tuning</dt><dd>multiples of ${fmt(1 / psr.P, 2)} Hz</dd></dl>
-    <p class="about">${psr.about}</p>
-    <div class="how"><span>How it plays</span>No tempo and no drums: every flash is a high electric spark, ${fmt(1 / psr.P, 1)} a second, jumping left and right, right between rhythm and pitch. A long, low bass hums now and then and with each new reading from the spacecraft, which also changes the quiet chord in the background. A sonar ping plays the melody written by the solar wind, and a soft beep keeps time like a monitor. Every pitch is a whole multiple of the spin.</div></div>`;
-  if (GENRES[psr.genre].silent) return `<div class="info"><div class="handle"></div><div class="dot"></div><div class="info-head"><div><b>${psr.name}</b><div class="tag">${psr.tag}</div></div></div>
-    <dl><dt>Genre</dt><dd>${label}</dd><dt>Rotation</dt><dd>${f.per}</dd></dl>
-    <p class="about">${psr.about}</p>
-    <div class="how"><span>How it plays</span>Silent for now. The fastest pulsars are getting their own dark, experimental music, built on their own tone.</div></div>`;
-  return `<div class="info"><div class="handle"></div><div class="dot"></div><div class="info-head"><div><b>${psr.name}</b><div class="tag">${psr.tag}</div></div></div>
-    <dl><dt>Genre</dt><dd>${label}</dd><dt>Tempo</dt><dd>${f.bpm} BPM · ${f.beat}</dd><dt>Rotation</dt><dd>${f.per}</dd><dt>Key</dt><dd>${f.key} · ${f.keySub}</dd></dl>
-    <p class="about">${psr.about}</p>
-    <div class="how"><span>How it plays</span>${f.why}</div></div>`;
+  const f = psrFacts(psr), g = GENRES[psr.genre];
+  const rows = [["Rotation", f.per], ["Flashes", flashesTxt(psr)], ["Distance", lightYears(psr.dist)], ["Genre", g.label]];
+  let how = f.why;
+  if (g.flashes) {
+    rows.push(["Tempo", "no beat"], ["Tuning", `multiples of ${fmt(1 / psr.P, 2)} Hz`]);
+    how = `No tempo and no drums: every flash is a high electric spark, ${fmt(1 / psr.P, 1)} a second, jumping left and right, right between rhythm and pitch. A long, low bass hums now and then and with each new reading from the spacecraft, which also changes the quiet chord in the background. A sonar ping plays the melody written by the solar wind, and a soft beep keeps time like a monitor. Every pitch is a whole multiple of the spin.`;
+  } else if (g.silent) {
+    how = "Silent for now. The fastest pulsars are getting their own dark, experimental music, built on their own tone.";
+  } else rows.push(["Tempo", `${f.bpm} BPM · ${f.beat}`], ["Key", `${f.key} · ${f.keySub}`]);
+  return `<div class="info"><div class="handle"></div><div class="dot"></div><div class="info-head"><div><b>${psr.name}</b><div class="tag">${psr.desc}</div></div></div>
+    <dl>${rows.map(([t, d]) => `<dt>${t}</dt><dd>${d}</dd>`).join("")}</dl>
+    <div class="how"><span>How it plays</span>${how}</div></div>`;
 }
 function renderCard() {
   const f = psrFacts(psr);
