@@ -980,7 +980,7 @@ const GENRES = {
   // wysoka iskra na każdy błysk, co jakiś czas gładki niski bas, sonar jako melodia, piknięcie jak monitor w szpitalu.
   // Wszystkie wysokości to wielokrotności częstotliwości Veli.
   vela: {
-    label: "Experimental", tempoFloor: 160, pulseBurst: true, flashes: true, bzBass: 2, scales: ["lydian", "phrygian"],
+    label: "Experimental", level: -4, tempoFloor: 160, pulseBurst: true, flashes: true, bzBass: 2, scales: ["lydian", "phrygian"],
     how: (psr) => `No tempo and no drums: every flash is a high electric spark, ${fmt(1 / psr.P, 1)} a second, jumping left and right, right between rhythm and pitch. A long, low bass hums now and then and with each new reading from the spacecraft, which also changes the quiet chord in the background. A sonar ping plays the melody written by the solar wind, and a soft beep keeps time like a monitor. Every pitch is a whole multiple of the spin.`,
     make(B) {
       const F = 1 / psr.P; // 11,19 Hz
@@ -1077,14 +1077,14 @@ const GENRES = {
   // Bez perkusji. Terkot to sam pulsar: wąskie impulsy 29,6 na sekundę, na granicy słyszalności. Wszystkie wysokości to wielokrotności
   // częstotliwości Kraba, więc trąbka i pady grają trochę „obok” naszych nut. Trąbka z próbek (autor: syntetyczna brzmiała jak syntezator).
   crab: {
-    label: "Experimental", pulseBurst: true, flashes: true, scales: ["dorian", "phrygian"],
+    label: "Experimental", level: -5.5, pulseBurst: true, flashes: true, scales: ["dorian", "phrygian"],
     how: (psr) => `No drums. The pulsar itself is the electric rattle underneath: ${fmt(1 / psr.P, 1)} crackles a second, right at the edge of hearing. Hypnotic pads breathe slowly over it, ${fmt(1 / psr.P / 64, 2)} times a second, the spin slowed down 64 times. A muted trumpet plays the melody written by the solar wind, in long notes with echo. Every pitch is a whole multiple of the spin.`,
     make(B) {
       const F = 1 / psr.P; // 29,6 Hz
       const mood = () => (E.dark() ? "dark" : "bright");
       // Terkot (autor: bardziej syntetyczny, trzaskający): szum otwierany na 1,7 ms przy każdym obrocie, przez bitcrusher, a pod spodem
       // te same impulsy nisko jako podstawa. Prędkość wiatru: jasność trzasków.
-      const rOut = new Tone.Volume(-25).connect(B.lim); // autor: za głośno
+      const rOut = new Tone.Volume(-30).connect(B.lim); // autor: za głośno, ciszej jak impuls w Veli
       const rf = new Tone.Filter({ frequency: 3000, type: "lowpass", Q: 0.7 }).connect(rOut);
       const crushR = new Tone.BitCrusher(3).connect(rf);
       const gate = new Tone.Gain(0).connect(crushR);
@@ -1097,18 +1097,18 @@ const GENRES = {
       body.connect(bf0);
       // Pady: cztery akordy w kółko, co 2 takty; oddychają w rytmie pulsara zwolnionego 64 razy. Gęstość wiatru: ile głosów.
       const PADS = { bright: [[6, 8, 10, 12, 15], [5, 8, 10, 12, 15], [6, 9, 12, 15, 18], [4, 8, 10, 14, 16]], dark: [[6, 8, 11, 14, 17], [5, 8, 10, 13, 16], [6, 9, 11, 15, 19], [4, 7, 10, 13, 17]] };
-      const pOut = new Tone.Volume(-21);
+      const pOut = new Tone.Volume(-17); // autor: tło trochę głośniej
       pOut.connect(B.rev); pOut.connect(B.lim);
       const trem = new Tone.Tremolo(F / 64, 0.55).connect(pOut).start();
       const pf = new Tone.Filter(900, "lowpass").connect(trem);
       const pad = new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fattriangle", count: 3, spread: 18 }, envelope: { attack: 2.5, decay: 1, sustain: 0.85, release: 4 } }).connect(pf);
       // Trąbka z tłumikiem Harmon: prawdziwe próbki (VSCO 2 CE), długie nuty z echem i pogłosem.
       const echo = new Tone.FeedbackDelay({ delayTime: "4n.", feedback: 0.42, wet: 1 }).connect(B.rev);
-      const tpt = vol(sampler({ "A#3": "trabka-As3", C4: "trabka-C4", "D#4": "trabka-Ds4", "G#4": "trabka-Gs4", "A#4": "trabka-As4", D5: "trabka-D5", F5: "trabka-F5", A5: "trabka-A5" }, 0.9), -16);
+      const tpt = vol(sampler({ "A#3": "trabka-As3", C4: "trabka-C4", "D#4": "trabka-Ds4", "G#4": "trabka-Gs4", "A#4": "trabka-As4", D5: "trabka-D5", F5: "trabka-F5", A5: "trabka-A5" }, 0.9), -21);
       tpt.connect(B.lim); tpt.connect(B.side(echo)); tpt.connect(B.rev);
       const TPT = { bright: [8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 22, 24], dark: [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19, 21, 22, 23] };
       let fallback = 0;
-      const blow = (hz, dur, t) => { tpt.triggerAttackRelease(hz, dur, t, 0.8); E.note(Tone.Frequency(hz).toNote(), t); };
+      const blow = (hz, dur, t) => { if (!tpt.loaded) return; tpt.triggerAttackRelease(hz, dur, t, 0.8); E.note(Tone.Frequency(hz).toNote(), t); };
       return {
         mix: { Melodia: tpt, "Tło": { output: pOut }, Impuls: { output: rOut } },
         nodes: [rOut, rf, crushR, gate, hiss, saw, tick, body, bf0, pOut, trem, pf, pad, echo, tpt], tun: [],
@@ -1376,7 +1376,9 @@ function applyPulsarAudio() {
   // Tempo przed make(): opóźnienia w nutach („8n.”) przeliczają się przy tworzeniu.
   Tone.Transport.bpm.value = bpmFor(psr);
   A.delay.delayTime.rampTo(Tone.Time("8n.").toSeconds(), 0.2);
-  const bus = { lim: new Tone.Gain().connect(A.lim), rev: new Tone.Gain().connect(A.rev), delay: new Tone.Gain().connect(A.delay) };
+  // level: wyrównanie głośności gatunku w dB (autor, 18.11.2026: po przełączeniu pulsara nie trzeba ściszać), proporcje warstw bez zmian.
+  const lv = Tone.dbToGain(def.level || 0);
+  const bus = { lim: new Tone.Gain(lv).connect(A.lim), rev: new Tone.Gain(lv).connect(A.rev), delay: new Tone.Gain(lv).connect(A.delay) };
   // Stereo z By: gatunek przepina przez B.side() tylko głos melodii (nie bas, stopę ani puls, te zostają na środku).
   const panners = [];
   Object.defineProperties(bus, {

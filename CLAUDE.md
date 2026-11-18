@@ -150,7 +150,8 @@ Na razie muzyka ważniejsza od obrazu. Autorowi podoba się brzmienie gatunków 
 
 **Charakter techniczny i ekran „Signal” (autor, 10.11.2026)**
 - [ ] Pomysły zebrane w `docs/POMYSLY.md`: typografia danych, nazwa sondy i licznik pakietów w pasku Live, czas przelotu wiatru, osobny ekran „Signal” (dane → dźwięk), pięciolinia z wykresu wiatru, nazwa i domeny. Autor najpierw projektuje w Figmie, potem wdrażamy.
-- [ ] Wyrównać głośność gatunków i dodać limiter (suwak głośności niepotrzebny).
+- [ ] Wyrównać głośność gatunków i dodać limiter (suwak głośności niepotrzebny). Gatunek ma pole `level` (dB na całej szynie gatunku, 18.11.2026): Vela −4, Krab −5,5; cel to około −36 dB z A-ważeniem, jak większość pulsarów.
+- [ ] Pomysł autora (18.11.2026), na kiedyś: przycisk „losowo” jak w Spotify, który co około 3 minuty płynnie przechodzi (mix) na inny pulsar.
 
 **Później / do rozważenia**
 - [ ] Porównanie z Lyria RealTime (Google, Gemini API): model AI sterowany opisem gatunku + `bpm`, `density`, `brightness`. Możliwa hybryda: Lyria gra tło w gatunku pulsara, a pulsar i rozbłyski zostają w Tone.js. Wymaga klucza API i małego serwera.
