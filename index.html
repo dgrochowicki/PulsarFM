@@ -985,45 +985,7 @@ const GENRES = {
     make(B) { return GENRES.techno.make(B, true); },
   },
 
-  // Vela: 11 błysków na sekundę słychać jako warkot. Przy 84 BPM to dokładnie trzydziestodwójki.
-  glitch: {
-    label: "Glitch", scales: ["phrygian", "phrygian"],
-    make(B) {
-      const crush = new Tone.Distortion(0.85).connect(B.delay);
-      const click = vol(new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.001, decay: 0.006, sustain: 0 } }), -22).connect(crush);
-      const blip = vol(new Tone.FMSynth({ harmonicity: 7, modulationIndex: 22, envelope: { attack: 0.001, decay: 0.06, sustain: 0, release: 0.05 } }), -26).connect(B.side(crush));
-      const sub = vol(new Tone.MembraneSynth({ pitchDecay: 0.02, octaves: 4, envelope: { attack: 0.001, decay: 0.3, sustain: 0, release: 0.1 } }), -14).connect(B.lim);
-      const pf = new Tone.AutoFilter(0.07, 200, 3).connect(B.rev).start();
-      const pad = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fmsquare" }, envelope: { attack: 2, decay: 1, sustain: 0.6, release: 4 } }), -32).connect(pf);
-      const motif = new Motif(16, [7, 14], 0.3);
-      let clicks = rhythm(16, 0.35, [0, 6]), subs = rhythm(16, 0.12, [0]);
-      let clickEnd = 0;
-      return {
-        mix: { Melodia: blip, "Tło": pad, Stopa: sub, Trzaski: click },
-        nodes: [crush, click, blip, sub, pf, pad], tun: [blip, sub, pad],
-        step(t, s, bar) {
-          crush.distortion = map(E.bright(), 0, 1, 0.5, 0.95);
-          if (clicks[s] && t > clickEnd) {
-            // Czasem zacięcie: ten sam trzask powtórzony w trzydziestodwójkach. Następne kroki czekają, aż się skończy.
-            const n = chance(0.15 + E.busy() * 0.3) ? 4 : 1, gap = Tone.Time("32n").toSeconds();
-            for (let i = 0; i < n; i++) click.triggerAttackRelease("64n", t + i * gap, 0.9 - i * 0.15);
-            clickEnd = t + (n - 1) * gap;
-          }
-          if (subs[s]) sub.triggerAttackRelease(E.n(0, -3), "8n", t, 0.9);
-          const mel = windMelody(), mi = (bar % 2) * 8 + (s >> 1), d = mel ? (s % 2 === 0 && mel[mi] != null ? 7 + mel[mi] : null) : motif.at(s);
-          if (d != null && (mel || chance(0.4 + E.busy() * 0.5))) { const nt = E.n(d, 0); blip.triggerAttackRelease(nt, "32n", t, 0.7); E.note(nt, t); }
-          if (s === 0 && bar % 4 === 0) {
-            const notes = [E.n(0, -1), E.n(1, -1), E.n(4, -1)];
-            pad.releaseAll(t); pad.triggerAttack(notes, t, 0.4); E.chord(notes, t);
-            Tone.Draw.schedule(() => vis.beat(), t);
-          }
-          if (s === 0 && bar % 2 === 1) { clicks = rhythm(16, 0.2 + E.busy() * 0.35, [0, 6]); motif.mutate(0.5); }
-        },
-      };
-    },
-  },
-
-  // Vela, próba (autor, 17.11.2026), kierunek: Ryoji Ikeda, data.matrix. Bez BPM i bez perkusji: krok to jeden prawdziwy błysk
+  // Vela (autor, 17–18.11.2026), kierunek: Ryoji Ikeda, data.matrix. Bez BPM i bez perkusji: krok to jeden prawdziwy błysk
   // (11,19 na sekundę, tempoFloor 160 daje szesnastkę równą okresowi pulsara). Trzy warstwy wg opisu autora:
   // wysoka iskra na każdy błysk, co jakiś czas gładki niski bas, sonar jako melodia, piknięcie jak monitor w szpitalu.
   // Wszystkie wysokości to wielokrotności częstotliwości Veli.
@@ -2169,7 +2131,7 @@ function infoHTML(close) {
   if (GENRES[psr.genre].flashes) return `<div class="info"><div class="handle"></div><div class="dot"></div><div class="info-head"><div><b>${psr.name}</b><div class="tag">${psr.tag}</div></div></div>
     <dl><dt>Genre</dt><dd>${label}</dd><dt>Tempo</dt><dd>none · ${fmt(1 / psr.P, 2)} flashes/s</dd><dt>Rotation</dt><dd>${f.per}</dd><dt>Tuning</dt><dd>multiples of ${fmt(1 / psr.P, 2)} Hz</dd></dl>
     <p class="about">${psr.about}</p>
-    <div class="how"><span>How it plays</span>No tempo and no drums: every flash is an electric crackle, ${fmt(1 / psr.P, 1)} a second, right between rhythm and pitch. Each new reading from the spacecraft wakes a very low bass that purrs at the pulsar's own rate. Now and then a sonar ping plays the melody written by the solar wind. Every pitch is a whole multiple of the spin.</div></div>`;
+    <div class="how"><span>How it plays</span>No tempo and no drums: every flash is a high electric spark, ${fmt(1 / psr.P, 1)} a second, jumping left and right, right between rhythm and pitch. A long, low bass hums now and then and with each new reading from the spacecraft, which also changes the quiet chord in the background. A sonar ping plays the melody written by the solar wind, and a soft beep keeps time like a monitor. Every pitch is a whole multiple of the spin.</div></div>`;
   if (GENRES[psr.genre].silent) return `<div class="info"><div class="handle"></div><div class="dot"></div><div class="info-head"><div><b>${psr.name}</b><div class="tag">${psr.tag}</div></div></div>
     <dl><dt>Genre</dt><dd>${label}</dd><dt>Rotation</dt><dd>${f.per}</dd></dl>
     <p class="about">${psr.about}</p>

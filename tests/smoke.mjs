@@ -185,7 +185,7 @@ const resumed = await page.evaluate(async () => {
 });
 check(resumed === "running", `wznowienie dźwięku: ${resumed}`);
 
-// Glitch z zacięciem na każdym kroku: powtórzone trzaski nie mogą wchodzić na następny krok.
+// Vela przy skrajnym losowaniu: dźwięki nie mogą wchodzić na siebie w czasie.
 const glitchErrors = errors.length;
 await page.evaluate(() => {
   window.realRandom = Math.random;
@@ -194,7 +194,7 @@ await page.evaluate(() => {
 });
 await page.waitForTimeout(3000);
 await page.evaluate(() => { Math.random = window.realRandom; });
-check(errors.length === glitchErrors, "zacięcia w Glitchu bez błędów");
+check(errors.length === glitchErrors, "Vela przy skrajnym losowaniu bez błędów");
 
 // Po Stop ma być cisza, także przy mocnym Bz i po wybraniu gatunku z ciągłymi oscylatorami.
 await page.click("#play");
