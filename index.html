@@ -1163,8 +1163,8 @@ const GENRES = {
       // a nad nimi bardzo cichy, długi ogon alikwotów aż do kilku kHz. Stąd ciepło i poczucie wysokości naraz.
       const wow = new Tone.Vibrato({ frequency: 0.33, depth: 0.05 }).connect(chorus);
       pf.connect(wow);
-      const pad = vol(new Tone.PolySynth({ maxPolyphony: 24, voice: Tone.MonoSynth, options: { oscillator: { type: "fatcustom", partials: [1, 0.09, 0.06, 0.03, 0.02, 0.012, 0.008, 0.007, 0.006, 0.006, 0.005, 0.005, 0.004, 0.004, 0.003, 0.003, 0.002, 0.002], count: 3, spread: 7 }, envelope: { attack: 2.2, decay: 4, sustain: 0.65, release: 5.5 },
-        filter: { type: "lowpass", Q: 0.7, rolloff: -12 }, filterEnvelope: { attack: 2.2, decay: 5, sustain: 0.6, release: 5.5, baseFrequency: 2400, octaves: 0.6, exponent: 2 } } }), -14).connect(pf);
+      const pad = vol(new Tone.PolySynth({ maxPolyphony: 24, voice: Tone.MonoSynth, options: { oscillator: { type: "fatcustom", partials: [1, 0.09, 0.06, 0.03, 0.02, 0.012, 0.006, 0.003, 0.002, 0.002, 0.0016, 0.0016, 0.0013, 0.0013, 0.001, 0.001, 0.0007, 0.0007], count: 3, spread: 7 }, envelope: { attack: 2.2, decay: 7, sustain: 0.35, release: 5.5 },
+        filter: { type: "lowpass", Q: 0.7, rolloff: -12 }, filterEnvelope: { attack: 2.2, decay: 5, sustain: 0.6, release: 5.5, baseFrequency: 2400, octaves: 0.6, exponent: 2 } } }), -15).connect(pf);
       // Bas wchodzi tylko w dłuższe przerwy melodii (autor): miękki, nisko, na dźwięku, na którym melodia skończyła.
       const bass = vol(new Tone.Synth({ oscillator: { type: "custom", partials: [1, 0.22, 0.05] }, envelope: { attack: 0.18, decay: 0.9, sustain: 0.7, release: 2.4 } }), -15).connect(B.lim);
       const SC = { bright: [1, 9 / 8, 5 / 4, 4 / 3, 3 / 2, 5 / 3, 15 / 8], dark: [1, 9 / 8, 6 / 5, 4 / 3, 3 / 2, 8 / 5, 9 / 5] };
