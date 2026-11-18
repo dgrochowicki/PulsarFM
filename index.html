@@ -1162,14 +1162,8 @@ const GENRES = {
       // głosy są lekko rozstrojone, a całość powoli faluje jak taśma.
       const wow = new Tone.Vibrato({ frequency: 0.33, depth: 0.05 }).connect(chorus);
       pf.connect(wow);
-      // Barwa (autor wybrał): fala o zmiennej szerokości (PWM) i taśma: miękkie nasycenie, a pod spodem bardzo cichy szum.
-      const tapeOut = new Tone.Volume(-13).connect(pf); // nasycenie zostaje, głośność wraca do poziomu reszty
-      const tape = new Tone.WaveShaper((x) => Math.tanh(3 * x) / Math.tanh(3), 2048).connect(tapeOut);
-      tape.oversample = "2x";
-      const hissF = new Tone.Filter(5000, "lowpass").connect(axisOut);
-      const hiss = vol(new Tone.Noise("pink"), -30).connect(hissF).start();
-      const pad = vol(new Tone.PolySynth({ maxPolyphony: 32, voice: Tone.MonoSynth, options: { oscillator: { type: "pwm", modulationFrequency: 0.37 }, envelope: { attack: 0.9, decay: 3, sustain: 0.45, release: 6.5 },
-        filter: { type: "lowpass", Q: 1, rolloff: -12 }, filterEnvelope: { attack: 1.6, decay: 4, sustain: 0.25, release: 6, baseFrequency: 170, octaves: 2.6, exponent: 2 } } }), -24).connect(tape);
+      const pad = vol(new Tone.PolySynth({ maxPolyphony: 32, voice: Tone.MonoSynth, options: { oscillator: { type: "fatsawtooth", count: 2, spread: 14 }, envelope: { attack: 0.9, decay: 3, sustain: 0.45, release: 6.5 },
+        filter: { type: "lowpass", Q: 1, rolloff: -12 }, filterEnvelope: { attack: 1.6, decay: 4, sustain: 0.25, release: 6, baseFrequency: 130, octaves: 1.8, exponent: 2 } } }), -12).connect(pf); // autor: ciemniej, filtr mniej otwarty
       // Bas wchodzi tylko w dłuższe przerwy melodii (autor): miękki, nisko, na dźwięku, na którym melodia skończyła.
       const bass = vol(new Tone.Synth({ oscillator: { type: "custom", partials: [1, 0.22, 0.05] }, envelope: { attack: 0.18, decay: 0.9, sustain: 0.7, release: 2.4 } }), -15).connect(B.lim);
       const SC = { bright: [1, 9 / 8, 5 / 4, 4 / 3, 3 / 2, 5 / 3, 15 / 8], dark: [1, 9 / 8, 6 / 5, 4 / 3, 3 / 2, 8 / 5, 9 / 5] };
@@ -1180,13 +1174,13 @@ const GENRES = {
       let spark = 0, fallback = 0, rests = 0, lastLow = F / 2, chords = 0, inner = 0;
       return {
         mix: { Melodia: pad, "Tło": { output: axisOut }, Impuls: zap, Bas: bass },
-        nodes: [axisOut, axis, zPan, zf, crush, zap, chorus, wow, tape, tapeOut, hissF, hiss, tail, tailIn, pf, pad, bass], tun: [],
+        nodes: [axisOut, axis, zPan, zf, crush, zap, chorus, wow, tail, tailIn, pf, pad, bass], tun: [],
         step(t, s, bar) {
           const k = spark++;
           zf.frequency.setValueAtTime(lerp(9000, 13000, E.bright()), t);
           zPan.pan.setValueAtTime(clamp(byPan() + 0.6 * Math.sin(k * Math.PI / 24), -1, 1), t);
           zap.triggerAttackRelease(0.004, t, (k % 4 ? 0.5 : 0.95) + Math.random() * 0.05);
-          if (s === 0) pf.frequency.rampTo(lerp(800, 2200, E.bright()), 2);
+          if (s === 0) pf.frequency.rampTo(lerp(550, 1300, E.bright()), 2);
           // Co pół taktu następna nuta frazy z wiatru. Pad odpływa od tonu pulsara i wraca w ciągu 16 taktów, najdalej w połowie orbity.
           if (s % 8 !== 0) return;
           const mel = windMelody(), mi = (bar % 8) * 2 + (s >> 3);
