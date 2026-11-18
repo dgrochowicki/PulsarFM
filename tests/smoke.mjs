@@ -199,11 +199,15 @@ check(errors.length === glitchErrors, "Vela przy skrajnym losowaniu bez błędó
 
 // Po Stop ma być cisza, także przy mocnym Bz i po wybraniu gatunku z ciągłymi oscylatorami.
 await page.click("#play");
-await page.evaluate(() => { mode = "manual"; target.bz = cur.bz = -15; selectPulsar(PULSARS.find((p) => p.id === "J2144")); });
+const oldGone = await page.evaluate(() => { mode = "manual"; target.bz = cur.bz = -15; const old = G.bus; selectPulsar(PULSARS.find((p) => p.id === "J2144")); return old.lim.disposed; });
+check(oldGone, "zmiana pulsara po Stop od razu usuwa poprzedni");
 await page.waitForTimeout(6000);
 const silence = await rms();
 check(silence < 0.001, `cisza po Stop: RMS ${silence.toFixed(5)}`);
 await page.click("#play");
+await page.waitForTimeout(300);
+const tailGate = await page.evaluate(() => A.revGate.gain.value);
+check(tailGate < 0.01, `pogłos poprzedniego pulsara zamknięty po Play: ${tailGate.toFixed(3)}`);
 
 // Każdy gatunek ma nazwane warstwy, a każdą da się wyciszyć.
 const layers = await page.evaluate(async () => {

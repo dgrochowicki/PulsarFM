@@ -1255,7 +1255,8 @@ async function initAudio() {
   master.connect(fft);
   const rev = new Tone.Reverb({ decay: 9, preDelay: 0.05, wet: 0.5 });
   await rev.generate();
-  rev.connect(lim);
+  const revGate = new Tone.Gain(1).connect(lim); // zamyka zamrożony ogon pogłosu starego pulsara przy Play
+  rev.connect(revGate);
   const delay = new Tone.FeedbackDelay({ delayTime: "8n.", feedback: 0.38, wet: 0.35 }).connect(rev);
 
   // Warstwy wspólne dla wszystkich gatunków: bas przy Bz na południe, poświata przy wysokim Kp, sam pulsar.
@@ -1284,7 +1285,7 @@ async function initAudio() {
   const swellFilter = new Tone.AutoFilter(0.15, 300, 4).connect(swellEnv).start();
   vol(new Tone.Noise("pink"), -14).connect(swellFilter).start();
 
-  A = { master, lim, wave, fft, rev, delay, droneVol, drone, starVol, star, shimmer, boom, drumHit, drumRub, braam, braamF, swellEnv };
+  A = { master, lim, wave, fft, rev, revGate, delay, droneVol, drone, starVol, star, shimmer, boom, drumHit, drumRub, braam, braamF, swellEnv };
   Tone.Transport.scheduleRepeat(onStep, "16n");
   applyPulsarAudio();
 }
@@ -1366,8 +1367,10 @@ function applyPulsarAudio() {
   if (G) {
     const { inst: old, bus: oldBus } = G;
     old.nodes.forEach((n) => n.releaseAll && n.releaseAll());
-    Object.values(oldBus).forEach((g) => g.gain.rampTo(0, 3));
-    setTimeout(() => [...old.nodes, ...Object.values(oldBus), ...oldBus.panners].forEach((n) => { try { n.dispose(); } catch (e) {} }), 4000);
+    const drop = () => [...old.nodes, ...Object.values(oldBus), ...oldBus.panners].forEach((n) => { try { n.dispose(); } catch (e) {} });
+    // Po Stop dźwięk jest zamrożony (kontekst uśpiony), więc wyciszanie ruszyłoby dopiero po Play i stary pulsar zagrałby przez chwilę (autor, 18.11.2026).
+    if (playing) { Object.values(oldBus).forEach((g) => g.gain.rampTo(0, 3)); setTimeout(drop, 4000); }
+    else { drop(); flushTail = true; }
   }
   E.root = 62 + M.tr;
   // Tempo przed make(): opóźnienia w nutach („8n.”) przeliczają się przy tworzeniu.
@@ -1435,7 +1438,7 @@ function triggerFlare(level) {
 }
 
 // Po Stop wstrzymujemy cały kontekst dźwięku: samo wyciszenie zostawiało pogłos i oscylatory liczące w tle (około połowy rdzenia).
-let suspendTimer = null;
+let suspendTimer = null, flushTail = false;
 function stopAudio() {
   clearTimeout(suspendTimer);
   suspendTimer = setTimeout(() => { if (!playing) Tone.getContext().rawContext.suspend(); }, 600);
@@ -2385,6 +2388,11 @@ $("play").onclick = async () => {
     if (!playing) {
       clearTimeout(suspendTimer);
       if (Tone.getContext().rawContext.state !== "running") await Tone.getContext().rawContext.resume();
+      if (flushTail) { // pulsar zmieniony w czasie Stop: pogłos starego wygasa za zamkniętą bramką
+        flushTail = false;
+        const now = Tone.now(), g = A.revGate.gain;
+        g.cancelScheduledValues(now); g.setValueAtTime(0, now); g.setValueAtTime(0, now + 1); g.linearRampToValueAtTime(1, now + 3);
+      }
       stepCount = 0; schedulePulse(); A.master.volume.rampTo(G?.silent ? -80 : 0, 0.1); Tone.Transport.start("+0.1"); playing = true;
       if (M.kind === "tone") if (!G?.pulseBurst) A.starVol.volume.rampTo(M.f < 20 ? -28 : M.f < 100 ? -33 : M.f < 400 ? -32 : -40, 1.5);
     } else { stopAudio(); playing = false; }
