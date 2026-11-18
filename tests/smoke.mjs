@@ -111,9 +111,10 @@ const timing = await page.evaluate(async () => {
   selectPulsar(PULSARS.find((p) => p.id === "B0329"));
   selectPulsar(PULSARS.find((p) => p.id === "Crab"));
   await new Promise((r) => setTimeout(r, 500));
-  return { eighth: Tone.Time("8n.").toSeconds(), shared: A.delay.delayTime.value, dub: G.inst.nodes[0].delayTime.value };
+  const echo = G.inst.nodes.find((n) => n instanceof Tone.FeedbackDelay); // echo trąbki Kraba, ćwierćnuta z kropką
+  return { eighth: Tone.Time("8n.").toSeconds(), shared: A.delay.delayTime.value, quarter: Tone.Time("4n.").toSeconds(), dub: echo.delayTime.value };
 });
-check(Math.abs(timing.shared - timing.eighth) < 0.01 && Math.abs(timing.dub - timing.eighth) < 0.01, `echo w tempie: ${timing.shared.toFixed(3)} i ${timing.dub.toFixed(3)} s, ma być ${timing.eighth.toFixed(3)} s`);
+check(Math.abs(timing.shared - timing.eighth) < 0.01 && Math.abs(timing.dub - timing.quarter) < 0.01, `echo w tempie: ${timing.shared.toFixed(3)} i ${timing.dub.toFixed(3)} s, ma być ${timing.eighth.toFixed(3)} i ${timing.quarter.toFixed(3)} s`);
 
 const tune = await page.evaluate(() => ({ drone: A.drone.frequency.value, root: Tone.Frequency(E.m(0, -3), "midi").toFrequency() }));
 check(Math.abs(tune.drone - tune.root) < 0.01, `bas z Bz w tonacji: ${tune.drone.toFixed(2)} Hz`);

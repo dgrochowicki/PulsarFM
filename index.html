@@ -381,7 +381,7 @@ const PULSARS = [
     dist: 0.261, desc: "One of the nearest and brightest pulsars in the radio sky, found in 1968, the year after the first. It is old and calm: about 17 million years, judging by how slowly its spin winds down." },
   { id: "Vela", genre: "vela", name: "Vela Pulsar", short: "Vela", P: 0.089328, ra: 8.589, dec: -45.18,
     dist: 0.28, desc: "Born in a supernova about 11,000 years ago, it sits inside the Vela supernova remnant. It is the brightest pulsar in gamma rays and famous for its glitches: every few years it suddenly spins a little faster." },
-  { id: "Crab", genre: "dub", name: "Crab Pulsar", short: "Crab", P: 0.03374, ra: 5.576, dec: 22.01,
+  { id: "Crab", genre: "crab", name: "Crab Pulsar", short: "Crab", P: 0.03374, ra: 5.576, dec: 22.01,
     dist: 2.0, desc: "The heart of the Crab Nebula, left by a supernova that Chinese astronomers recorded in 1054. It shines from radio waves to gamma rays and powers the glow of the whole nebula." },
   // Liquid przeniesiony z J0437 (autor, 17.11.2026): wolne pulsary grają zwykłe gatunki, szybkie dostaną muzykę eksperymentalną.
   // Sam błyska 162,9 razy na minutę, bez mnożenia (autor: 81 BPM to hip-hop, nie liquid).
@@ -981,6 +981,7 @@ const GENRES = {
   // Wszystkie wysokości to wielokrotności częstotliwości Veli.
   vela: {
     label: "Experimental", tempoFloor: 160, pulseBurst: true, flashes: true, bzBass: 2, scales: ["lydian", "phrygian"],
+    how: (psr) => `No tempo and no drums: every flash is a high electric spark, ${fmt(1 / psr.P, 1)} a second, jumping left and right, right between rhythm and pitch. A long, low bass hums now and then and with each new reading from the spacecraft, which also changes the quiet chord in the background. A sonar ping plays the melody written by the solar wind, and a soft beep keeps time like a monitor. Every pitch is a whole multiple of the spin.`,
     make(B) {
       const F = 1 / psr.P; // 11,19 Hz
       // Zawsze mrocznie (autor): spokojnie to ciemna skala z 17. i 19. harmonicznej, przy Bz na południe jeszcze ciemniej (trytony, 23. i 37. harmoniczna).
@@ -1067,6 +1068,67 @@ const GENRES = {
           if (d != null) bass.triggerAttackRelease(E.n(mel ? d : d + deg, -2), "8n", t, 0.9);
           if (s === 0) E.chord(chordDegs(deg, 3).map((x) => E.n(x, -1)), t);
           if (s === 0 && bar % 4 === 3) line.mutate(0.5);
+        },
+      };
+    },
+  },
+
+  // Krab, próba (autor, 18.11.2026): hipnotyczne pady w tle, niski terkot pulsara, melodia na trąbce. Wzór: Jon Hassell, Nils Petter Molvær.
+  // Bez perkusji. Terkot to sam pulsar: wąskie impulsy 29,6 na sekundę, na granicy słyszalności. Wszystkie wysokości to wielokrotności
+  // częstotliwości Kraba, więc trąbka i pady grają trochę „obok” naszych nut. Trąbka na razie z syntezy (autor: na start), docelowo może próbki.
+  crab: {
+    label: "Experimental", pulseBurst: true, flashes: true, scales: ["dorian", "phrygian"],
+    how: (psr) => `No drums. The pulsar itself is the low rattle underneath: ${fmt(1 / psr.P, 1)} narrow pulses a second, right at the edge of hearing. Hypnotic pads breathe slowly over it, ${fmt(1 / psr.P / 64, 2)} times a second, the spin slowed down 64 times. A muted trumpet plays the melody written by the solar wind, in long notes with echo. Every pitch is a whole multiple of the spin.`,
+    make(B) {
+      const F = 1 / psr.P; // 29,6 Hz
+      const mood = () => (E.dark() ? "dark" : "bright");
+      // Terkot: sam pulsar, wąskie impulsy przez filtr; prędkość wiatru otwiera filtr.
+      const rOut = new Tone.Volume(-22).connect(B.lim);
+      const rf = new Tone.Filter({ frequency: 400, type: "lowpass", Q: 0.7, rolloff: -24 }).connect(rOut);
+      const rattle = new Tone.PulseOscillator(F, 0.85).connect(rf).start();
+      // Pady: cztery akordy w kółko, co 2 takty; oddychają w rytmie pulsara zwolnionego 64 razy. Gęstość wiatru: ile głosów.
+      const PADS = { bright: [[6, 8, 10, 12, 15], [5, 8, 10, 12, 15], [6, 9, 12, 15, 18], [4, 8, 10, 14, 16]], dark: [[6, 8, 11, 14, 17], [5, 8, 10, 13, 16], [6, 9, 11, 15, 19], [4, 7, 10, 13, 17]] };
+      const pOut = new Tone.Volume(-21);
+      pOut.connect(B.rev); pOut.connect(B.lim);
+      const trem = new Tone.Tremolo(F / 64, 0.55).connect(pOut).start();
+      const pf = new Tone.Filter(900, "lowpass").connect(trem);
+      const pad = new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fattriangle", count: 3, spread: 18 }, envelope: { attack: 2.5, decay: 1, sustain: 0.85, release: 4 } }).connect(pf);
+      // Trąbka z tłumikiem: piła przez filtr, który otwiera się wolniej niż głośność (jak dęcie), późne vibrato, nosowy szczyt około 1,5 kHz, echo.
+      const echo = new Tone.FeedbackDelay({ delayTime: "4n.", feedback: 0.42, wet: 1 }).connect(B.rev);
+      const tOut = new Tone.Volume(-19);
+      tOut.connect(B.lim); tOut.connect(B.side(echo)); tOut.connect(B.rev);
+      const pk = new Tone.Filter({ type: "peaking", frequency: 1500, Q: 1.2, gain: 7 }).connect(tOut);
+      const hp = new Tone.Filter(260, "highpass").connect(pk);
+      const vib = new Tone.Vibrato({ frequency: 5.2, depth: 0 }).connect(hp);
+      const tpt = new Tone.MonoSynth({ oscillator: { type: "fatsawtooth", count: 2, spread: 6 }, portamento: 0.05,
+        envelope: { attack: 0.08, decay: 0.4, sustain: 0.75, release: 0.6 },
+        filter: { type: "lowpass", Q: 1.5, rolloff: -24 }, filterEnvelope: { attack: 0.12, decay: 0.5, sustain: 0.55, release: 0.6, baseFrequency: 320, octaves: 3, exponent: 2 } }).connect(vib);
+      const bf = new Tone.Filter({ frequency: 2200, type: "bandpass", Q: 1 }).connect(tOut);
+      const breath = vol(new Tone.NoiseSynth({ noise: { type: "pink" }, envelope: { attack: 0.03, decay: 0.15, sustain: 0, release: 0.1 } }), -22).connect(bf);
+      const TPT = { bright: [8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 22, 24], dark: [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19, 21, 22, 23] };
+      let fallback = 0;
+      const blow = (hz, dur, t) => {
+        tpt.triggerAttackRelease(hz, dur, t, 0.8); breath.triggerAttackRelease(0.08, t, 0.6);
+        vib.depth.setValueAtTime(0, t); vib.depth.linearRampToValueAtTime(0.09, t + Math.min(0.9, dur * 0.6));
+        E.note(Tone.Frequency(hz).toNote(), t);
+      };
+      return {
+        mix: { Melodia: tpt, "Tło": { output: pOut }, Impuls: { output: rOut } },
+        nodes: [rOut, rf, rattle, pOut, trem, pf, pad, echo, tOut, pk, hp, vib, tpt, bf, breath], tun: [],
+        step(t, s, bar) {
+          rf.frequency.rampTo(lerp(220, 700, E.bright()), 2);
+          if (s === 0 && bar % 2 === 0) {
+            const ch = PADS[mood()][(bar >> 1) % 4].slice(0, E.busy() > 0.5 ? 5 : 4).map((h) => F * h);
+            pad.releaseAll(t); pad.triggerAttack(ch, t + 0.05, 0.45); E.chord(ch.map((f) => Tone.Frequency(f).toNote()), t);
+          }
+          // Trąbka: co pół taktu następna nuta frazy z wiatru (16 nut na 8 taktów); długa, gdy po niej pauza.
+          if (s % 8 !== 0) return;
+          const mel = windMelody(), mi = (bar % 8) * 2 + (s >> 3);
+          let d = mel ? mel[mi] : null;
+          if (!mel && chance(0.35)) d = [2, 4, 3, 5, 1, 4][fallback++ % 6];
+          if (d == null) return;
+          const long = mel ? mel[(mi + 1) % 16] == null : chance(0.5);
+          blow(F * TPT[mood()][clamp(d + 3, 0, 13)], long ? Tone.Time("1m").toSeconds() * 0.9 : Tone.Time("2n").toSeconds() * 0.85, t);
         },
       };
     },
@@ -2129,7 +2191,7 @@ function infoHTML(close) {
   let how = f.why;
   if (g.flashes) {
     rows.push(["Tempo", "no beat"], ["Tuning", `multiples of ${fmt(1 / psr.P, 2)} Hz`]);
-    how = `No tempo and no drums: every flash is a high electric spark, ${fmt(1 / psr.P, 1)} a second, jumping left and right, right between rhythm and pitch. A long, low bass hums now and then and with each new reading from the spacecraft, which also changes the quiet chord in the background. A sonar ping plays the melody written by the solar wind, and a soft beep keeps time like a monitor. Every pitch is a whole multiple of the spin.`;
+    how = g.how(psr);
   } else if (g.silent) {
     how = "Silent for now. The fastest pulsars are getting their own dark, experimental music, built on their own tone.";
   } else rows.push(["Tempo", `${f.bpm} BPM · ${f.beat}`], ["Key", `${f.key} · ${f.keySub}`]);
