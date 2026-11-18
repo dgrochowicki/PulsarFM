@@ -1153,26 +1153,27 @@ const GENRES = {
       // Melodia: ciepły, wielogłosowy pad (autor). Nuty nakładają się na siebie, stroje czyste względem tonu pulsara.
       // Autor: mniej organowo, cieplej, a nuta ma się rozchodzić, nie urywać: miękka barwa z kilku alikwotów, powolne wejście, opadanie w trakcie nuty,
       // długie wybrzmienie i echo, które niesie ją dalej w pogłos.
-      const chorus = new Tone.Chorus(0.4, 3, 0.45).start();
+      const chorus = new Tone.Chorus({ frequency: 0.25, delayTime: 3, depth: 0.3, wet: 0.25 }).start();
       const tail = new Tone.FeedbackDelay({ delayTime: "2n.", feedback: 0.45, wet: 1 }).connect(B.rev);
       const tailIn = new Tone.Gain(0.35).connect(tail);
       const dry = new Tone.Gain(0.3); dry.connect(B.side(B.lim)); // ciepło z dalekiego pogłosu: mało dźwięku wprost
       chorus.connect(B.side(B.rev)); chorus.connect(dry); chorus.connect(tailIn);
-      const pf = new Tone.Filter({ frequency: 1200, type: "lowpass", rolloff: -24 });
-      // Autor: nadal jak organy. Organy mają stałą barwę i czysty, równy strój, więc tu każda nuta ma własny filtr, który otwiera się i przygasa jak w analogowym syntezatorze,
-      // głosy są lekko rozstrojone, a całość powoli faluje jak taśma.
+      const pf = new Tone.Filter({ frequency: 4000, type: "lowpass", rolloff: -12 });
+      // Wzór autora: Aphex Twin, #3. Z pomiaru nagrania: prawie czyste tony około 150–300 Hz, trzy dźwięki blisko siebie, akord trzyma wiele sekund,
+      // a nad nimi bardzo cichy, długi ogon alikwotów aż do kilku kHz. Stąd ciepło i poczucie wysokości naraz.
       const wow = new Tone.Vibrato({ frequency: 0.33, depth: 0.05 }).connect(chorus);
       pf.connect(wow);
-      const pad = vol(new Tone.PolySynth({ maxPolyphony: 32, voice: Tone.MonoSynth, options: { oscillator: { type: "fatcustom", partials: [1, 0.3, 0.08], count: 3, spread: 20 }, envelope: { attack: 1.8, decay: 4, sustain: 0.6, release: 7 },
-        filter: { type: "lowpass", Q: 0.7, rolloff: -12 }, filterEnvelope: { attack: 2.2, decay: 5, sustain: 0.5, release: 7, baseFrequency: 600, octaves: 1.2, exponent: 2 } } }), -22).connect(pf); // autor: ciemniej, filtr mniej otwarty
+      const pad = vol(new Tone.PolySynth({ maxPolyphony: 24, voice: Tone.MonoSynth, options: { oscillator: { type: "fatcustom", partials: [1, 0.09, 0.06, 0.03, 0.02, 0.012, 0.008, 0.007, 0.006, 0.006, 0.005, 0.005, 0.004, 0.004, 0.003, 0.003, 0.002, 0.002], count: 3, spread: 7 }, envelope: { attack: 2.2, decay: 4, sustain: 0.65, release: 5.5 },
+        filter: { type: "lowpass", Q: 0.7, rolloff: -12 }, filterEnvelope: { attack: 2.2, decay: 5, sustain: 0.6, release: 5.5, baseFrequency: 2400, octaves: 0.6, exponent: 2 } } }), -14).connect(pf);
       // Bas wchodzi tylko w dłuższe przerwy melodii (autor): miękki, nisko, na dźwięku, na którym melodia skończyła.
       const bass = vol(new Tone.Synth({ oscillator: { type: "custom", partials: [1, 0.22, 0.05] }, envelope: { attack: 0.18, decay: 0.9, sustain: 0.7, release: 2.4 } }), -15).connect(B.lim);
       const SC = { bright: [1, 9 / 8, 5 / 4, 4 / 3, 3 / 2, 5 / 3, 15 / 8], dark: [1, 9 / 8, 6 / 5, 4 / 3, 3 / 2, 8 / 5, 9 / 5] };
-      const SHAPES = [[-3, -6], [-2, -6], [-4, -8], [-3, -8]]; // otwarte układy zamiast trójdźwięków, które brzmią jak hymn
-      const hz = (d) => F * 2 * 2 ** Math.floor(d / 7) * SC[E.dark() ? "dark" : "bright"][((d % 7) + 7) % 7]; // autor, wzór Aphex Twin #3: pad wyżej i ciepły jednocześnie
-      const lift = (f) => { while (f < 260) f *= 2; return f; }; // cały pad zostaje wysoko, dół należy do basu
+      const WALK = [1, 2, 3, 2]; // cztery odcinki orbity: o ile stopni przechodzi akord
+      const hz = (d) => F * 2 ** Math.floor(d / 7) * SC[E.dark() ? "dark" : "bright"][((d % 7) + 7) % 7]; // od tonu pulsara w górę
+      const fold = (f) => { while (f > 300) f /= 2; while (f < 145) f *= 2; return f; }; // akord zostaje blisko siebie, około 150–300 Hz
+      const tune = (f, bar) => f * 2 ** ((drift(bar) + (Math.random() - 0.5) * 6) / 1200);
       const drift = (bar) => (4 + 22 * Math.sin(Math.PI * orbitPhase(psr.orbit)) ** 2) * (1 - Math.abs((bar % 16) / 8 - 1)); // odpływ od tonu pulsara w centach
-      let spark = 0, fallback = 0, rests = 0, lastLow = F / 2, chords = 0, inner = 0;
+      let spark = 0, fallback = 0, rests = 0, lastLow = F / 2, root = 0;
       return {
         mix: { Melodia: pad, "Tło": { output: axisOut }, Impuls: zap, Bas: bass },
         nodes: [axisOut, axis, zPan, zf, crush, zap, chorus, dry, wow, tail, tailIn, pf, pad, bass], tun: [],
@@ -1181,7 +1182,16 @@ const GENRES = {
           zf.frequency.setValueAtTime(lerp(9000, 13000, E.bright()), t);
           zPan.pan.setValueAtTime(clamp(byPan() + 0.6 * Math.sin(k * Math.PI / 24), -1, 1), t);
           zap.triggerAttackRelease(0.004, t, (k % 4 ? 0.5 : 0.95) + Math.random() * 0.05);
-          if (s === 0) pf.frequency.rampTo(lerp(1600, 3000, E.bright()), 2);
+          if (s === 0) pf.frequency.rampTo(lerp(3000, 5000, E.bright()), 2);
+          // Akord co 4 takty (około 12 s), trzy dźwięki blisko siebie. Idzie w stronę, w którą zmienił się wiatr, także gdy melodia stoi; orbita mówi, jak daleko.
+          if (s === 0 && bar % 4 === 0) {
+            const raw = windDegrees(0, 7), way = raw ? Math.sign(raw[15] - raw[0]) || 1 : 1;
+            root = (root + way * WALK[Math.floor(orbitPhase(psr.orbit) * 4) % 4] + 14) % 7;
+            const ch = [root, root + 2, root + 4].map((x) => tune(fold(hz(x)), bar));
+            lastLow = fold(hz(root)); while (lastLow > 130) lastLow /= 2;
+            pad.triggerAttackRelease(ch, Tone.Time("1m").toSeconds() * 3.8, t, 0.55);
+            E.chord(ch.map((f) => Tone.Frequency(f).toNote()), t);
+          }
           // Co pół taktu następna nuta frazy z wiatru. Pad odpływa od tonu pulsara i wraca w ciągu 16 taktów, najdalej w połowie orbity.
           if (s % 8 !== 0) return;
           const mel = windMelody(), mi = (bar % 8) * 2 + (s >> 3);
@@ -1190,12 +1200,6 @@ const GENRES = {
           if (d == null) {
             // Druga pauza z rzędu i przed nami jeszcze co najmniej dwie: bas trzyma przerwę do następnej nuty.
             rests++;
-            // Pierwsza pauza: dolny głos idzie o stopień w stronę, w którą właśnie zmienił się wiatr, więc harmonia płynie dalej, gdy melodia stoi.
-            if (rests === 1) {
-              const raw = windDegrees(0, 7), step = raw ? Math.sign(raw[mi] - raw[(mi + 15) % 16]) || 1 : 1;
-              inner += step;
-              pad.triggerAttackRelease(lift(hz(inner)) * 2 ** (drift(bar) / 1200), Tone.Time("1m").toSeconds(), t, 0.32);
-            }
             if (rests !== 2) return;
             let left = 1;
             if (mel) while (left < 8 && mel[(mi + left) % 16] == null) left++; else left = 3;
@@ -1203,13 +1207,9 @@ const GENRES = {
             return;
           }
           rests = 0;
-          // Dolne głosy zmieniają układ z każdą nutą, także gdy melodia powtarza wysokość; orbita wyznacza, od którego układu idą.
-          const shape = SHAPES[(Math.floor(orbitPhase(psr.orbit) * 4) + chords++) % 4], cents = drift(bar);
-          inner = d + shape[0];
-          const ch = [hz(d), lift(hz(d + shape[0])), lift(hz(d + shape[1]))].map((f) => f * 2 ** ((cents + (Math.random() - 0.5) * 14) / 1200));
-          lastLow = hz(d + shape[1]); while (lastLow > 130) lastLow /= 2;
-          pad.triggerAttackRelease(ch, Tone.Time("1m").toSeconds() * 1.3, t, 0.6);
-          E.note(Tone.Frequency(ch[0]).toNote(), t); E.chord(ch.map((f) => Tone.Frequency(f).toNote()), t);
+          const n = tune(hz(d), bar);
+          pad.triggerAttackRelease(n, Tone.Time("1m").toSeconds() * 1.1, t, 0.7);
+          E.note(Tone.Frequency(n).toNote(), t);
         },
       };
     },
