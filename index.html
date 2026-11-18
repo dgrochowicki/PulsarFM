@@ -1084,7 +1084,7 @@ const GENRES = {
       const mood = () => (E.dark() ? "dark" : "bright");
       // Terkot (autor: bardziej syntetyczny, trzaskający): szum otwierany na 1,7 ms przy każdym obrocie, przez bitcrusher, a pod spodem
       // te same impulsy nisko jako podstawa. Prędkość wiatru: jasność trzasków.
-      const rOut = new Tone.Volume(-19).connect(B.lim);
+      const rOut = new Tone.Volume(-25).connect(B.lim); // autor: za głośno
       const rf = new Tone.Filter({ frequency: 3000, type: "lowpass", Q: 0.7 }).connect(rOut);
       const crushR = new Tone.BitCrusher(3).connect(rf);
       const gate = new Tone.Gain(0).connect(crushR);
