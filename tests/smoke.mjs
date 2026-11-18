@@ -64,7 +64,7 @@ const rms = () => page.evaluate(async () => {
 });
 
 let failed = false;
-for (const id of ["B0329", "B1919", "J2144", "Geminga", "B0950", "Vela", "Crab", "B2255", "Ter5"]) {
+for (const id of ["B0329", "B1919", "J2144", "Geminga", "B0950", "Vela", "Crab", "J0437", "B2255", "Ter5"]) {
   await page.evaluate((id) => selectPulsar(PULSARS.find((p) => p.id === id)), id);
   await page.waitForTimeout(4000);
   const r = await rms();
@@ -73,8 +73,8 @@ for (const id of ["B0329", "B1919", "J2144", "Geminga", "B0950", "Vela", "Crab",
   if (!(r > 0.003)) failed = true;
 }
 
-// Pulsar bez muzyki (J0437 czeka na eksperymentalną) jest cicho, a po nim następny znowu gra.
-await page.evaluate(() => selectPulsar(PULSARS.find((p) => p.id === "J0437")));
+// Pulsar bez muzyki (gatunek `soon`) jest cicho, a po nim następny znowu gra.
+await page.evaluate(() => { const p = PULSARS.find((p) => p.id === "J0437"); p.genre = "soon"; selectPulsar(p); p.genre = "orbit"; });
 await page.waitForTimeout(3000);
 const silentRms = await rms();
 await page.evaluate(() => selectPulsar(PULSARS.find((p) => p.id === "B0329")));
