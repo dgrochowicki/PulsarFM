@@ -990,7 +990,7 @@ const GENRES = {
   // wysoka iskra na każdy błysk, co jakiś czas gładki niski bas, sonar jako melodia, piknięcie jak monitor w szpitalu.
   // Wszystkie wysokości to wielokrotności częstotliwości Veli.
   vela: {
-    label: "Experimental", tempoFloor: 160, pulseBurst: true, flashes: true, bzBass: -6, scales: ["lydian", "phrygian"],
+    label: "Experimental", tempoFloor: 160, pulseBurst: true, flashes: true, bzBass: 2, scales: ["lydian", "phrygian"],
     make(B) {
       const F = 1 / psr.P; // 11,19 Hz
       // Zawsze mrocznie (autor): spokojnie to ciemna skala z 17. i 19. harmonicznej, przy Bz na południe jeszcze ciemniej (trytony, 23. i 37. harmoniczna).
@@ -1006,8 +1006,8 @@ const GENRES = {
       const beep = vol(new Tone.Synth({ oscillator: { type: "square" }, envelope: { attack: 0.003, decay: 0.01, sustain: 1, release: 0.01 } }), -22).connect(bf2);
             // Bas, kolejna wersja (autor: za krótki, za słaby, brzmiał jak bęben): długi, gładki sinus 4 × F (45 Hz) bez uderzenia,
       // z łagodnie dodaną 2. harmoniczną (Chebyshev), żeby był mocny i słyszalny, ale nie buczał jak piła.
-      const bassBus = new Tone.Volume(-14).connect(B.lim);
-      const cheb = new Tone.Chebyshev({ order: 2, wet: 0.45 }).connect(bassBus);
+      const bassBus = new Tone.Volume(-12).connect(B.lim); // autor 18.11: mocniej, ale nie dużo
+      const cheb = new Tone.Chebyshev({ order: 2, wet: 0.7 }).connect(bassBus);
       const purr = new Tone.Synth({ oscillator: { type: "sine" }, envelope: { attack: 0.25, decay: 0.5, sustain: 0.85, release: 1.8 } }).connect(cheb);
       // Tło: bardzo ciche pady daleko w pogłosie, akord z wielokrotności pulsara, nowy przy każdym nowym pomiarze (autor).
       const CLOUD = { bright: [[16, 19, 24, 34], [17, 24, 26, 34], [19, 24, 29, 38], [16, 21, 24, 32]], dark: [[16, 19, 23, 34], [17, 23, 25, 34], [19, 23, 27, 38], [16, 22, 23, 32]] };
@@ -1015,7 +1015,7 @@ const GENRES = {
       const pad = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fatsine", count: 3, spread: 12 }, envelope: { attack: 6, decay: 2, sustain: 0.8, release: 10 } }), -34).connect(cf);
       let ci = 0;
       // Sonar: jeden ping na nutę (autor): czysty sinus z miękkim wejściem, lekko opadający, krótko trzyma i gaśnie w pogłosie.
-      const sonar = vol(new Tone.Synth({ oscillator: { type: "sine" }, envelope: { attack: 0.012, decay: 0.35, sustain: 0, release: 0.4 } }), -10);
+      const sonar = vol(new Tone.Synth({ oscillator: { type: "sine" }, envelope: { attack: 0.012, decay: 0.35, sustain: 0, release: 0.4 } }), -15); // autor 18.11: najgłośniejsza, ciszej
       sonar.connect(B.side(B.rev)); sonar.connect(B.lim);
       const dataStamp = () => (onRecording() ? replayIdx : lastLive ? lastLive.time : 0);
       let flash = 0, stamp = null, ping = 0;
