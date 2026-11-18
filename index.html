@@ -1149,7 +1149,7 @@ const GENRES = {
       const zPan = new Tone.Panner(0).connect(B.lim);
       const zf = new Tone.Filter({ frequency: 11000, type: "bandpass", Q: 1.5 }).connect(zPan);
       const crush = new Tone.BitCrusher(4).connect(zf);
-      const zap = vol(new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.0003, decay: 0.004, sustain: 0 } }), -2).connect(crush);
+      const zap = vol(new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.0003, decay: 0.004, sustain: 0 } }), -5).connect(crush);
       // Melodia: ciepły, wielogłosowy pad (autor). Nuty nakładają się na siebie, stroje czyste względem tonu pulsara.
       // Autor: mniej organowo, cieplej, a nuta ma się rozchodzić, nie urywać: miękka barwa z kilku alikwotów, powolne wejście, opadanie w trakcie nuty,
       // długie wybrzmienie i echo, które niesie ją dalej w pogłos.
