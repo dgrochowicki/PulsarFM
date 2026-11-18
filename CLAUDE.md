@@ -65,7 +65,7 @@ Automatyczny wybór pulsara używa geolokalizacji i czasu UTC, aby co minutę wy
 | Vela | 89,3 ms | Experimental | od 18.11.2026, kierunek Ryoji Ikeda (data.matrix): bez BPM i perkusji, krok = błysk (11,19/s); iskra-spięcie na każdy błysk w stereo, długi niski bas, sonar jako melodia, piknięcie jak monitor, ciche pady |
 | Krab | 33,7 ms | Experimental | od 18.11.2026 (gatunek `crab`, wzór Jon Hassell): bez perkusji; trąbka z tłumikiem Harmon z próbek gra melodię z wiatru, miękkie rozstrojone tło w pogłosie, wysoka iskra co 4. obrót krążąca w stereo; wysokości to wielokrotności 29,6 Hz |
 | PSR B2255+58 | 0,3682 s | Liquid drum and bass | od 17.11.2026 (wcześniej J0437); 162,9 błysku/min, każdy błysk = uderzenie; z ATNF |
-| PSR J0437−4715 | 5,757 ms | Coming soon (cisza) | na mapie, ale nie gra (gatunek `soon`, `silent`), czeka na muzykę eksperymentalną; Auto go pomija |
+| PSR J0437−4715 | 5,757 ms | Experimental | od 18.11.2026 (gatunek `orbit`): czysty ton 173,69 Hz jako oś, pad z melodią z wiatru, iskra jak w Krabie, miękki bas w dłuższych przerwach; forma z prawdziwej orbity 5,74 dnia (`orbitPhase()`, dane z ATNF) |
 | PSR J1748−2446ad (Terzan 5) | 1,396 ms | Pozytywka (3/4) | 716 Hz |
 
 Okresy i położenia są z pamięci modelu (literatura/ATNF). **Do zweryfikowania z katalogiem** przy etapie 2.
@@ -79,9 +79,9 @@ Pełny opis syntezy i instrumentów: `docs/DZWIEK.md` (aktualizować przy zmiana
 **Podział autora (17.11.2026): wolne pulsary to zwykłe gatunki, szybkie to muzyka eksperymentalna.** Wolny pulsar (okres ≥ 0,2 s) gra rytm, więc dostaje zwykły gatunek. Szybki (< 0,2 s) gra ton, więc dostaje mroczną muzykę eksperymentalną w duchu Aphex Twina (kierunek, nie kopiowanie utworów); drgający pierścień na mapie to znak „tu jest dziwnie”. Wspólny pomysł dla szybkich: skala budowana od dokładnej częstotliwości pulsara (dźwięki między naszymi nutami) zamiast strojenia całego utworu do najbliższej nuty. Każdy szybki inaczej:
 - Vela (11 Hz, poniżej słyszalności): zrobiona 18.11.2026 (gatunek `vela`, flaga `flashes`: zamiast BPM „11.2 flashes/s”), Glitch usunięty;
 - Krab (30 Hz): zrobiony 18.11.2026 (gatunek `crab`); terkot 30 razy na sekundę autor odrzucił („pierdzenie”), gra iskra co 4. obrót; kod Dubu został nieużywany, czeka na wolny pulsar;
-- J0437 (174 Hz): ton pulsara jako oś utworu, wokół cięte, przesunięte w czasie dźwięki (teraz cisza);
+- J0437 (174 Hz): zrobiony 18.11.2026 (gatunek `orbit`), ton pulsara jako oś utworu; gatunek `soon` (cisza) został w kodzie tylko dla testu dymnego;
 - Terzan 5 (716 Hz): wysoki, przenikliwy, zepsuta, rozstrojona pozytywka z melodią, która się rozpada (teraz Music box).
-Liquid (wzór: LTJ Bukem, Calibre) przeniesiony 17.11.2026 na B2255+58 (162,9 BPM, prawie jak wcześniej 162,8); J0437 do czasu nowej muzyki milczy. Zasada autora: tempo z samych błysków, bez mnożenia, jeśli się da; pulsar z 81 błyskami na minutę to tempo hip-hopu, R&B, trip-hopu, nie liquidu (B1508+55, 0,7397 s, 81,1/min, kandydat na trip-hop). Dub do decyzji: też może dostać wolny pulsar.
+Liquid (wzór: LTJ Bukem, Calibre) przeniesiony 17.11.2026 na B2255+58 (162,9 BPM, prawie jak wcześniej 162,8). Zasada autora: tempo z samych błysków, bez mnożenia, jeśli się da; pulsar z 81 błyskami na minutę to tempo hip-hopu, R&B, trip-hopu, nie liquidu (B1508+55, 0,7397 s, 81,1/min, kandydat na trip-hop). Dub do decyzji: też może dostać wolny pulsar.
 
 ## Style graficzne
 
@@ -144,9 +144,10 @@ Na razie muzyka ważniejsza od obrazu. Autorowi podoba się brzmienie gatunków 
 - [ ] Forma utworu z danych zamiast zegara: gęstość układa warstwy, skręt Bz na południe działa jak drop.
 - [ ] Deep i Geminga: klaps i hi-haty są cicho; inna perkusja i bas w każdym z nich. Szepty to imitacja, ewentualnie prawdziwe nagranie CC0.
 - [ ] Dopracować Chorał, Dub (przy 111 BPM i z melodią w basie) i Pozytywkę: wciąż stare brzmienia z syntezy.
-- [ ] Szybkie pulsary po kolei na muzykę eksperymentalną (podział wyżej, 17.11.2026). Liquid już na B2255+58, Vela i Krab zrobione 18.11.2026; dalej: Terzan 5, J0437.
+- [ ] Szybkie pulsary po kolei na muzykę eksperymentalną (podział wyżej, 17.11.2026). Liquid już na B2255+58, Vela, Krab i J0437 zrobione 18.11.2026; został Terzan 5.
 - [ ] Szybkie pulsary (Vela, Krab, J0437, Terzan 5): animacja pierścienia zostaje (autor, 16.11.2026: „w sumie fajnie”; prawdziwych 11–716 Hz oko nie zobaczy, a szybkie miganie byłoby niebezpieczne), ale muzykę „z nich” trzeba dopracować. Pomysł: skoro słychać je jako ton, zrobić z tonu pulsara oś utworu (dron, wokół którego wszystko się buduje), a nie tylko tło.
 - [ ] Terzan 5, następny i ostatni szybki pulsar (autor, 18.11.2026): kierunek Aphex Twin, „#3” (bez kopiowania utworu): 1) dużo wolniej, nowy akord co około 6 s; 2) każdy akord narasta przez kilka sekund i rozpływa się w następny; 3) dolne głosy idą dalej, gdy melodia stoi; 4) iskra zostaje, bo to wyznacznik pulsara. Pomysł zastępuje wcześniejszą „zepsutą pozytywkę”, chyba że autor zdecyduje inaczej.
+- [ ] J0437, pad: autor (18.11.2026): zostaje na razie, ale „organowy charakter mi nie siedzi”; „czasem jak dźwięk się zaczyna, jest fajnie”, więc przy powrocie zacząć od tego, co dzieje się w pierwszych sekundach nuty, i utrzymać to dłużej. Wzór: Aphex Twin, #3 (nagranie autora `docs/research/AT#3.m4a`, nie commitować). Z pomiaru: prawie czyste tony 150–300 Hz, każdy pływa o 5–14 centów, szum wokół dźwięków, cichy ogon alikwotów do kilku kHz. Odrzucone: piła, PWM z taśmą, ciemniejszy filtr.
 - [ ] Vela, bas: autor (18.11.2026): „to jeszcze nie to”, wrócić do niego później. Teraz: sinus 45 Hz (4 × F) z 2. harmoniczną, szybkie wejście, trwa około 3 s, co 64 błyski i przy nowym pomiarze (`bassBus` −7 dB). Odrzucone wcześniej: drżenie („bububu”), buczenie piły, opadająca wysokość („jak bęben”), wolne wejście („jak pad”), za cichy („ginie w tle”).
 - [ ] Liquid: autor chce porównać z ulubionymi utworami LTJ Bukema i Calibre (nagranie telefonem do `docs/`).
 
