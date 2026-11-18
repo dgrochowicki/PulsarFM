@@ -1138,7 +1138,7 @@ const GENRES = {
     tuning: (psr) => `pure intervals from ${fmt(1 / psr.P, 2)} Hz`,
     how: (psr) => {
       const rate = bpmFor(psr) * 4 / 60, turns = Math.round(1 / rate / psr.P), o = psr.orbit;
-      return `No drums. A pure tone at ${fmt(1 / psr.P, 2)} Hz, the real spin of the pulsar, never stops and never moves. A warm pad plays the melody written by the solar wind, drifting away from that tone and coming back. Once every ${turns} turns there is a high electric spark, ${fmt(rate, 1)} a second. The piece follows the real ${fmt(o.pb, 2)}-day orbit around a white dwarf: right now it is ${fmt(orbitPhase(o) * 100, 0)}% of the way round, so tomorrow it will sound a little different.`;
+      return `No drums. A pure tone at ${fmt(1 / psr.P, 2)} Hz, the real spin of the pulsar, never stops and never moves. A warm pad plays the melody written by the solar wind, drifting away from that tone and coming back, and a soft bass fills its longer silences. Once every ${turns} turns there is a high electric spark, ${fmt(rate, 1)} a second. The piece follows the real ${fmt(o.pb, 2)}-day orbit around a white dwarf: right now it is ${fmt(orbitPhase(o) * 100, 0)}% of the way round, so tomorrow it will sound a little different.`;
     },
     make(B) {
       const F = 1 / psr.P; // 173,69 Hz
@@ -1151,17 +1151,23 @@ const GENRES = {
       const crush = new Tone.BitCrusher(4).connect(zf);
       const zap = vol(new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.0003, decay: 0.004, sustain: 0 } }), -2).connect(crush);
       // Melodia: ciepły, wielogłosowy pad (autor). Nuty nakładają się na siebie, stroje czyste względem tonu pulsara.
+      // Autor: mniej organowo, cieplej, a nuta ma się rozchodzić, nie urywać: miękka barwa z kilku alikwotów, powolne wejście, opadanie w trakcie nuty,
+      // długie wybrzmienie i echo, które niesie ją dalej w pogłos.
       const chorus = new Tone.Chorus(0.4, 3, 0.45).start();
-      chorus.connect(B.side(B.rev)); chorus.connect(B.side(B.lim));
+      const tail = new Tone.FeedbackDelay({ delayTime: "2n.", feedback: 0.45, wet: 1 }).connect(B.rev);
+      const tailIn = new Tone.Gain(0.35).connect(tail);
+      chorus.connect(B.side(B.rev)); chorus.connect(B.side(B.lim)); chorus.connect(tailIn);
       const pf = new Tone.Filter({ frequency: 1200, type: "lowpass", rolloff: -24 }).connect(chorus);
-      const pad = vol(new Tone.PolySynth({ maxPolyphony: 18, voice: Tone.Synth, options: { oscillator: { type: "fatsawtooth", count: 3, spread: 16 }, envelope: { attack: 0.7, decay: 1, sustain: 0.7, release: 3.5 } } }), -24).connect(pf);
+      const pad = vol(new Tone.PolySynth({ maxPolyphony: 32, voice: Tone.Synth, options: { oscillator: { type: "fatcustom", partials: [1, 0.4, 0.16, 0.06], count: 2, spread: 18 }, envelope: { attack: 1.1, decay: 2.5, sustain: 0.5, release: 6.5 } } }), -23).connect(pf);
+      // Bas wchodzi tylko w dłuższe przerwy melodii (autor): miękki, nisko, na dźwięku, na którym melodia skończyła.
+      const bass = vol(new Tone.Synth({ oscillator: { type: "custom", partials: [1, 0.22, 0.05] }, envelope: { attack: 0.18, decay: 0.9, sustain: 0.7, release: 2.4 } }), -15).connect(B.lim);
       const SC = { bright: [1, 9 / 8, 5 / 4, 4 / 3, 3 / 2, 5 / 3, 15 / 8], dark: [1, 9 / 8, 6 / 5, 4 / 3, 3 / 2, 8 / 5, 9 / 5] };
       const SHAPES = [[-2, -4], [-3, -5], [-2, -5], [-4, -7]]; // cztery odcinki orbity, cztery układy współbrzmień
       const hz = (d) => F * 2 * 2 ** Math.floor(d / 7) * SC[E.dark() ? "dark" : "bright"][((d % 7) + 7) % 7];
-      let spark = 0, fallback = 0;
+      let spark = 0, fallback = 0, rests = 0, lastLow = F / 2;
       return {
-        mix: { Melodia: pad, "Tło": { output: axisOut }, Impuls: zap },
-        nodes: [axisOut, axis, zPan, zf, crush, zap, chorus, pf, pad], tun: [],
+        mix: { Melodia: pad, "Tło": { output: axisOut }, Impuls: zap, Bas: bass },
+        nodes: [axisOut, axis, zPan, zf, crush, zap, chorus, tail, tailIn, pf, pad, bass], tun: [],
         step(t, s, bar) {
           const k = spark++;
           zf.frequency.setValueAtTime(lerp(9000, 13000, E.bright()), t);
@@ -1173,10 +1179,19 @@ const GENRES = {
           const mel = windMelody(), mi = (bar % 8) * 2 + (s >> 3);
           let d = mel ? mel[mi] : null;
           if (!mel && chance(0.35)) d = [2, 4, 3, 5, 1, 4][fallback++ % 6];
-          if (d == null) return;
+          if (d == null) {
+            // Druga pauza z rzędu i przed nami jeszcze co najmniej dwie: bas trzyma przerwę do następnej nuty.
+            if (++rests !== 2) return;
+            let left = 1;
+            if (mel) while (left < 8 && mel[(mi + left) % 16] == null) left++; else left = 3;
+            if (left >= 2) { bass.triggerAttackRelease(lastLow, Tone.Time("2n").toSeconds() * left * 0.9, t, 0.85); E.note(Tone.Frequency(lastLow).toNote(), t); }
+            return;
+          }
+          rests = 0;
           const phase = orbitPhase(psr.orbit), shape = SHAPES[Math.floor(phase * 4) % 4];
           const cents = (4 + 22 * Math.sin(Math.PI * phase) ** 2) * (1 - Math.abs((bar % 16) / 8 - 1));
           const ch = [d, d + shape[0], d + shape[1]].map((x) => hz(x) * 2 ** (cents / 1200));
+          lastLow = hz(d + shape[1]); while (lastLow > 130) lastLow /= 2;
           pad.triggerAttackRelease(ch, Tone.Time("1m").toSeconds() * 1.3, t, 0.6);
           E.note(Tone.Frequency(ch[0]).toNote(), t); E.chord(ch.map((f) => Tone.Frequency(f).toNote()), t);
         },
