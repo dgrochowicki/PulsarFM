@@ -86,7 +86,8 @@
   .station { position: relative; width: var(--player-w); height: 70px; display: flex; align-items: center; gap: 4px; padding: 0 8px 0 0; }
   .st-main { flex: 1; min-width: 0; height: 100%; display: flex; align-items: center; gap: 24px; padding: 0 8px 0 24px; /* odstęp kropka–nazwa = lewy margines */ border: 0; background: none; text-align: left; cursor: pointer; }
   .dot { width: 12px; height: 12px; border-radius: 50%; background: #fff4dc; flex: 0 0 auto; }
-  .st-main .t { min-width: 0; }
+  .st-main .t { min-width: 0; transition: opacity .15s; }
+  .st-main:active .t { opacity: .6; } /* panel się nie zmniejsza po kliku (autor, 19.11.2026), tylko przygasa napis */
   .st-main b { display: block; font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .st-main .t div { font-size: 12.5px; color: rgba(238,240,246,0.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
   .st-main .bpm { color: var(--dim); font-size: 11.5px; margin-left: 8px; }
@@ -164,7 +165,7 @@
   .stat .short { display: none; }
   /* Wciśnięcie jak w Aurora Now: kafelek i przycisk lekko się zmniejszają. */
   .stat, .play, .sq, .station, .auto-toggle, .brand, .ico, .modes button, .styles button { transition: transform .2s cubic-bezier(0.2, 0.8, 0.2, 1), background-color .2s; }
-  .stat:active, .play:active, .sq:active, .station:has(.st-main:active), .auto-toggle:active, .brand:active, .modes button:active, .styles button:active { transform: scale(0.94); }
+  .stat:active, .play:active, .sq:active, .auto-toggle:active, .brand:active, .modes button:active, .styles button:active { transform: scale(0.94); }
   .ico:active { transform: scale(0.88); }
 
   .devbox { position: fixed; right: 16px; top: calc(env(safe-area-inset-top) + 80px); width: 260px; max-height: 70vh; overflow: auto; padding: 10px; }
@@ -184,11 +185,11 @@
      Ikony: domyślnie 40% bieli, włączona dostaje ramkę i 80% bieli. Telefon na razie bez zmian. */
   @media (min-width: 641px) {
     .station { width: min(826px, calc(100vw - 48px)); gap: 10px; padding: 0 10px 0 0; }
-    .st-main { gap: 18px; padding-left: 24px; }
+    .st-main { flex: 0 1 auto; gap: 18px; padding-left: 24px; }
     .st-main b { font-size: 17px; }
     .st-main .t div { font: 10px/1.4 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: 0; color: var(--dim); margin-top: 3px; }
     .st-main .t div .bpm { display: none; }
-    .pwave { width: 128px; height: 36px; flex: 0 0 auto; margin-right: 8px; }
+    .pwave { flex: 1 1 0; min-width: 60px; height: 36px; margin: 0 8px 0 16px; } /* stała przerwa od nazwy, słupki wypełniają resztę */
     .play { width: 50px; height: 50px; border-radius: 16px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: #fff; }
     @media (hover: hover) { .play:hover { background: rgba(255,255,255,0.1); } }
     .psep { width: 1px; height: 46px; background: rgba(255,255,255,0.09); margin: 0 6px; flex: 0 0 auto; }
@@ -2082,19 +2083,21 @@ function dotGlow(now) {
 }
 // Słupki w odtwarzaczu (komputer), jak analizator widma w radiu (autor, 19.11.2026): każdy słupek stoi w miejscu i ma swoje pasmo,
 // basy z lewej, góra z prawej (pasma rozłożone jak słuch, logarytmicznie). Szybko rosną, wolno opadają. Bez grania płaska, szara linia.
-const PW = { bars: new Float32Array(40), at: 0, el: null };
+const PW = { bars: new Float32Array(0), at: 0, el: null };
 function drawPlayerWave(t) {
   const c = PW.el || (PW.el = $("pWave"));
   if (!c || !c.offsetWidth) return;
   const dt = Math.min(0.1, (t - PW.at) / 1000); PW.at = t;
+  const W = c.offsetWidth, H = c.offsetHeight, want = Math.max(12, Math.floor(W / 4));
+  if (PW.bars.length !== want) PW.bars = new Float32Array(want);
   const n = PW.bars.length, fft = A && playing ? A.fft.getValue() : null;
   for (let i = 0; i < n; i++) {
-    const u = 0.12 + 0.86 * (i / (n - 1));
+    const u = 0.1 + 0.76 * (i / (n - 1)); // od ok. 90 Hz do ok. 11 kHz; wyżej prawie nic nie gra
     // Wyższe pasma mają naturalnie mniej energii: podbicie rośnie ku górze (jak w analizatorach), żeby prawa strona też żyła.
-    const v = fft ? Math.pow(map(fft[Math.min(fft.length - 1, Math.round(Math.pow(fft.length, u)) - 1)] + 44 * u, -80, -16, 0, 1), 1.3) : 0;
+    const v = fft ? Math.pow(map(fft[Math.min(fft.length - 1, Math.round(Math.pow(fft.length, u)) - 1)] + 26 * u, -80, -20, 0, 1), 1.3) : 0;
     PW.bars[i] = v > PW.bars[i] ? lerp(PW.bars[i], v, 1 - Math.exp(-dt * 30)) : PW.bars[i] * Math.exp(-dt * 5);
   }
-  const dpr = devicePixelRatio || 1, W = c.offsetWidth, H = c.offsetHeight;
+  const dpr = devicePixelRatio || 1;
   if (c.width !== W * dpr) { c.width = W * dpr; c.height = H * dpr; }
   const ctx = c.getContext("2d");
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
@@ -2761,7 +2764,7 @@ function renderCard() {
   const tempo = g.flashes ? `${fmt(1 / psr.P, 1)} flashes/s` : `${f.bpm} BPM`;
   const dTempo = g.flashes ? `${fmt(1 / psr.P, 1)} FLASHES/s` : `${f.bpm} BPM`;
   $("psrLine").innerHTML = `<span class="m-only">${g.label}${g.silent ? "" : `<span class="bpm">${tempo}</span>`}<span class="bpm">Rotation: ${f.per}</span></span>`
-    + `<span class="d-only">${g.label.toUpperCase()} · ROTATION: ${f.per}${g.silent ? "" : ` · ${dTempo}`}</span>`;
+    + `<span class="d-only">${g.label.toUpperCase()}${g.silent ? "" : ` · ${dTempo}`}</span>`; // bez Rotation (autor, 19.11.2026): jest na karcie pulsara
 }
 
 function selectPulsar(p, manual = false) {
