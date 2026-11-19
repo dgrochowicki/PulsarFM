@@ -2704,9 +2704,14 @@ function renderSkyBase(dpr) {
   if (SW >= 560) sctx.fillText("galactic centre", gc.x, gc.y + 30);
 }
 
-function skyReticle(q, color, w, r0 = 11) {
-  sctx.strokeStyle = color; sctx.lineWidth = w; sctx.lineCap = "round"; sctx.beginPath();
-  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { sctx.moveTo(q.x + dx * r0, q.y + dy * r0); sctx.lineTo(q.x + dx * (r0 + 6), q.y + dy * (r0 + 6)); }
+// Celownik jak ramka ostrości w aparacie (autor, 19.11.2026): litera L w każdym rogu kwadratu, odsunięta od pulsara.
+function skyReticle(q, color, w, h = 15) {
+  const a = 5;
+  sctx.strokeStyle = color; sctx.lineWidth = w; sctx.lineCap = "round"; sctx.lineJoin = "round"; sctx.beginPath();
+  for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+    const x = q.x + sx * h, y = q.y + sy * h;
+    sctx.moveTo(x, y - sy * a); sctx.lineTo(x, y); sctx.lineTo(x - sx * a, y);
+  }
   sctx.stroke(); sctx.lineCap = "butt";
 }
 function drawSky(time) {
@@ -2735,9 +2740,9 @@ function drawSky(time) {
       sctx.stroke();
     }
     // Wybór jako celownik (autor, 19.11.2026): cztery krótkie kreski zamiast okręgu; najechany ma blady.
-    if (sel || p === skyHover) skyReticle(q, sel ? "#ffcf6e" : "rgba(255,207,110,0.45)", sel ? 2 : 1.4, p.P < 0.2 ? 15 : 11); // szybkie: za drgającym pierścieniem
+    if (sel || p === skyHover) skyReticle(q, sel ? "#ffcf6e" : "rgba(255,207,110,0.45)", sel ? 2 : 1.4, p.P < 0.2 ? 17 : 15); // szybkie: za drgającym pierścieniem
     sctx.fillStyle = sel ? "#ffcf6e" : "rgba(238,240,246,0.75)";
-    sctx.font = `${sel ? 600 : 500} 11.5px -apple-system, sans-serif`;
+    sctx.font = "400 11.5px -apple-system, sans-serif"; // bez pogrubienia (autor, 19.11.2026)
     // Nazwa zawsze pod pulsarem, na środku, poniżej kółka wyboru (promień 17).
     sctx.textAlign = "center"; sctx.textBaseline = "top";
     // Ciemna obwódka: nazwa czytelna także na gwiazdach i sąsiednim pulsarze.
@@ -2746,9 +2751,10 @@ function drawSky(time) {
     sctx.fillText(p.short, q.x, q.y + 25);
     // Najechany myszką (komputer): pod nazwą gatunek i tempo, zanim się wybierze (autor, 19.11.2026).
     if (p === skyHover && !sel) {
-      const g = GENRES[p.genre], line = g.flashes ? `${g.label} · ${fmt(1 / p.P, 1)} flashes/s` : `${g.label} · ${psrFacts(p).bpm} BPM`;
-      sctx.font = "500 10.5px -apple-system, sans-serif"; sctx.fillStyle = "rgba(255,207,110,0.9)";
-      sctx.strokeText(line, q.x, q.y + 40); sctx.fillText(line, q.x, q.y + 40);
+      // Jak nazwa (ten sam krój i kolor), tempo w osobnej linii.
+      const g = GENRES[p.genre], tempo = g.flashes ? `${fmt(1 / p.P, 1)} flashes/s` : `${psrFacts(p).bpm} BPM`;
+      sctx.fillStyle = "rgba(238,240,246,0.75)";
+      for (const [i, line] of [g.label, tempo].entries()) { sctx.strokeText(line, q.x, q.y + 25 + 15 * (i + 1)); sctx.fillText(line, q.x, q.y + 25 + 15 * (i + 1)); }
     }
     sctx.textBaseline = "alphabetic";
   }
