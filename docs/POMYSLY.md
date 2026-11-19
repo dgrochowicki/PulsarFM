@@ -120,3 +120,18 @@ Nieużywane dziś pola i pomysły (autor: „wszystkie pomysły są super”):
 4. **Koronograf CCOR-2 (obrazy korony Słońca, co 15 minut). Odrzucony** (autor, 15.11.2026: „do niczego nam nie jest potrzebny”). Zostawione dla pamięci: Przykłady w `docs/research/ccor2-solar1-20261115_2045.jpg` (zwykły, „White Light”) i `...-roznicowy.jpg` („Running Difference”, różnica z obrazem sprzed 15 min, na nim widać ruch, np. wyrzuty). Adresy: `services.swpc.noaa.gov/images/animations/ccor2/latest.jpg` i `.../ccor2-diff/latest.jpg`; NOAA pozwala je wczytać z naszej strony (CORS `*`). Na obrazach są napisy i logo NOAA wtopione w piksele, do przycięcia; przesłona ma kształt kropli z ramieniem u góry.
 
 Odrzucone: kierunek przepływu (vx, vy, vz, zmienia się minimalnie), położenie sondy (orbita wokół L1, bez znaczenia dla muzyki).
+
+## Pomysły na gatunki (rozmowa 19.11.2026)
+
+Autor: dodajemy w wolnej chwili, lista otwarta. Zasada: tempo z samych błysków, bez mnożenia ani dzielenia; poniżej 80/min `tempoFloor`. Każdy gatunek wyraźnie innymi instrumentami (zajęte: pianino i wibrafon w hip-hopie, smyczki i klawesyn w trip-hopie, kalimba i flet w downtempo, harfa i kontrabas w Ambiencie, trąbka w Krabie).
+
+| Gatunek | Pulsar | Błyski/min | Pomysł | Dane |
+|---|---|---|---|---|
+| Dub | B0820+02 | 69,4 | stary kod Dubu na start: echo, sprężyna, bas z przodu; orbita z białym karłem (ok. 3,4 roku) jako bardzo wolne falowanie | ATNF 2.6.0, orbita do sprawdzenia |
+| R&B | B1859+03 | 91,5 | pianino elektryczne FM z VCSL (TX81Z), miękki bas, klaśnięcie | ATNF 2.6.0 |
+| Jungle / drum and bass | B2020+28 (0,3434 s) | ok. 174,7 | ciemniejszy brat Liquidu: cięte breaki, ciężki bas Reese; zapas: B1933+16 (0,3587 s, ok. 167) | z pamięci |
+| House / garage | B0823+26 (0,5307 s) | ok. 113 | stopa na każdy błysk, organy albo akordy stab, jasny | z pamięci |
+| Reggaeton / dancehall | B2016+28 (0,5580 s) | ok. 107,5 | rytm dembow, marimba albo steel drum | z pamięci |
+| Modern classical / drugi Drone | B1237+25 (1,3824 s), B0834+06 (1,2738 s) | ok. 43 i 47 | za wolne na bit: pianino i smyczki w pogłosie, błysk jako pojedynczy dźwięk | z pamięci |
+
+„Z pamięci” znaczy: sprawdzić okres, położenie i odległość w ATNF przed budowaniem (19.11.2026 katalog nie odpowiadał).
