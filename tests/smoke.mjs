@@ -64,7 +64,7 @@ const rms = () => page.evaluate(async () => {
 });
 
 let failed = false;
-for (const id of ["B0329", "B1919", "J2144", "Geminga", "B0950", "Vela", "Crab", "J0437", "B2255", "Ter5"]) {
+for (const id of ["B0329", "B1919", "J2144", "Geminga", "B0950", "Vela", "Crab", "J0437", "B2255", "Ter5", "B1706"]) {
   await page.evaluate((id) => selectPulsar(PULSARS.find((p) => p.id === id)), id);
   await page.waitForTimeout(4000);
   const r = await rms();
@@ -219,7 +219,7 @@ const layers = await page.evaluate(async () => {
   }
   return out;
 });
-check(Object.keys(layers).length === 10 && Object.values(layers).every(Boolean), `warstwy do wyciszenia: ${Object.keys(layers).length} gatunków`);
+check(Object.keys(layers).length === 11 && Object.values(layers).every(Boolean), `warstwy do wyciszenia: ${Object.keys(layers).length} gatunków`);
 
 for (const st of ["ridges", "waves", "cymatics", "color", "bauhaus", "scope"]) {
   // Wybór stylu jest tylko pod ?dev, więc ustawiamy go wprost.

@@ -387,6 +387,9 @@ const PULSARS = [
   // Sam błyska 162,9 razy na minutę, bez mnożenia (autor: 81 BPM to hip-hop, nie liquid).
   { id: "B2255", genre: "glass", name: "PSR B2255+58", short: "B2255+58", P: 0.368246, ra: 22.966, dec: 59.15,
     dist: 3.0, desc: "A pulsar in Cepheus, so far north that it never sets over Europe. Found in 1972, it is about a million years old." },
+  // Hip-hop (autor, 19.11.2026): 91,9 błysku na minutę, każdy błysk to ćwierćnuta, bez mnożenia. Dane z ATNF 2.6.0.
+  { id: "B1706", genre: "hiphop", name: "PSR B1706−16", short: "B1706−16", P: 0.653061, ra: 17.157, dec: -16.68,
+    dist: 0.562, desc: "A pulsar in Ophiuchus, about a degree from the star Sabik. It turns 92 times a minute, the tempo of a classic hip-hop beat, and is about 1.6 million years old, judging by how fast its spin winds down." },
   // Na mapie zostaje, ale nie gra, dopóki nie ma swojej eksperymentalnej muzyki.
   { id: "J0437", genre: "orbit", name: "PSR J0437−4715", short: "J0437", P: 0.005757452, ra: 4.621, dec: -47.25, orbit: { pb: 5.7410459, t0: 54530.1722 }, // orbita z ATNF: okres w dniach, T0 w MJD
     dist: 0.157, desc: "The nearest and brightest millisecond pulsar, spinning 174 times a second. It circles a white dwarf every 5.7 days and keeps time so precisely that astronomers use it to listen for gravitational waves." },
@@ -1303,6 +1306,89 @@ const GENRES = {
             }
           }
           if (s === 0 && bar % 4 === 3) motif.mutate(0.5);
+        },
+      };
+    },
+  },
+
+  // B1706−16 (od 19.11.2026): 91,9 błysku na minutę, każdy błysk to ćwierćnuta, tempo hip-hopu bez mnożenia. Boom bap w stylu lo-fi:
+  // perkusja z próbek ze swingiem, głęboki bas 808, akordy na pianinie przez filtr i falowanie taśmy, melodia z wiatru na wibrafonie, trzaski płyty.
+  hiphop: {
+    label: "Hip-hop", scales: ["dorian", "aeolian"],
+    make(B) {
+      const fire = (node, note, t, v) => { if (node.loaded) node.triggerAttack(note, t, v); };
+      const kick = vol(sampler({ C2: "hh-stopa-1", D2: "hh-stopa-2" }, 0.2), -12).connect(B.lim);
+      const snare = vol(sampler({ C3: "hh-werbel-1", D3: "hh-werbel-2" }, 0.2), -16);
+      snare.connect(B.lim); snare.connect(B.rev);
+      const clap = vol(sampler({ C3: "hh-klask" }, 0.2), -22);
+      clap.connect(B.lim); clap.connect(B.rev);
+      const hat = vol(sampler({ C3: "hh-hat-1", D3: "hh-hat-2" }, 0.05), -22).connect(B.lim);
+      // Bas 808: sinus z poślizgiem; lekkie nasycenie dokłada alikwoty, żeby był słyszalny także na małych głośnikach.
+      const sat = new Tone.Chebyshev(2).connect(B.lim); sat.wet.value = 0.25;
+      const bass = vol(new Tone.MonoSynth({ portamento: 0.04, oscillator: { type: "sine" }, filter: { type: "lowpass", frequency: 300, rolloff: -12 }, envelope: { attack: 0.005, decay: 0.6, sustain: 0.55, release: 0.25 }, filterEnvelope: { attack: 0.001, decay: 0.1, sustain: 1, release: 0.2, baseFrequency: 300, octaves: 0 } }), -12).connect(sat);
+      // Akordy: pianino przyciemnione filtrem i lekko pływające jak stara taśma.
+      const wow = new Tone.Vibrato({ frequency: 0.55, depth: 0.06 }).connect(B.side(B.lim));
+      const pf = new Tone.Filter({ type: "lowpass", frequency: 1800, rolloff: -12 }).connect(wow);
+      wow.connect(B.rev);
+      const piano = vol(sampler({ F3: "hh-pianino-F3", A3: "hh-pianino-A3", "C#4": "hh-pianino-Cs4", F4: "hh-pianino-F4", A4: "hh-pianino-A4", "C#5": "hh-pianino-Cs5", F5: "hh-pianino-F5", A5: "hh-pianino-A5" }, 0.8), -27).connect(pf);
+      // Melodia: wibrafon miękkimi pałkami, z echem w tempie.
+      const vib = vol(sampler({ E4: "hh-wibrafon-E4", G4: "hh-wibrafon-G4", B4: "hh-wibrafon-B4", D5: "hh-wibrafon-D5", F5: "hh-wibrafon-F5", A5: "hh-wibrafon-A5", C6: "hh-wibrafon-C6", E6: "hh-wibrafon-E6" }, 1.2), -34);
+      vib.connect(B.side(B.lim)); vib.connect(B.side(B.delay));
+      // Tło: trzaski i szum płyty winylowej.
+      const vinyl = new Tone.Volume(0).connect(B.lim);
+      const hissF = new Tone.Filter({ type: "bandpass", frequency: 3500, Q: 0.6 }).connect(vinyl);
+      const hissOut = new Tone.Volume(-42).connect(hissF);
+      const hiss = new Tone.Noise("pink").connect(hissOut).start();
+      const crackF = new Tone.Filter({ type: "highpass", frequency: 1500 }).connect(vinyl);
+      const crack = vol(new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.0005, decay: 0.002, sustain: 0 } }), -22).connect(crackF);
+      // Boom bap: stopa na 1 i przed 3, werbel na 2 i 4, co drugi takt stopa się przesuwa. Pozycje to szesnastki.
+      const KICK = [[0, 10], [0, 7, 10, 15]];
+      const prog = [0, 5, 3, 4];
+      let chordDeg = 0;
+      const melody = new Motif(16, [2, 9], 0.4);
+      return {
+        mix: { Melodia: vib, Akordy: piano, Bas: bass, Stopa: kick, Werbel: snare, Klaps: clap, "Hi-hat": hat, "Tło": { output: vinyl } },
+        nodes: [kick, snare, clap, hat, sat, bass, wow, pf, piano, vib, vinyl, hissF, hiss, hissOut, crackF, crack], tun: [bass],
+        step(t, s, bar) {
+          const sixteenth = Tone.Time("16n").toSeconds(), at = s % 2 ? t + sixteenth * 0.28 : t; // swing na nieparzystych szesnastkach
+          const phrase = bar % 16, drop = phrase === 15; // ostatni takt frazy bez bębnów
+          if (s === 0 && bar % 2 === 0) {
+            const part = (bar / 2) % 4;
+            chordDeg = windChord(part) ?? prog[part];
+            E.chord(chordDegs(chordDeg, 4).map((x) => E.n(x, -1)), t);
+          }
+          if (s === 0) Tone.Draw.schedule(() => vis.beat(), t);
+          // Akord na raz i spóźniony na „i” dwójki, jak cięty z płyty.
+          if (s === 0 || (s === 7 && bar % 2 === 1)) {
+            const notes = chordDegs(chordDeg, 4).map((x) => E.n(x, -1));
+            notes.forEach((n, k) => fire(piano, n, at + k * 0.012, s === 0 ? 0.55 : 0.4));
+          }
+          if (s === 0 || s === 7) piano.releaseAll(at + sixteenth * (s === 0 ? 6 : 8));
+          if (!drop) {
+            if (KICK[bar % 2].includes(s)) fire(kick, s === 0 ? "C2" : "D2", at, s === 0 ? 1 : 0.8);
+            if (s === 4 || s === 12) { fire(snare, bar % 4 === 3 && s === 12 ? "D3" : "C3", at, 0.9); fire(clap, "C3", at + 0.008, 0.7); }
+            if (s % 4 === 2) fire(hat, "D3", at, 0.45 + Math.random() * 0.15);
+            if (E.busy() > 0.35 && s % 2 === 1) fire(hat, "D3", at, 0.25 + Math.random() * 0.1);
+            // Bas idzie za stopą: długa nuta na raz, krótsze na pozostałych uderzeniach.
+            if (KICK[bar % 2].includes(s)) bass.triggerAttackRelease(E.n(chordDeg + (s === 15 ? 4 : 0), -3), s === 0 ? sixteenth * 6 : sixteenth * 2, at, 0.9);
+          }
+          if (chance(0.22)) crack.triggerAttackRelease(0.002, t + Math.random() * sixteenth, 0.3 + Math.random() * 0.7);
+          // Melodia ćwierćnutami: jeden pomiar wiatru na ćwierćnutę, fraza na 4 takty. Co drugi raz nuta wchodzi ósemkę później.
+          if (s % 4 === 0 || s % 4 === 2) {
+            const i = (bar % 4) * 4 + (s >> 2), mel = windMelody(), late = i % 4 === 3;
+            if ((s % 4 === 2) !== late) return;
+            const d = mel ? (mel[i] != null ? 4 + mel[i] : null) : melody.at(i);
+            if (d != null) {
+              const n = E.n(d, 0);
+              fire(vib, n, at, 0.45 + Math.min(windChange(i) / 12, 1) * 0.35);
+              E.note(n, at);
+            }
+          }
+          if (s === 0 && bar % 4 === 3) melody.mutate(0.5);
+        },
+        // Każdy błysk pulsara to ćwierćnuta: hi-hat dokładnie na błysku.
+        pulse(t) {
+          fire(hat, "C3", t, 0.6 + Math.random() * 0.2);
         },
       };
     },

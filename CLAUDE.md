@@ -66,6 +66,7 @@ Automatyczny wybór pulsara używa geolokalizacji i czasu UTC, aby co minutę wy
 | Krab | 33,7 ms | Experimental | od 18.11.2026 (gatunek `crab`, wzór Jon Hassell): bez perkusji; trąbka z tłumikiem Harmon z próbek gra melodię z wiatru, miękkie rozstrojone tło w pogłosie, wysoka iskra co 4. obrót krążąca w stereo; wysokości to wielokrotności 29,6 Hz |
 | PSR B2255+58 | 0,3682 s | Liquid drum and bass | od 17.11.2026 (wcześniej J0437); 162,9 błysku/min, każdy błysk = uderzenie; z ATNF |
 | PSR J0437−4715 | 5,757 ms | Experimental | od 18.11.2026 (gatunek `orbit`): czysty ton 173,69 Hz jako oś, pad z melodią z wiatru, iskra jak w Krabie, miękki bas w dłuższych przerwach; forma z prawdziwej orbity 5,74 dnia (`orbitPhase()`, dane z ATNF) |
+| PSR B1706−16 | 0,6531 s | Hip-hop | od 19.11.2026, 91,9 błysku/min, każdy błysk to ćwierćnuta (hi-hat na błysku); boom bap lo-fi z próbek VCSL: stopa, rimshot z klaśnięciem, swing, bas 808, pianino z falowaniem taśmy, wibrafon z melodią z wiatru, trzaski płyty; autor: „śliczne”. Dane z ATNF 2.6.0 |
 | PSR J1748−2446ad (Terzan 5) | 1,396 ms | Experimental | od 18.11.2026 (gatunek `terzan`, kierunek Aphex Twin #3): akord co 4096 obrotów (5,7 s) narasta i rozpływa się w następny, bas idzie dalej, gdy melodia stoi, jedna nuta melodii z wiatru na takt, iskra co 128 obrotów, ton 716 Hz cicho wewnątrz akordu |
 
 Okresy i położenia są z pamięci modelu (literatura/ATNF). **Do zweryfikowania z katalogiem** przy etapie 2.
@@ -82,6 +83,8 @@ Pełny opis syntezy i instrumentów: `docs/DZWIEK.md` (aktualizować przy zmiana
 - J0437 (174 Hz): zrobiony 18.11.2026 (gatunek `orbit`), ton pulsara jako oś utworu; gatunek `soon` (cisza) został w kodzie tylko dla testu dymnego;
 - Terzan 5 (716 Hz): zrobiony 18.11.2026 (gatunek `terzan`), kierunek #3 zamiast zepsutej pozytywki; autor: „podobny do J0437, ale jednak nieco inny”.
 Liquid (wzór: LTJ Bukem, Calibre) przeniesiony 17.11.2026 na B2255+58 (162,9 BPM, prawie jak wcześniej 162,8). Zasada autora: tempo z samych błysków, bez mnożenia, jeśli się da; pulsar z 81 błyskami na minutę to tempo hip-hopu, R&B, trip-hopu, nie liquidu (B1508+55, 0,7397 s, 81,1/min, kandydat na trip-hop). Dub do decyzji: też może dostać wolny pulsar.
+
+**Kolejne gatunki (autor, 19.11.2026): dub, hip-hop, trip-hop.** Kandydaci z ATNF 2.6.0, tempo z samych błysków: hip-hop B1706−16 (91,9/min, zrobiony 19.11.2026); trip-hop B1508+55 (81,1/min, z Polski nigdy nie zachodzi, jedna z najszybciej pędzących gwiazd neutronowych); dub B0031−07 (63,6/min, znany z gaśnięcia i wędrujących impulsów, do sprawdzenia w literaturze przed opisem na karcie) albo B0820+02 (69,4/min, okrąża białego karła przez ponad 3 lata). Dub poniżej 80 BPM wymaga `tempoFloor` niższego niż 80; stary kod Dubu w `GENRES` można wziąć na start.
 
 ## Style graficzne
 
@@ -138,7 +141,7 @@ Na razie muzyka ważniejsza od obrazu. Autorowi podoba się brzmienie gatunków 
 - [ ] Pomysły: strojenie zamiast przełączania pulsarów, bez odlotu z Ziemi; nazwa „wiatr dotrze za N minut”; docelowo stream.
 
 **Następne kroki (pomysły autora, 3.11.2026)**
-- [ ] Nowe style pod tempo pulsara, około 90 BPM. Pierwszy hip-hop na B1706−16 (około 92 BPM, każdy błysk to uderzenie): stopa i werbel z próbek, głęboki bas, melodia z wiatru w stylu lo-fi. Potem R&B na B1859+03 (około 91,5 BPM), wyraźnie innymi instrumentami, najlepiej z prawdziwym pianinem elektrycznym. Okresy z pamięci, do sprawdzenia w ATNF. Inni kandydaci: B0834+06, B1237+25.
+- [ ] Nowe style pod tempo pulsara, około 90 BPM. Hip-hop na B1706−16 zrobiony 19.11.2026. Potem R&B na B1859+03 (91,5 błysku/min wg ATNF), wyraźnie innymi instrumentami, najlepiej z prawdziwym pianinem elektrycznym (w VCSL jest „FM Piano” z TX81Z; pianino i wibrafon zajęte przez hip-hop). Inni kandydaci: B0834+06, B1237+25.
 - [ ] Rock i pop przy około 90 BPM: odłożone. Rock tylko, jeśli w bibliotekach CC0 są dobre gitary; pop stoi na wokalu i refrenie, których nie mamy.
 - [ ] Akordy z wiatru wszędzie, ta sama zasada co melodia: wspólne akordy i ich kolejność, tempo zmian przy stylu. Autor jeszcze się zastanawia. Najpierw próba na Ambiencie, porównanie ze słuchu; ostrożnie z Ambientem i Chorałem.
 - [ ] Forma utworu z danych zamiast zegara: gęstość układa warstwy, skręt Bz na południe działa jak drop.
