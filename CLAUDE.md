@@ -40,7 +40,8 @@ Wspólne dla wszystkich gatunków (obiekt `E` w kodzie, wartości 0–1):
 | Prędkość wiatru | jasność brzmienia (filtry), wysokość motywów; w Ambiencie ostatnie 16 minut wyznacza wysokości melodii (`windDegrees`) i barwę pada (`windPartials`) | prędkość cząstek/kresek/fal, korona Słońca |
 | Gęstość wiatru | ile się dzieje (gęstość motywów, dodatkowe warstwy) | liczba cząstek/kresek/fal |
 | Prędkość × gęstość | – | odległość magnetopauzy (Chapman–Ferraro, kształt Shue) |
-| Bz < −2 nT | mroczna skala; wspólny niski bas rośnie z −Bz | kolor (różowy/bursztynowy) |
+| Bz < −2 nT | mroczna skala; wspólny niski bas rośnie z −Bz; skręt na południe to drop (2 takty narastania, ćwierćnuta ciszy, wejście), powrót na północ to takt bez perkusji (19.11.2026, najwyżej raz na 3 min) | kolor (różowy/bursztynowy) |
+| Gęstość wyraźnie poniżej mediany z 30 min | w gatunkach z bitem 8 taktów bez perkusji (puls pulsara zostaje, `pulseRole`) | – |
 | By (GSM) | stereo: głos melodii w prawo/lewo (`byPan()`, gatunek przepina go przez `B.side()`); bas, stopa i puls na środku (16.11.2026) | – |
 | Kp | wysoka poświata (shimmer) | zorza |
 | Rozbłysk (C/M/X) | **trailerowe uderzenie**: zawsze prawdziwy bęben wielki (uderzenie, po 2 s pocieranie membrany) i niskie „buuum” z opadającą wysokością (C); M = + przesterowany akord „braam” z otwierającym się filtrem; X = pełny braam z tercją + szum | koła/drganie Słońca/znak f–fff |
@@ -126,7 +127,7 @@ Zasada: każde nowe źródło danych dostaje **jedną wyraźną rolę**, żeby n
 **Etap 3: nowe głosy**
 - [ ] Promienie kosmiczne: monitor neutronów (np. Oulu, NMDB), liczba cząstek co minutę → ciągła faktura/szum.
 - [ ] Przelot ISS (CelesTrak + satellite.js) → krótki motyw melodyczny, gdy stacja jest nad słuchaczem.
-- [ ] Fale grawitacyjne: publiczne alerty LIGO/Virgo/KAGRA (GraceDB/GCN; przebieg IR1 startuje ok. listopada 2026) → rzadkie wielkie wydarzenie.
+- [ ] Fale grawitacyjne: publiczne alerty LIGO/Virgo/KAGRA → rzadkie wielkie wydarzenie. **Odłożone (autor, 19.11.2026)**: ostatni prawdziwy alarm w GraceDB z 18.11.2025, od roku tylko zdarzenia testowe (MDC). GraceDB i GCN nie mają CORS, więc potrzebny automat GitHub Actions zapisujący `data/gw.json`. Wrócić, gdy detektory ruszą.
 - [ ] Ruch telefonu (DeviceOrientation, na iOS wymaga zgody) → filtr i przestrzeń.
 
 **Muzyka najpierw (decyzja autora, 2.11.2026)**
@@ -146,7 +147,7 @@ Na razie muzyka ważniejsza od obrazu. Autorowi podoba się brzmienie gatunków 
 - [ ] Nowe style pod tempo pulsara, około 90 BPM. Hip-hop na B1706−16 zrobiony 19.11.2026. Potem R&B na B1859+03 (91,5 błysku/min wg ATNF), wyraźnie innymi instrumentami, najlepiej z prawdziwym pianinem elektrycznym (w VCSL jest „FM Piano” z TX81Z; pianino i wibrafon zajęte przez hip-hop). Inni kandydaci: B0834+06, B1237+25.
 - [ ] Rock i pop przy około 90 BPM: odłożone. Rock tylko, jeśli w bibliotekach CC0 są dobre gitary; pop stoi na wokalu i refrenie, których nie mamy.
 - [ ] Akordy z wiatru wszędzie, ta sama zasada co melodia: wspólne akordy i ich kolejność, tempo zmian przy stylu. Autor jeszcze się zastanawia. Najpierw próba na Ambiencie, porównanie ze słuchu; ostrożnie z Ambientem i Chorałem.
-- [ ] Forma utworu z danych zamiast zegara: gęstość układa warstwy, skręt Bz na południe działa jak drop.
+- [ ] Forma utworu z danych zamiast zegara: zrobione 19.11.2026 (drop z Bz, oddech, przerzedzenie z gęstości; opis w `docs/DZWIEK.md`), czeka na odsłuch autora. Ewentualnie dalej: dłuższy łuk (wyciszenie, wejście, kulminacja w skali kilku minut).
 - [ ] Deep i Geminga: klaps i hi-haty są cicho; inna perkusja i bas w każdym z nich. Szepty to imitacja, ewentualnie prawdziwe nagranie CC0.
 - [ ] Dopracować Chorał i Dub (przy 111 BPM i z melodią w basie): wciąż stare brzmienia z syntezy.
 - [x] Szybkie pulsary po kolei na muzykę eksperymentalną (podział wyżej, 17.11.2026). Liquid na B2255+58; Vela, Krab, J0437 i Terzan 5 zrobione 18.11.2026.

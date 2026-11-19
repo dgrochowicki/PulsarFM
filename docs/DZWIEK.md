@@ -117,10 +117,21 @@ Styl to prawdziwy rodzaj muzyki, do którego dany gatunek ma się zbliżać, z h
 |---|---|
 | Prędkość wiatru | otwarcie filtrów (jaśniej), wysokość motywów, długość echa, jasność melodii w techno |
 | Gęstość wiatru | jak często grają nuty motywu, dodatkowe warstwy rytmu, sprzężenie echa w dubie |
-| Bz < −2 nT | mroczna skala (na początku taktu), wspólny niski bas |
+| Bz < −2 nT | mroczna skala, wspólny niski bas; skręt na południe jako drop (niżej, „Forma z danych”) |
 | By (pole w bok, GSM) | stereo głosu melodii (`byPan()`, `B.side()`): dodatnie w prawo, ujemne w lewo, najwyżej 70% w bok (`0,7·tanh(By/6)`, By = 2 nT to około 0,2, 5 nT to około 0,5); zmiana płynna w 2 s. W bok idzie tylko melodia (Ambient harfa, Chorał chór, Drone dzwon, Techno i Deep melodia, Vela sonar, Liquid szkło, Terzan 5 melodia i akordy; w Dubie akordy, bo melodia jest w basie). Bas, stopa, puls pulsara, rozbłyski i wspólny bas zostają na środku. Wyjątek: iskry Veli skaczą lewo/prawo, a iskry Kraba krążą wokół środka wyznaczonego przez By. Nagranie z 18.10 nie ma By, więc gra na środku. |
 | Kp | wysoka poświata nad akordami, druga linia szklanej harmonijki |
 | Rozbłysk C / M / X | bęben wielki (uderzenie, po 2 s pocieranie) i „buuum” / + „braam” / pełny „braam” z tercją + szum |
+
+### Forma z danych (19.11.2026)
+
+Wcześniej budowę utworu wyznaczał tylko zegar (frazy co 4 i 16 taktów), a skręt Bz przełączał skalę z taktu na takt. Teraz dane układają formę we wszystkich gatunkach (`formBar()` w `index.html`):
+
+- **Skręt Bz na południe (poniżej −2 nT) to drop.** Przez dwa takty narasta różowy szum z filtrem otwierającym się od 250 Hz do 5 kHz, a perkusja odchodzi w ciągu taktu. Ostatnia ćwierćnuta przed wejściem to cisza (zostaje tło i puls pulsara). Potem wszystko wraca naraz w mrocznej skali, z cichym niskim uderzeniem (wspólne „buuum” z rozbłysku, siła 0,35).
+- **Powrót na północ (Bz powyżej 0)**: jasna skala od razu i jeden takt oddechu bez perkusji.
+- Drop i oddech najwyżej raz na 3 minuty (pod `?dev` raz na 20 s). Częstsze skręty przełączają skalę po cichu, jak wcześniej. W pierwszych 4 taktach po Play albo zmianie pulsara skala ustawia się od razu, bez dropu.
+- **Przerzedzenie z gęstości**, tylko w gatunkach z bitem (techno, Deep, Liquid, hip-hop, trip-hop, downtempo): gdy średnia gęstość z ostatnich 3 minut spada poniżej 85% mediany z 30 minut, perkusja odchodzi na 8 taktów; potem co najmniej 24 takty pełne. Sprawdzane co 8 taktów.
+- Warstwa, która gra sam błysk pulsara (`pulseRole` gatunku: Stopa w Drone, Chorale, Ambiencie i downtempo; Hi-hat w techno, Deep i hip-hopie; Impuls w trip-hopie i Veli), nie odchodzi nigdy.
+- Pod `?dev`: przycisk „Przerzedź” (wymusza przerzedzenie), stan formy i gęstość względem mediany obok włączników, włącznik „Narastanie przed dropem”. Drop słychać po przesunięciu suwaka Bz poniżej −2.
 
 Zmiany są celowo wygładzane, więc przy spokojnym Słońcu są subtelne. Żeby je usłyszeć, użyj trybu „Burza” albo suwaków „Steruj ręcznie”.
 

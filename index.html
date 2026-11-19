@@ -305,6 +305,8 @@
     <div class="more">
       <button class="ghost" id="flare">Wywołaj rozbłysk</button>
       <button class="ghost" id="toggleSliders">Steruj ręcznie</button>
+      <button class="ghost" id="thinBtn">Przerzedź</button>
+      <span id="formInfo"></span>
       <div id="layers"></div>
     </div>
     <div class="sliders" id="sliders">
@@ -529,6 +531,7 @@ async function fetchLive() {
     liveOK = true; lastLive = out; lastOkAt = Date.now();
     const tail = wind.value.filter((r) => r.active && r.proton_speed != null).slice(0, 17).reverse().map((r) => Number(r.proton_speed));
     if (tail.length === 17) windTail = tail;
+    densTail = wind.value.filter((r) => r.active && r.proton_density != null).slice(0, 31).reverse().map((r) => Number(r.proton_density));
     if (!WAVES.seeded) {
       const long = xr.status === "fulfilled" ? xr.value.filter((r) => r.energy === "0.1-0.8nm" && r.flux > 0) : [];
       seedWaves(liveHistory(wind.value, mag.value, long, out.kp));
@@ -738,7 +741,7 @@ function windPartials() {
 const GENRES = {
   // J2144: prawie cisza. Dwa długie tony, wiatr jako szum, głęboki bit co 8,5 s, szepty w dołkach tła.
   drone: {
-    label: "Drone", scales: ["lydian", "phrygian"],
+    label: "Drone", pulseRole: "Stopa", scales: ["lydian", "phrygian"],
     make(B) {
       const f = new Tone.Filter(300, "lowpass", -24).connect(B.rev);
       const lfo = new Tone.LFO(0.03, 150, 700).connect(f.frequency).start();
@@ -797,7 +800,7 @@ const GENRES = {
 
   // B1919+21: chorał. Organy i chór, akord co uderzenie pulsara, melodia w sopranie.
   choral: {
-    label: "Chorale", scales: ["major", "aeolian"],
+    label: "Chorale", pulseRole: "Stopa", scales: ["major", "aeolian"],
     make(B) {
       const organ = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "custom", partials: [1, 0.55, 0.35, 0.22, 0.12, 0.08, 0.05] }, envelope: { attack: 0.25, decay: 0.2, sustain: 0.9, release: 2.2 } }), -28).connect(B.rev);
       const vf = new Tone.Filter({ frequency: 1000, type: "bandpass", Q: 0.9 }).connect(B.rev);
@@ -835,7 +838,7 @@ const GENRES = {
 
   // B0329+54: ambient z arpeggio, ale motywem zamiast losowych nut.
   ambient: {
-    label: "Ambient", scales: ["lydian", "aeolian"],
+    label: "Ambient", pulseRole: "Stopa", scales: ["lydian", "aeolian"],
     make(B) {
       const pf = new Tone.Filter(900, "lowpass", -24).connect(B.rev);
       const pad = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fatcustom", partials: windPartials(), count: 3, spread: 22 }, envelope: { attack: 4, decay: 1, sustain: 0.75, release: 8 } }), -32).connect(pf); // tło ciszej (autor, 16.11.2026)
@@ -891,7 +894,7 @@ const GENRES = {
 
   // Geminga: połowa jej rytmu to 126 BPM, czyli tempo techno. Błyski pulsara grają hi-hat na ósemkach.
   techno: {
-    label: "Minimal techno", scales: ["dorian", "phrygian"],
+    label: "Minimal techno", pulseRole: "Hi-hat", thin: true, scales: ["dorian", "phrygian"],
     // Każdy pulsar ma mieć inne instrumenty. Deep: krótkie akordy z prostokątów jako akcent, tło, melodia brzmieniem akordów.
     // Techno: tło z długich, płynących akordów, melodia na organach, szepty.
     make(B, deep = false) {
@@ -982,7 +985,7 @@ const GENRES = {
 
   // B0950+08: 118,6 BPM. To samo co techno, ale niesie je akord, nie acid.
   deep: {
-    label: "Deep", scales: ["dorian", "phrygian"],
+    label: "Deep", pulseRole: "Hi-hat", thin: true, scales: ["dorian", "phrygian"],
     make(B) { return GENRES.techno.make(B, true); },
   },
 
@@ -1241,7 +1244,7 @@ const GENRES = {
 
   // B2255+58 (od 17.11.2026, wcześniej J0437): 162,9 błysku na minutę, każdy błysk to uderzenie, tempo liquid drum and bass. Szybki rytm pod wolnym chórem i szkłem.
   glass: {
-    label: "Liquid drum and bass", tempoFloor: 100, pulseBurst: true, scales: ["lydian", "aeolian"],
+    label: "Liquid drum and bass", thin: true, tempoFloor: 100, pulseBurst: true, scales: ["lydian", "aeolian"],
     make(B) {
       const vf = new Tone.Filter({ frequency: 900, type: "bandpass", Q: 0.8 }).connect(B.rev);
       const choir = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fatsine", count: 4, spread: 25 }, envelope: { attack: 3, decay: 1, sustain: 0.8, release: 6 } }), -23).connect(vf);
@@ -1320,7 +1323,7 @@ const GENRES = {
   // B1706−16 (od 19.11.2026): 91,9 błysku na minutę, każdy błysk to ćwierćnuta, tempo hip-hopu bez mnożenia. Boom bap w stylu lo-fi:
   // perkusja z próbek ze swingiem, głęboki bas 808, akordy na pianinie przez filtr i falowanie taśmy, melodia z wiatru na wibrafonie, trzaski płyty.
   hiphop: {
-    label: "Hip-hop", scales: ["dorian", "aeolian"],
+    label: "Hip-hop", pulseRole: "Hi-hat", thin: true, scales: ["dorian", "aeolian"],
     make(B) {
       const fire = (node, note, t, v) => { if (node.loaded) node.triggerAttack(note, t, v); };
       const kick = vol(sampler({ C2: "hh-stopa-1", D2: "hh-stopa-2" }, 0.2), -12).connect(B.lim);
@@ -1403,7 +1406,7 @@ const GENRES = {
   // B1508+55 (od 19.11.2026): 81,1 błysku na minutę, każdy błysk to ćwierćnuta, bez mnożenia. Trip-hop, kierunek Massive Attack i Tricky
   // (cechy stylu, bez kopiowania utworów): ciężki, wolny bit jak spowolniony sampel, dubowy bas, smyczki w pogłosie, klawesyn z melodią z wiatru.
   triphop: {
-    label: "Trip-hop", scales: ["aeolian", "phrygian"],
+    label: "Trip-hop", pulseRole: "Impuls", thin: true, scales: ["aeolian", "phrygian"],
     make(B) {
       const fire = (node, note, t, v) => { if (node.loaded) node.triggerAttack(note, t, v); };
       // Bębny przez wspólny, przybrudzony tor: lekkie nasycenie i przyciemnienie, jak bit zgrany z płyty i zwolniony.
@@ -1480,7 +1483,7 @@ const GENRES = {
   // B0031−07 (od 19.11.2026): 63,6 błysku na minutę, każdy błysk to ćwierćnuta, bez mnożenia. Downtempo ciepłe i organiczne, w stronę Bonobo
   // i Nightmares on Wax: perkusja z rąk, kalimba w pętli, flet z melodią z wiatru, okrągły bas. Gęstość wiatru dokłada perkusję.
   downtempo: {
-    label: "Downtempo", tempoFloor: 60, scales: ["mixo", "dorian"],
+    label: "Downtempo", pulseRole: "Stopa", thin: true, tempoFloor: 60, scales: ["mixo", "dorian"],
     make(B) {
       const fire = (node, note, t, v) => { if (node.loaded) node.triggerAttack(note, t, v); };
       const low = vol(sampler({ C2: "dt-cajon-bas" }, 0.3), -5).connect(B.lim);
@@ -1669,9 +1672,120 @@ async function initAudio() {
   const swellFilter = new Tone.AutoFilter(0.15, 300, 4).connect(swellEnv).start();
   vol(new Tone.Noise("pink"), -14).connect(swellFilter).start();
 
-  A = { master, lim, wave, fft, rev, revGate, delay, droneVol, drone, starVol, star, shimmer, boom, drumHit, drumRub, braam, braamF, swellEnv };
+  // Narastanie przed dropem (forma z Bz): różowy szum, filtr otwiera się w górę przez dwa takty.
+  const riseVol = new Tone.Volume(-80);
+  riseVol.connect(lim); riseVol.connect(rev);
+  const riseF = new Tone.Filter({ frequency: 250, type: "bandpass", Q: 1.6 }).connect(riseVol);
+  new Tone.Noise("pink").connect(riseF).start();
+
+  A = { master, lim, wave, fft, rev, revGate, delay, droneVol, drone, starVol, star, shimmer, boom, drumHit, drumRub, braam, braamF, swellEnv, riseVol, riseF };
   Tone.Transport.scheduleRepeat(onStep, "16n");
   applyPulsarAudio();
+}
+
+// ---------- Forma z danych (autor, 19.11.2026) ----------
+// Dotąd budowę utworu wyznaczał tylko zegar (frazy co 4 i 16 taktów), a skręt Bz przełączał skalę z taktu na takt.
+// Skręt Bz na południe to teraz drop: dwa takty narastania (perkusja odchodzi, szum rośnie), ćwierćnuta ciszy
+// i wejście wszystkiego w mrocznej skali. Powrót na północ: jasna skala i takt oddechu bez perkusji.
+// Najwyżej raz na 3 minuty (pod ?dev raz na 20 s); częstsze skręty przełączają skalę po cichu, jak wcześniej.
+// Gatunki z bitem (thin): gęstość wiatru wyraźnie poniżej swojej mediany z ostatnich 30 minut daje
+// 8 taktów przerzedzenia bez perkusji. Warstwa, która gra sam błysk pulsara (pulseRole), zostaje zawsze.
+const DRUM_ROLES = ["Stopa", "Werbel", "Werbel cichy", "Klaps", "Rimshot", "Hi-hat", "Otwarty hi-hat", "Shaker", "Perkusjonalia", "Impuls"];
+const TURN_GAP_MS = () => (devMode ? 20e3 : 180e3);
+const FORM = { phase: null, at: 0, lastTurn: -Infinity, thinUntil: -1, thinNext: 0, force: false, gone: new Set(), base: new Map() };
+let densTail = [];
+
+function densValues() {
+  if (onRecording()) return Array.from({ length: 31 }, (_, i) => SNAP.dens[(replayIdx - 30 + i + SNAP.dens.length) % SNAP.dens.length]);
+  if (mode === "live" && densTail.length >= 20) return densTail;
+  return null;
+}
+// Ostatnie 3 minuty gęstości względem mediany z 30 minut; 1 = jak zwykle.
+function densRatio() {
+  const d = densValues();
+  if (!d) return 1;
+  const med = [...d].sort((a, b) => a - b)[d.length >> 1], now = d.slice(-3).reduce((a, b) => a + b, 0) / 3;
+  return med > 0 ? now / med : 1;
+}
+function formLayers(all) {
+  const keep = G.pulseRole || "Impuls";
+  return Object.entries(G.inst.mix).filter(([name]) => name !== keep && (all ? !name.startsWith("Tło") && name !== "Szum" : DRUM_ROLES.includes(name)));
+}
+function formOut(entries, t, dur) {
+  for (const [name, node] of entries) {
+    const key = `${psr.genre}:${name}`;
+    if (mutedLayers.has(key) || !Number.isFinite(FORM.base.get(node))) continue;
+    FORM.gone.add(node);
+    node.output.volume.rampTo(-80, dur, t);
+  }
+}
+function formIn(t, dur) {
+  for (const node of FORM.gone) {
+    const name = Object.keys(G.inst.mix).find((k) => G.inst.mix[k] === node);
+    if (name && !mutedLayers.has(`${psr.genre}:${name}`)) node.output.volume.rampTo(FORM.base.get(node), dur, t);
+  }
+  FORM.gone.clear();
+}
+// Przed pierwszym taktem (Play, nowy pulsar): wszystko wraca, skala od razu według Bz.
+function formReset(t) {
+  // Poziomy warstw zapisane z make(); warstwa wyciszona pod ?dev ma swój zapis w savedLayerVolume.
+  FORM.base = new Map(Object.entries(G.inst.mix).map(([name, node]) => {
+    const key = `${psr.genre}:${name}`;
+    return [node, mutedLayers.has(key) ? savedLayerVolume.get(key) : FORM.gone.has(node) ? FORM.base.get(node) : node.output.volume.value];
+  }));
+  formIn(t, 0.01); FORM.phase = null; FORM.thinUntil = -1; FORM.thinNext = 8;
+  A.riseVol.volume.cancelScheduledValues(t); A.riseVol.volume.setValueAtTime(-80, t);
+  mood = cur.bz < -2 ? "dark" : cur.bz > 0 ? "bright" : mood;
+}
+function formBar(t, bar, bs) {
+  const step = Tone.Time("16n").toSeconds(), barSec = step * bs;
+  if (FORM.phase === "build") {
+    if (bar < FORM.at) return;
+    // Drop: wszystko wraca naraz w mrocznej skali, z niskim uderzeniem.
+    FORM.phase = null; mood = "dark"; FORM.thinUntil = -1;
+    formIn(t, 0.02);
+    A.boom.triggerAttackRelease(E.n(0, -3), "2n", t, 0.35);
+    Tone.Draw.schedule(() => vis.beat(), t);
+    return;
+  }
+  if (FORM.phase === "lift") {
+    if (bar < FORM.at) return;
+    FORM.phase = null; formIn(t, step * 2);
+    return;
+  }
+  const want = cur.bz < -2 ? "dark" : cur.bz > 0 ? "bright" : mood;
+  if (want !== mood) {
+    if (bar >= 4 && Date.now() - FORM.lastTurn > TURN_GAP_MS() && !G.silent) {
+      FORM.lastTurn = Date.now(); FORM.thinUntil = -1;
+      if (want === "dark") {
+        FORM.phase = "build"; FORM.at = bar + 2;
+        formOut(formLayers(false), t, barSec);
+        const v = A.riseVol.volume, f = A.riseF.frequency, end = t + 2 * barSec - 4 * step;
+        v.cancelScheduledValues(t); v.setValueAtTime(-60, t); v.linearRampToValueAtTime(-24, end);
+        f.cancelScheduledValues(t); f.setValueAtTime(250, t); f.exponentialRampToValueAtTime(5000, end);
+      } else {
+        mood = "bright"; FORM.phase = "lift"; FORM.at = bar + 1;
+        formOut(formLayers(false), t, step);
+      }
+      return;
+    }
+    mood = want;
+  }
+  // Przerzedzenie z gęstości: sprawdzane co 8 taktów, trwa 8 taktów, potem co najmniej 24 takty pełne.
+  if (!G.thin) return;
+  if (FORM.thinUntil >= 0 && bar >= FORM.thinUntil) { FORM.thinUntil = -1; FORM.thinNext = bar + 24; formIn(t, 0.02); }
+  else if (FORM.thinUntil < 0 && bar >= FORM.thinNext && bar % 8 === 0 && (FORM.force || densRatio() < 0.85)) {
+    FORM.thinUntil = bar + 8; formOut(formLayers(false), t, barSec * 0.5);
+  }
+}
+// Ostatnia ćwierćnuta przed dropem: cisza (poza tłem i pulsem), szum urwany.
+function formGap(t) {
+  formOut(formLayers(true), t, 0.03);
+  A.riseVol.volume.cancelScheduledValues(t); A.riseVol.volume.setValueAtTime(-80, t);
+}
+function formState() {
+  return FORM.phase === "build" ? "narastanie przed dropem" : FORM.phase === "lift" ? "oddech po skręcie na północ"
+    : FORM.thinUntil >= 0 ? "przerzedzenie z gęstości" : "pełna";
 }
 
 function onStep(time) {
@@ -1684,10 +1798,9 @@ function onStep(time) {
   }
   const bs = G.barSteps || 16;
   const s = stepCount % bs, bar = Math.floor(stepCount / bs);
-  if (s === 0) {
-    const next = cur.bz < -2 ? "dark" : cur.bz > 0 ? "bright" : mood;
-    mood = next;
-  }
+  if (stepCount === 0) formReset(time);
+  if (s === 0) formBar(time, bar, bs);
+  if (FORM.phase === "build" && bar === FORM.at - 1 && s === bs - 4) formGap(time);
   G.inst.step(time, s, bar);
   holdMutes();
   stepCount++;
@@ -1712,7 +1825,7 @@ function schedulePulse() {
 const mutedLayers = new Set(), savedLayerVolume = new Map();
 const devMode = new URLSearchParams(location.search).has("dev");
 function sharedLayers() {
-  return { "Bas z Bz": A.drone, "Poświata z Kp": A.shimmer, "Impuls pulsara": A.star, "Wybuch: bęben": A.drumHit, "Wybuch: pocieranie": A.drumRub, "Wybuch: buum": A.boom, "Wybuch: braam": A.braam };
+  return { "Bas z Bz": A.drone, "Poświata z Kp": A.shimmer, "Impuls pulsara": A.star, "Wybuch: bęben": A.drumHit, "Wybuch: pocieranie": A.drumRub, "Wybuch: buum": A.boom, "Wybuch: braam": A.braam, "Narastanie przed dropem": { output: A.riseVol } };
 }
 function layerEntries() {
   if (!A || !G) return [];
@@ -1725,7 +1838,7 @@ function holdMutes() {
 }
 function toggleLayer(key, node) {
   if (mutedLayers.delete(key)) node.output.volume.value = savedLayerVolume.get(key) ?? 0;
-  else { mutedLayers.add(key); savedLayerVolume.set(key, node.output.volume.value); holdMutes(); }
+  else { mutedLayers.add(key); savedLayerVolume.set(key, FORM.base.get(node) ?? node.output.volume.value); FORM.gone.delete(node); holdMutes(); }
   renderLayers();
 }
 function renderLayers() {
@@ -2837,6 +2950,8 @@ $("styleBtn").onclick = (e) => { e.stopPropagation(); toggleStylePop(!$("stylePo
 document.addEventListener("click", (e) => { if (!$("stylePop").contains(e.target)) toggleStylePop(false); });
 showStyle();
 $("flare").onclick = () => triggerFlare(mode === "storm" ? 4 : 3);
+$("thinBtn").onclick = () => { FORM.force = !FORM.force; FORM.thinNext = 0; $("thinBtn").classList.toggle("on", FORM.force); };
+setInterval(() => { if (devMode) $("formInfo").textContent = `Forma: ${formState()} · gęstość ${Math.round(densRatio() * 100)}% mediany`; }, 1000);
 $("toggleSliders").onclick = () => { $("sliders").classList.toggle("open"); syncSliders(); };
 canvas.addEventListener("click", (e) => {
   const L = layout();
