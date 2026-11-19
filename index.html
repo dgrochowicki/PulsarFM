@@ -2642,7 +2642,7 @@ function drawSkyData(g, v) {
   if (v.mw !== "none") SKYDATA.mw.forEach((polys, li) => {
     g.beginPath();
     for (const dx of shifts) for (const rings of polys) for (const ring of rings) traceSky(g, ring, dx, true, v.mw === "fill");
-    if (v.mw === "fill") { g.fillStyle = `rgba(150,170,255,${0.034 + li * 0.009})`; g.fill("evenodd"); }
+    if (v.mw === "fill") { g.fillStyle = `rgba(150,170,255,${0.042 + li * 0.011})`; g.fill("evenodd"); }
     else { g.strokeStyle = `rgba(160,180,255,${0.16 + li * 0.08})`; g.lineWidth = 0.8; g.stroke(); }
   });
   if (v.lines) {
@@ -2652,10 +2652,11 @@ function drawSkyData(g, v) {
   const k = clamp(SW / 1200, 0.7, 1.4) * (v.mw === "contour" ? 0.7 : 1);
   for (const [ra, dec, mag, bv] of SKYDATA.stars) {
     const { x, y } = skyXY(ra, dec);
-    // Gwiazdy przygaszone i chłodniejsze (autor, 19.11.2026), żeby złote pulsary łatwiej było znaleźć.
-    const [R, G, B] = v.color ? starColor(bv) : [200, 212, 240];
-    g.fillStyle = `rgba(${R},${G},${B},${Math.min(0.55, 0.12 + (6 - mag) * 0.085)})`;
-    g.beginPath(); g.arc(x, y, Math.max(0.3, (6.2 - mag) * 0.32) * k, 0, 6.283); g.fill();
+    // Gwiazdy lekko przygaszone i chłodniejsze, żeby złote pulsary łatwiej było znaleźć
+    // (autor, 19.11.2026: mocne przygaszenie było za ciemne, cofnięte w 75% do dawnych wartości).
+    const [R, G, B] = v.color ? starColor(bv) : [226, 233, 251];
+    g.fillStyle = `rgba(${R},${G},${B},${Math.min(0.85, 0.22 + (6 - mag) * 0.126)})`;
+    g.beginPath(); g.arc(x, y, Math.max(0.34, (6.2 - mag) * 0.365) * k, 0, 6.283); g.fill();
   }
 }
 
@@ -2703,6 +2704,11 @@ function renderSkyBase(dpr) {
   if (SW >= 560) sctx.fillText("galactic centre", gc.x, gc.y + 30);
 }
 
+function skyReticle(q, color, w, r0 = 11) {
+  sctx.strokeStyle = color; sctx.lineWidth = w; sctx.lineCap = "round"; sctx.beginPath();
+  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { sctx.moveTo(q.x + dx * r0, q.y + dy * r0); sctx.lineTo(q.x + dx * (r0 + 6), q.y + dy * (r0 + 6)); }
+  sctx.stroke(); sctx.lineCap = "butt";
+}
 function drawSky(time) {
   sctx.clearRect(0, 0, SW, SH);
   sctx.drawImage(skyBase, 0, 0, SW, SH);
@@ -2728,15 +2734,22 @@ function drawSky(time) {
       for (let i = 0; i <= 120; i++) { const a = (i / 120) * 6.283; const rr = 11 + 1.6 * Math.sin(a * n + time * 25); i ? sctx.lineTo(q.x + Math.cos(a) * rr, q.y + Math.sin(a) * rr) : sctx.moveTo(q.x + Math.cos(a) * rr, q.y + Math.sin(a) * rr); }
       sctx.stroke();
     }
-    if (sel) { sctx.strokeStyle = "#ffcf6e"; sctx.lineWidth = 2; sctx.beginPath(); sctx.arc(q.x, q.y, 17, 0, 6.283); sctx.stroke(); }
+    // Wybór jako celownik (autor, 19.11.2026): cztery krótkie kreski zamiast okręgu; najechany ma blady.
+    if (sel || p === skyHover) skyReticle(q, sel ? "#ffcf6e" : "rgba(255,207,110,0.45)", sel ? 2 : 1.4, p.P < 0.2 ? 15 : 11); // szybkie: za drgającym pierścieniem
     sctx.fillStyle = sel ? "#ffcf6e" : "rgba(238,240,246,0.75)";
     sctx.font = `${sel ? 600 : 500} 11.5px -apple-system, sans-serif`;
     // Nazwa zawsze pod pulsarem, na środku, poniżej kółka wyboru (promień 17).
     sctx.textAlign = "center"; sctx.textBaseline = "top";
     // Ciemna obwódka: nazwa czytelna także na gwiazdach i sąsiednim pulsarze.
     const fill = sctx.fillStyle; sctx.strokeStyle = "rgba(5,6,11,0.85)"; sctx.lineWidth = 3; sctx.lineJoin = "round";
-    sctx.strokeText(p.short, q.x, q.y + 22); sctx.fillStyle = fill;
-    sctx.fillText(p.short, q.x, q.y + 22);
+    sctx.strokeText(p.short, q.x, q.y + 25); sctx.fillStyle = fill;
+    sctx.fillText(p.short, q.x, q.y + 25);
+    // Najechany myszką (komputer): pod nazwą gatunek i tempo, zanim się wybierze (autor, 19.11.2026).
+    if (p === skyHover && !sel) {
+      const g = GENRES[p.genre], line = g.flashes ? `${g.label} · ${fmt(1 / p.P, 1)} flashes/s` : `${g.label} · ${psrFacts(p).bpm} BPM`;
+      sctx.font = "500 10.5px -apple-system, sans-serif"; sctx.fillStyle = "rgba(255,207,110,0.9)";
+      sctx.strokeText(line, q.x, q.y + 40); sctx.fillText(line, q.x, q.y + 40);
+    }
     sctx.textBaseline = "alphabetic";
   }
 }
@@ -2839,12 +2852,18 @@ function enableAutoPulsar() {
     refreshAutoPulsar();
   }, { enableHighAccuracy: false, maximumAge: 600000, timeout: 10000 });
 }
-sky.addEventListener("click", (e) => {
+function skyPick(e, reach) {
   const r = sky.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
-  let best = null, bd = 40;
+  let best = null, bd = reach;
   for (const p of PULSARS) { const q = skyXY(p.ra, p.dec), d = Math.hypot(q.x - x, q.y - y); if (d < bd) { bd = d; best = p; } }
-  if (best) selectPulsar(best, true);
-});
+  return best;
+}
+sky.addEventListener("click", (e) => { const best = skyPick(e, 40); if (best) selectPulsar(best, true); });
+let skyHover = null;
+if (matchMedia("(hover: hover)").matches) {
+  sky.addEventListener("pointermove", (e) => { skyHover = skyPick(e, 30); sky.style.cursor = skyHover ? "pointer" : "default"; });
+  sky.addEventListener("pointerleave", () => { skyHover = null; });
+}
 // Podpowiedzi: zamiast systemowego dymka z title pokazujemy własny, po krótkiej chwili. Tylko z myszką.
 (() => {
   if (!matchMedia("(hover: hover)").matches) return;
