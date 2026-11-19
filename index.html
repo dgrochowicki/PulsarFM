@@ -393,6 +393,9 @@ const PULSARS = [
   // Trip-hop (autor, 19.11.2026): 81,1 błysku na minutę, każdy błysk to ćwierćnuta. Dane z ATNF 2.6.0 (P0, DIST, AGE, VTRANS).
   { id: "B1508", genre: "triphop", name: "PSR B1508+55", short: "B1508+55", P: 0.739682, ra: 15.157, dec: 55.53,
     dist: 2.1, desc: "So far north that it never sets over Europe. It races through the Galaxy at nearly 1,000 km/s, one of the fastest-moving stars known. It turns 81 times a minute and is about 2.3 million years old." },
+  // Downtempo (autor, 19.11.2026): 63,6 błysku na minutę, każdy błysk to ćwierćnuta. Okres i odległość z ATNF 2.6.0 (zapytanie z 19.11.2026).
+  { id: "B0031", genre: "downtempo", name: "PSR B0031−07", short: "B0031−07", P: 0.94295, ra: 0.574, dec: -7.35,
+    dist: 1.03, desc: "A pulsar in Cetus, famous for switching off: it often falls silent for a while, and when it shines, its pulses drift across the beam in a few distinct patterns. It turns 64 times a minute." },
   // Na mapie zostaje, ale nie gra, dopóki nie ma swojej eksperymentalnej muzyki.
   { id: "J0437", genre: "orbit", name: "PSR J0437−4715", short: "J0437", P: 0.005757452, ra: 4.621, dec: -47.25, orbit: { pb: 5.7410459, t0: 54530.1722 }, // orbita z ATNF: okres w dniach, T0 w MJD
     dist: 0.157, desc: "The nearest and brightest millisecond pulsar, spinning 174 times a second. It circles a white dwarf every 5.7 days and keeps time so precisely that astronomers use it to listen for gravitational waves." },
@@ -1470,6 +1473,69 @@ const GENRES = {
         },
         // Każdy błysk pulsara to ćwierćnuta: tamburyn dokładnie na błysku.
         pulse(t) { fire(tamb, "D3", t, 0.55 + Math.random() * 0.15); },
+      };
+    },
+  },
+
+  // B0031−07 (od 19.11.2026): 63,6 błysku na minutę, każdy błysk to ćwierćnuta, bez mnożenia. Downtempo ciepłe i organiczne, w stronę Bonobo
+  // i Nightmares on Wax: perkusja z rąk, kalimba w pętli, flet z melodią z wiatru, okrągły bas. Gęstość wiatru dokłada perkusję.
+  downtempo: {
+    label: "Downtempo", tempoFloor: 60, scales: ["mixo", "dorian"],
+    make(B) {
+      const fire = (node, note, t, v) => { if (node.loaded) node.triggerAttack(note, t, v); };
+      const low = vol(sampler({ C2: "dt-cajon-bas" }, 0.3), -5).connect(B.lim);
+      const slap = vol(sampler({ C3: "dt-cajon-slap" }, 0.2), -12);
+      slap.connect(B.lim); slap.connect(B.rev);
+      const perc = vol(sampler({ C2: "dt-konga-1", E2: "dt-konga-2", G2: "dt-konga-3", C3: "dt-bongo-2", E3: "dt-bongo-1" }, 0.2), -16);
+      perc.connect(B.side(B.lim)); perc.connect(B.rev);
+      const shaker = vol(sampler({ C3: "dt-shaker-1", D3: "dt-shaker-2" }, 0.05), -20).connect(B.lim);
+      // Bas: okrągły, z krótkim otwarciem filtra na początku nuty, jak szarpnięta struna.
+      const bass = vol(new Tone.MonoSynth({ oscillator: { type: "custom", partials: [1, 0.25, 0.08] }, filter: { type: "lowpass", Q: 1, rolloff: -24 }, envelope: { attack: 0.01, decay: 0.35, sustain: 0.6, release: 0.3 }, filterEnvelope: { attack: 0.005, decay: 0.25, sustain: 0.3, release: 0.3, baseFrequency: 120, octaves: 2.5 } }), -18).connect(B.lim);
+      // Akordy: kalimba (strój wyrównany do nut) w powtarzalnym wzorze, z echem.
+      const kal = vol(sampler({ G4: "dt-kalimba-G4", B4: "dt-kalimba-B4", "C#5": "dt-kalimba-Cs5", "D#5": "dt-kalimba-Ds5", G5: "dt-kalimba-G5", "A#5": "dt-kalimba-As5" }, 1), -21);
+      kal.connect(B.lim); kal.connect(B.delay);
+      // Melodia: flet, długie nuty z wiatru.
+      const flute = vol(sampler({ C5: "dt-flet-C5", E5: "dt-flet-E5", A5: "dt-flet-A5", C6: "dt-flet-C6", E6: "dt-flet-E6", A6: "dt-flet-A6" }, 1.2), -30);
+      flute.attack = 0.08; flute.connect(B.side(B.lim)); flute.connect(B.side(B.rev));
+      const KAL = [[0, 0], [3, 2], [6, 4], [8, 6], [11, 4], [14, 2]]; // pozycja w szesnastkach, dźwięk akordu
+      const PERC = [[3, "G2", 0], [6, "C2", 0], [9, "E3", 0.12], [11, "G2", 0.06], [13, "C3", 0.18], [14, "C2", 0.25]]; // pozycja, bęben, od jakiej gęstości gra
+      const BASS = [[0, 7, 0], [8, 2, 4], [10, 4, 0], [14, 2, -1]];
+      const prog = [0, 3, 5, 4];
+      let chordDeg = 0, beat = 0;
+      const motif = new Motif(16, [0, 7], 0.4);
+      return {
+        mix: { Melodia: flute, Akordy: kal, Bas: bass, Stopa: low, Werbel: slap, Perkusjonalia: perc, Shaker: shaker },
+        nodes: [low, slap, perc, shaker, bass, kal, flute], tun: [bass],
+        step(t, s, bar) {
+          const six = Tone.Time("16n").toSeconds(), at = s % 2 ? t + six * 0.18 : t, rest = bar % 16 === 15, calm = E.dark();
+          if (s === 0 && bar % 2 === 0) {
+            const part = (bar / 2) % 4;
+            chordDeg = windChord(part) ?? prog[part];
+            E.chord(chordDegs(chordDeg, 4).map((x) => E.n(x, 0)), t);
+          }
+          if (s === 0) Tone.Draw.schedule(() => vis.beat(), t);
+          const k = KAL.find(([p]) => p === s);
+          if (k) fire(kal, E.n(chordDeg + k[1], 0), at, s === 0 ? 0.7 : 0.45 + Math.random() * 0.15);
+          const b = BASS.find(([p]) => p === s);
+          if (b && !rest) bass.triggerAttackRelease(E.n(chordDeg + b[2], -2), b[1] * six * 0.95, at, 0.85);
+          // Przy Bz na południe zostaje sama kalimba, bas i bicie pulsara.
+          if (rest || calm) return;
+          if (s === 4 || s === 12) fire(slap, "C3", at, 0.8);
+          if (s % 2 === 0 || E.busy() > 0.15) fire(shaker, s % 4 === 2 ? "C3" : "D3", at, (s % 2 ? 0.25 : 0.45) + Math.random() * 0.1);
+          for (const [p, drum, from] of PERC) if (p === s && E.busy() >= from) fire(perc, drum, at, 0.5 + Math.random() * 0.25);
+          // Melodia ćwierćnutami: jeden pomiar wiatru na ćwierćnutę, fraza na 4 takty; nuta trzyma pół taktu.
+          if (s % 4 === 0) {
+            const i = (bar % 4) * 4 + (s >> 2), mel = windMelody(), d = mel ? mel[i] : motif.at(i);
+            if (d != null) {
+              const n = E.n(d, 1);
+              if (flute.loaded) flute.triggerAttackRelease(n, six * 7, t, 0.45 + Math.min(windChange(i) / 12, 1) * 0.3);
+              E.note(n, t);
+            }
+          }
+          if (s === 0 && bar % 4 === 3) motif.mutate(0.5);
+        },
+        // Każdy błysk pulsara to ćwierćnuta: niskie uderzenie cajónu, mocniej na raz, jak bicie serca.
+        pulse(t) { fire(low, "C2", t, beat++ % 4 === 0 ? 1 : 0.55); },
       };
     },
   },
