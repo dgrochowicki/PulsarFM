@@ -152,7 +152,7 @@
   .info .how span { display: block; color: rgba(238,240,246,0.8); margin-bottom: 2px; }
 
   /* Dane: kolumna po lewej. */
-  .stats { position: fixed; z-index: 10; left: 24px; top: 50%; transform: translateY(-50%); width: 144px; display: grid; gap: 6px; }
+  .stats { position: fixed; z-index: 10; right: 24px; top: 50%; transform: translateY(-50%); width: 144px; display: grid; gap: 6px; }
   .stat { padding: 14px 16px 13px; text-align: left; min-width: 0; }
   .stat .v { font-size: 17px; font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .stat .v small { font-size: 17px; font-weight: 500; color: inherit; margin-left: 4px; }
@@ -160,7 +160,7 @@
   .stat .r { font-size: 11px; line-height: 1.2; color: rgb(239,230,210); opacity: .9; margin-top: 1px; }
   /* Dane wyjeżdżają po kliknięciu przycisku ze słoneczkiem (wybór zapamiętany). */
   .stats { transition: opacity .25s ease, transform .3s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s; }
-  body:not(.data-on) .stats { opacity: 0; visibility: hidden; transform: translate(-24px, -50%); transition: opacity .2s ease, transform .25s ease, visibility 0s linear .25s; }
+  body:not(.data-on) .stats { opacity: 0; visibility: hidden; transform: translate(24px, -50%); /* wysuwają się z prawej (autor, 19.11.2026) */ transition: opacity .2s ease, transform .25s ease, visibility 0s linear .25s; }
   .stat .r.off { opacity: .35; }
   .stat .short { display: none; }
   /* Wciśnięcie jak w Aurora Now: kafelek i przycisk lekko się zmniejszają. */
