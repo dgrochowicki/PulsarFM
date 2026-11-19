@@ -1711,9 +1711,9 @@ async function initAudio() {
   const riseVol = new Tone.Volume(-80);
   riseVol.connect(lim); riseVol.connect(rev);
   const riseF = new Tone.Filter({ frequency: 250, type: "bandpass", Q: 1.6 }).connect(riseVol);
-  new Tone.Noise("pink").connect(riseF).start();
+  const riseNoise = new Tone.Noise("pink").connect(riseF); // gra tylko w czasie narastania, poza nim nie liczy się wcale
 
-  A = { master, lim, wave, fft, rev, revGate, delay, droneVol, drone, starVol, star, shimmer, boom, drumHit, drumRub, braam, braamF, swellEnv, riseVol, riseF };
+  A = { master, lim, wave, fft, rev, revGate, delay, droneVol, drone, starVol, star, shimmer, boom, drumHit, drumRub, braam, braamF, swellEnv, riseVol, riseF, riseNoise };
   Tone.Transport.scheduleRepeat(onStep, "16n");
   applyPulsarAudio();
 }
@@ -1770,6 +1770,7 @@ function formReset(t) {
   }));
   formIn(t, 0.01); FORM.phase = null; FORM.thinUntil = -1; FORM.thinNext = 8;
   A.riseVol.volume.cancelScheduledValues(t); A.riseVol.volume.setValueAtTime(-80, t);
+  if (A.riseNoise.state === "started") A.riseNoise.stop(t);
   mood = cur.bz < -2 ? "dark" : cur.bz > 0 ? "bright" : mood;
 }
 function formBar(t, bar, bs) {
@@ -1796,6 +1797,7 @@ function formBar(t, bar, bs) {
         FORM.phase = "build"; FORM.at = bar + 2;
         formOut(formLayers(false), t, barSec);
         const v = A.riseVol.volume, f = A.riseF.frequency, end = t + 2 * barSec - 4 * step;
+        if (A.riseNoise.state !== "started") A.riseNoise.start(t);
         v.cancelScheduledValues(t); v.setValueAtTime(-60, t); v.linearRampToValueAtTime(-24, end);
         f.cancelScheduledValues(t); f.setValueAtTime(250, t); f.exponentialRampToValueAtTime(5000, end);
       } else {
@@ -1817,6 +1819,7 @@ function formBar(t, bar, bs) {
 function formGap(t) {
   formOut(formLayers(true), t, 0.03);
   A.riseVol.volume.cancelScheduledValues(t); A.riseVol.volume.setValueAtTime(-80, t);
+  A.riseNoise.stop(t + 0.05);
 }
 function formState() {
   return FORM.phase === "build" ? "narastanie przed dropem" : FORM.phase === "lift" ? "oddech po skręcie na północ"
@@ -2100,7 +2103,7 @@ function drawPlayerWave(t) {
     PW.bars[i] = v > PW.bars[i] ? lerp(PW.bars[i], v, 1 - Math.exp(-dt * 30)) : PW.bars[i] * Math.exp(-dt * 5);
   }
   const dpr = devicePixelRatio || 1;
-  if (c.width !== W * dpr) { c.width = W * dpr; c.height = H * dpr; }
+  if (c.width !== Math.round(W * dpr)) { c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); }
   const ctx = c.getContext("2d");
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
   const step = W / n;
