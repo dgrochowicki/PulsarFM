@@ -179,6 +179,30 @@
   .err { color: #ff9b8a; }
   body:not(.dev) .dev-only { display: none !important; }
   @media (min-width: 641px) { .m-only { display: none !important; } }
+  @media (max-width: 640px) { .d-only { display: none !important; } }
+  /* Odtwarzacz na komputerze wg projektu autora (Pulsar 1600_main, 19.11.2026): co gra, fala dźwięku, Play | losowanie, Live, dane.
+     Ikony: domyślnie 40% bieli, włączona dostaje ramkę i 80% bieli. Telefon na razie bez zmian. */
+  @media (min-width: 641px) {
+    .station { width: min(826px, calc(100vw - 48px)); gap: 10px; padding: 0 10px 0 0; }
+    .st-main { gap: 22px; padding-left: 28px; }
+    .st-main b { font-size: 17px; }
+    .st-main .t div { font: 10px/1.4 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .04em; color: var(--dim); margin-top: 3px; }
+    .st-main .t div .bpm { display: none; }
+    .pwave { width: 160px; height: 36px; flex: 0 0 auto; margin-right: 14px; }
+    .play { width: 50px; height: 50px; border-radius: 16px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: #fff; }
+    @media (hover: hover) { .play:hover { background: rgba(255,255,255,0.1); } }
+    .psep { width: 1px; height: 46px; background: rgba(255,255,255,0.09); margin: 0 6px; flex: 0 0 auto; }
+    .pico { width: 50px; height: 50px; padding: 0; border: 1px solid transparent; border-radius: 16px; background: none; color: rgba(255,255,255,0.4); display: grid; place-items: center; cursor: pointer; flex: 0 0 auto;
+      font: 13px ui-monospace, "SF Mono", Menlo, monospace; transition: color .2s, border-color .2s, transform .2s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    .pico svg { width: 20px; height: 20px; }
+    .pico.pbox { width: 58px; }
+    .pico[aria-pressed="true"] { border-color: rgba(255,255,255,0.14); color: rgba(255,255,255,0.8); }
+    @media (hover: hover) { .pico:not([aria-disabled="true"]):hover { color: rgba(255,255,255,0.8); } }
+    .pico:not([aria-disabled="true"]):active { transform: scale(0.94); }
+    .pico[aria-disabled="true"] { cursor: default; }
+    .info-pop { width: 440px; }
+    #sunBtn { display: none; } /* dane są w odtwarzaczu */
+  }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
   /* Mapa pulsarów */
@@ -295,8 +319,13 @@
         <span class="dot" id="psrDot"></span>
         <span class="t"><b id="psrName">PSR B0329+54</b><div id="psrLine"></div></span>
       </button>
+      <canvas class="pwave d-only" id="pWave" aria-hidden="true"></canvas>
       <button class="ico" id="psrBtn" type="button" title="Choose a pulsar" aria-label="Choose a pulsar"></button>
       <button class="play" id="play" type="button" aria-label="Play" title="Play"></button>
+      <span class="psep d-only"></span>
+      <button class="pico d-only" id="shuffleBtn" type="button" aria-pressed="false" aria-disabled="true" title="Shuffle (coming soon)" aria-label="Shuffle"></button>
+      <button class="pico pbox d-only" id="liveBtn" type="button" aria-pressed="false">Live</button>
+      <button class="pico d-only" id="dataBtn" type="button" aria-pressed="false" title="Data from the Sun" aria-label="Data from the Sun"></button>
       <div class="pop info-pop" id="infoPop" title="Hide"></div>
     </div>
   </div>
@@ -582,6 +611,9 @@ function setStatus() {
   else { text = "Manual"; tip = "Manual control (dev)."; }
   const lb = $("livebar");
   lb.className = "livebar " + cls; $("lbText").textContent = text; $("lbMore").textContent = more;
+  const lv = $("liveBtn");
+  lv.setAttribute("aria-pressed", cls === "on");
+  lv.title = devMode ? (mode === "live" ? "Live data · click for the 3-hour replay" : "Replay · click to go back to live data") : tip;
   lb.dataset.pre = cls === "on" ? "measured" : time ? "last" : ""; lb.dataset.time = time;
   tickLive();
   if (lb.dataset.tip !== undefined) lb.dataset.tip = tip; else lb.title = tip;
@@ -2048,6 +2080,28 @@ function dotGlow(now) {
   dotEl.style.opacity = (0.45 + 0.55 * glow).toFixed(2);
   dotEl.style.boxShadow = `0 0 ${(4 + glow * 10).toFixed(1)}px rgba(255,214,140,${(0.25 + glow * 0.6).toFixed(2)})`;
 }
+// Fala w odtwarzaczu (komputer): słupki z głośności tego, co właśnie gra, ostatnie ok. 3 s, najnowsze z prawej.
+const PW = { bars: new Array(44).fill(0), at: 0, el: null };
+function drawPlayerWave(t) {
+  const c = PW.el || (PW.el = $("pWave"));
+  if (!c || !c.offsetWidth) return;
+  if (t - PW.at >= 66) {
+    PW.at = t;
+    let lvl = 0;
+    if (A && playing) { const w = A.wave.getValue(); let sum = 0; for (let i = 0; i < w.length; i++) sum += w[i] * w[i]; lvl = Math.min(1, Math.sqrt(sum / w.length) * 4.5); }
+    PW.bars.push(lvl); PW.bars.shift();
+  }
+  const dpr = devicePixelRatio || 1, W = c.offsetWidth, H = c.offsetHeight;
+  if (c.width !== W * dpr) { c.width = W * dpr; c.height = H * dpr; }
+  const ctx = c.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  const n = PW.bars.length, step = W / n;
+  ctx.fillStyle = playing ? "rgba(255,79,122,0.8)" : "rgba(255,255,255,0.18)";
+  for (let i = 0; i < n; i++) {
+    const h = Math.max(2, PW.bars[i] * (H - 2));
+    ctx.fillRect(i * step + (step - 2) / 2, (H - h) / 2, 2, h);
+  }
+}
 function frame(t) {
   if (t - lastT < frameMs() - 2) { nextFrame(t); return; }
   const dt = Math.min(0.05, (t - lastT) / 1000);
@@ -2064,6 +2118,7 @@ function frame(t) {
     vis._lastPh = ph;
   }
   dotGlow(t / 1000);
+  drawPlayerWave(t);
   // Mapa zakrywa scenę, więc nie ma po co jej rysować.
   if (sheetOpen) drawSky(t / 1000);
   else {
@@ -2701,7 +2756,9 @@ function renderCard() {
   $("psrName").textContent = psr.name;
   const g = GENRES[psr.genre];
   const tempo = g.flashes ? `${fmt(1 / psr.P, 1)} flashes/s` : `${f.bpm} BPM`;
-  $("psrLine").innerHTML = `${g.label}${g.silent ? "" : `<span class="bpm">${tempo}</span>`}<span class="bpm m-only">Rotation: ${f.per}</span>`;
+  const dTempo = g.flashes ? `${fmt(1 / psr.P, 1)} FLASHES/s` : `${f.bpm} BPM`;
+  $("psrLine").innerHTML = `<span class="m-only">${g.label}${g.silent ? "" : `<span class="bpm">${tempo}</span>`}<span class="bpm">Rotation: ${f.per}</span></span>`
+    + `<span class="d-only">${g.label.toUpperCase()} · ROTATION: ${f.per}${g.silent ? "" : ` · ${dTempo}`}</span>`;
 }
 
 function selectPulsar(p, manual = false) {
@@ -2809,6 +2866,9 @@ document.addEventListener("touchstart", () => {}, { passive: true });
 function openSheet() { sheetOpen = true; document.body.classList.add("map"); $("sheet").classList.add("open"); for (const b of [$("psrBtn"), $("sideView")]) { b.innerHTML = ICONS.wave; b.title = b.ariaLabel = "Show the visuals"; } $("stylePop").classList.remove("open"); $("styleBtn").setAttribute("aria-expanded", false); renderCard(); sizeSky(); }
 function closeSheet() { sheetOpen = false; document.body.classList.remove("map"); $("sheet").classList.remove("open"); for (const b of [$("psrBtn"), $("sideView")]) { b.innerHTML = ICONS.sparkle; b.title = b.ariaLabel = "Choose a pulsar"; } toggleInfoPop(false); }
 $("psrBtn").innerHTML = $("sideView").innerHTML = ICONS.sparkle; $("lbIco").innerHTML = ICONS.live; $("sunBtn").innerHTML = ICONS.sun;
+// Tymczasowe ikony losowania i danych, do podmiany na ikony autora z docs/icons.
+$("shuffleBtn").innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h3.5c4 0 6 10 10 10H21M3 17h3.5c1.6 0 2.8-1.6 3.9-3.6M13.6 9.6C14.7 8.1 15.6 7 16.5 7H21M18.5 4.5 21 7l-2.5 2.5M18.5 14.5 21 17l-2.5 2.5"/></svg>`;
+$("dataBtn").innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5"/></svg>`;
 // Okienko leży na mapie, mapa pod nim ma stały rozmiar.
 function toggleInfoPop(open) {
   $("infoPop").classList.toggle("open", open); $("stMain").setAttribute("aria-expanded", open);
@@ -2820,12 +2880,15 @@ $("stMain").onclick = (e) => { e.stopPropagation(); toggleInfoPop(!$("infoPop").
 $("infoPop").onclick = (e) => { e.stopPropagation(); toggleInfoPop(false); };
 // Przycisk ze słoneczkiem wysuwa dane ze Słońca; wybór zapamiętany w przeglądarce.
 function setDataOn(on) {
-  document.body.classList.toggle("data-on", on); $("sunBtn").setAttribute("aria-pressed", on);
+  document.body.classList.toggle("data-on", on); $("sunBtn").setAttribute("aria-pressed", on); $("dataBtn").setAttribute("aria-pressed", on);
   try { localStorage.setItem("pfm.data", on ? "1" : "0"); } catch (e) {}
   if (sheetOpen) sizeSky();
 }
 try { setDataOn(localStorage.getItem("pfm.data") === "1"); } catch (e) { setDataOn(false); }
-$("sunBtn").onclick = (e) => { e.stopPropagation(); setDataOn(!document.body.classList.contains("data-on")); };
+$("sunBtn").onclick = $("dataBtn").onclick = (e) => { e.stopPropagation(); setDataOn(!document.body.classList.contains("data-on")); };
+// Live w odtwarzaczu: włączony, gdy grają dane na żywo. Pod ?dev przełącza Live / Replay 3 h (dawny przełącznik autora).
+$("liveBtn").onclick = (e) => { e.stopPropagation(); if (devMode) enterMode(mode === "live" ? "replay" : "live"); };
+if (!devMode) $("liveBtn").setAttribute("aria-disabled", "true");
 document.addEventListener("click", () => { if (!sheetOpen) toggleInfoPop(false); });
 // Okienko „czym to jest” po kliknięciu nazwy (na ekranie głównym i na mapie).
 function toggleAbout(open) {
