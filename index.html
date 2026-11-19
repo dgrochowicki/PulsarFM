@@ -2642,7 +2642,7 @@ function drawSkyData(g, v) {
   if (v.mw !== "none") SKYDATA.mw.forEach((polys, li) => {
     g.beginPath();
     for (const dx of shifts) for (const rings of polys) for (const ring of rings) traceSky(g, ring, dx, true, v.mw === "fill");
-    if (v.mw === "fill") { g.fillStyle = `rgba(150,170,255,${0.045 + li * 0.012})`; g.fill("evenodd"); }
+    if (v.mw === "fill") { g.fillStyle = `rgba(150,170,255,${0.034 + li * 0.009})`; g.fill("evenodd"); }
     else { g.strokeStyle = `rgba(160,180,255,${0.16 + li * 0.08})`; g.lineWidth = 0.8; g.stroke(); }
   });
   if (v.lines) {
@@ -2652,9 +2652,10 @@ function drawSkyData(g, v) {
   const k = clamp(SW / 1200, 0.7, 1.4) * (v.mw === "contour" ? 0.7 : 1);
   for (const [ra, dec, mag, bv] of SKYDATA.stars) {
     const { x, y } = skyXY(ra, dec);
-    const [R, G, B] = v.color ? starColor(bv) : [235, 240, 255];
-    g.fillStyle = `rgba(${R},${G},${B},${Math.min(0.95, 0.25 + (6 - mag) * 0.14)})`;
-    g.beginPath(); g.arc(x, y, Math.max(0.35, (6.2 - mag) * 0.38) * k, 0, 6.283); g.fill();
+    // Gwiazdy przygaszone i chłodniejsze (autor, 19.11.2026), żeby złote pulsary łatwiej było znaleźć.
+    const [R, G, B] = v.color ? starColor(bv) : [200, 212, 240];
+    g.fillStyle = `rgba(${R},${G},${B},${Math.min(0.55, 0.12 + (6 - mag) * 0.085)})`;
+    g.beginPath(); g.arc(x, y, Math.max(0.3, (6.2 - mag) * 0.32) * k, 0, 6.283); g.fill();
   }
 }
 
