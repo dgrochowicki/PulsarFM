@@ -390,6 +390,9 @@ const PULSARS = [
   // Hip-hop (autor, 19.11.2026): 91,9 błysku na minutę, każdy błysk to ćwierćnuta, bez mnożenia. Dane z ATNF 2.6.0.
   { id: "B1706", genre: "hiphop", name: "PSR B1706−16", short: "B1706−16", P: 0.653061, ra: 17.157, dec: -16.68,
     dist: 0.562, desc: "A pulsar in Ophiuchus, about a degree from the star Sabik. It turns 92 times a minute, the tempo of a classic hip-hop beat, and is about 1.6 million years old, judging by how fast its spin winds down." },
+  // Trip-hop (autor, 19.11.2026): 81,1 błysku na minutę, każdy błysk to ćwierćnuta. Dane z ATNF 2.6.0 (P0, DIST, AGE, VTRANS).
+  { id: "B1508", genre: "triphop", name: "PSR B1508+55", short: "B1508+55", P: 0.739682, ra: 15.157, dec: 55.53,
+    dist: 2.1, desc: "So far north that it never sets over Europe. It races through the Galaxy at nearly 1,000 km/s, one of the fastest-moving stars known. It turns 81 times a minute and is about 2.3 million years old." },
   // Na mapie zostaje, ale nie gra, dopóki nie ma swojej eksperymentalnej muzyki.
   { id: "J0437", genre: "orbit", name: "PSR J0437−4715", short: "J0437", P: 0.005757452, ra: 4.621, dec: -47.25, orbit: { pb: 5.7410459, t0: 54530.1722 }, // orbita z ATNF: okres w dniach, T0 w MJD
     dist: 0.157, desc: "The nearest and brightest millisecond pulsar, spinning 174 times a second. It circles a white dwarf every 5.7 days and keeps time so precisely that astronomers use it to listen for gravitational waves." },
@@ -1390,6 +1393,83 @@ const GENRES = {
         pulse(t) {
           fire(hat, "C3", t, 0.6 + Math.random() * 0.2);
         },
+      };
+    },
+  },
+
+  // B1508+55 (od 19.11.2026): 81,1 błysku na minutę, każdy błysk to ćwierćnuta, bez mnożenia. Trip-hop, kierunek Massive Attack i Tricky
+  // (cechy stylu, bez kopiowania utworów): ciężki, wolny bit jak spowolniony sampel, dubowy bas, smyczki w pogłosie, klawesyn z melodią z wiatru.
+  triphop: {
+    label: "Trip-hop", scales: ["aeolian", "phrygian"],
+    make(B) {
+      const fire = (node, note, t, v) => { if (node.loaded) node.triggerAttack(note, t, v); };
+      // Bębny przez wspólny, przybrudzony tor: lekkie nasycenie i przyciemnienie, jak bit zgrany z płyty i zwolniony.
+      const drums = new Tone.Volume(0);
+      const dDist = new Tone.Distortion({ distortion: 0.18, wet: 0.35 }).connect(B.lim);
+      const dF = new Tone.Filter({ type: "lowpass", frequency: 6500, rolloff: -12 }).connect(dDist);
+      drums.connect(dF);
+      // Stopa: krótka i głęboka, z szybkim zjazdem wysokości, bez wybrzmiewania membrany (autor: próbka brzmiała jak luźny naciąg).
+      const kick = vol(new Tone.MembraneSynth({ pitchDecay: 0.035, octaves: 5, oscillator: { type: "sine" }, envelope: { attack: 0.001, decay: 0.42, sustain: 0, release: 0.1 } }), -7).connect(drums);
+      const snare = vol(sampler({ C3: "th-werbel-1", D3: "th-werbel-2" }, 0.3), -16);
+      snare.connect(drums); snare.connect(B.rev);
+      const rim = vol(sampler({ C3: "th-rim" }, 0.1), -24).connect(drums);
+      const tamb = vol(sampler({ C3: "th-tamb-1", D3: "th-tamb-2" }, 0.1), -32).connect(drums);
+      // Bas dubowy: długie, okrągłe nuty z poślizgiem, nisko.
+      const bF = new Tone.Filter({ type: "lowpass", frequency: 220, rolloff: -24 }).connect(B.lim);
+      const bass = vol(new Tone.Synth({ portamento: 0.12, oscillator: { type: "custom", partials: [1, 0.35, 0.12, 0.05] }, envelope: { attack: 0.02, decay: 0.4, sustain: 0.85, release: 0.6 } }), -17).connect(bF);
+      // Akordy: wiolonczele na dole, skrzypce wyżej, wolne wejście, prawie wszystko w pogłosie.
+      const sF = new Tone.Filter({ type: "lowpass", frequency: 2600, rolloff: -12 });
+      sF.connect(B.rev); const sDry = new Tone.Gain(0.35).connect(B.lim); sF.connect(sDry);
+      const strings = new Tone.Volume(0).connect(sF);
+      const cello = vol(sampler({ D3: "th-wiolonczela-D3", F3: "th-wiolonczela-F3", A3: "th-wiolonczela-A3", C4: "th-wiolonczela-C4", E4: "th-wiolonczela-E4", G4: "th-wiolonczela-G4" }, 2.5), -27).connect(strings);
+      const violin = vol(sampler({ G3: "th-skrzypce-G3", B3: "th-skrzypce-B3", D4: "th-skrzypce-D4", "F#4": "th-skrzypce-Fs4", A4: "th-skrzypce-A4", C5: "th-skrzypce-C5", E5: "th-skrzypce-E5" }, 2.5), -31).connect(strings);
+      for (const s of [cello, violin]) s.attack = 1.2;
+      // Melodia: klawesyn z echem w tempie.
+      const harp = vol(sampler({ C4: "th-klawesyn-C4", E4: "th-klawesyn-E4", "G#4": "th-klawesyn-Gs4", C5: "th-klawesyn-C5", E5: "th-klawesyn-E5", "G#5": "th-klawesyn-Gs5", C6: "th-klawesyn-C6" }, 1), -27);
+      harp.connect(B.side(B.lim)); harp.connect(B.side(B.delay));
+      // Bit na dwa takty: stopa ciężko na raz, potem spóźniona; werbel na 2 i 4, cichy rimshot między nimi.
+      const KICK = [[0, 10], [0, 3, 10]];
+      // Bas na takt: pozycja w szesnastkach, długość, stopień względem akordu.
+      const BASS = [[[0, 6, 0], [6, 2, 0], [8, 6, 0], [14, 2, -1]], [[0, 6, 0], [6, 2, 2], [8, 4, 4], [12, 4, 3]]];
+      const prog = [0, 5, 3, 4];
+      let chordDeg = 0;
+      const motif = new Motif(16, [2, 9], 0.35);
+      return {
+        mix: { Melodia: harp, Akordy: { output: strings }, Bas: bass, Stopa: kick, Werbel: snare, "Werbel cichy": rim, Impuls: tamb },
+        nodes: [drums, dDist, dF, kick, snare, rim, tamb, bF, bass, sF, sDry, strings, cello, violin, harp], tun: [bass],
+        step(t, s, bar) {
+          const six = Tone.Time("16n").toSeconds(), phrase = bar % 16, drop = phrase === 15;
+          // Akord co 2 takty (około 5,9 s): smyczki wchodzą wolno i wybrzmiewają w pogłosie.
+          if (s === 0 && bar % 2 === 0) {
+            const part = (bar / 2) % 4;
+            chordDeg = windChord(part) ?? prog[part];
+            const low = [E.n(chordDeg, -1), E.n(chordDeg + 4, -1)], high = [E.n(chordDeg + 2, 0), E.n(chordDeg + 6, 0)];
+            cello.releaseAll(t); violin.releaseAll(t);
+            low.forEach((n) => fire(cello, n, t, 0.6)); high.forEach((n) => fire(violin, n, t + 0.15, 0.5));
+            E.chord([...low, ...high], t);
+          }
+          if (s === 0) Tone.Draw.schedule(() => vis.beat(), t);
+          if (!drop) {
+            if (KICK[bar % 2].includes(s)) kick.triggerAttackRelease("D1", 0.3, t, s === 0 ? 1 : 0.75);
+            if (s === 4 || s === 12) fire(snare, bar % 4 === 3 && s === 12 ? "B2" : "A2", t, 0.95); // werbel obniżony, jak zwolniony sampel
+            if ((s === 7 || s === 15) && chance(0.35 + E.busy() * 0.4)) fire(rim, "C3", t, 0.4 + Math.random() * 0.3);
+            if (s % 4 === 2) fire(tamb, "C3", t, 0.35 + Math.random() * 0.15);
+            const nb = BASS[bar % 2].find(([at]) => at === s);
+            if (nb) bass.triggerAttackRelease(E.n(chordDeg + nb[2], -3), nb[1] * six * 0.95, t, 0.9);
+          }
+          // Melodia ósemkami: jeden pomiar wiatru na ósemkę, fraza na dwa takty, jak w Deepie.
+          if (s % 2 === 0) {
+            const i = (bar % 2) * 8 + (s >> 1), mel = windMelody(), d = mel ? (mel[i] != null ? 4 + mel[i] : null) : motif.at(i);
+            if (d != null) {
+              const n = E.n(d, 0);
+              fire(harp, n, t, 0.5 + Math.min(windChange(i) / 12, 1) * 0.3);
+              E.note(n, t);
+            }
+          }
+          if (s === 0 && bar % 4 === 3) motif.mutate(0.5);
+        },
+        // Każdy błysk pulsara to ćwierćnuta: tamburyn dokładnie na błysku.
+        pulse(t) { fire(tamb, "D3", t, 0.55 + Math.random() * 0.15); },
       };
     },
   },
