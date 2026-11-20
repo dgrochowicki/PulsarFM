@@ -135,3 +135,7 @@ Autor: dodajemy w wolnej chwili, lista otwarta. Zasada: tempo z samych błysków
 | Modern classical / drugi Drone | B1237+25 (1,3824 s), B0834+06 (1,2738 s) | ok. 43 i 47 | za wolne na bit: pianino i smyczki w pogłosie, błysk jako pojedynczy dźwięk | z pamięci |
 
 „Z pamięci” znaczy: sprawdzić okres, położenie i odległość w ATNF przed budowaniem (19.11.2026 katalog nie odpowiadał).
+
+## Presety Zebralette 3 jako próbki (rozmowa 20.11.2026)
+
+Autor ma 50 presetów Zebralette 3 (Alessandro Cardinale, „Morpheus”, pliki `.h2p`, lokalnie w `docs/research/`, nie commitować). Barwa oscylatora jest w nieopisanym formacie u-he, więc nie da się ich odtworzyć w Tone.js. Plan: nagrać kilka nut z wybranych presetów w DAW (Zebralette 3 jest darmowy) i podpiąć jak próbki VCSL. Kandydaci: pianina elektryczne (Almost DX EP, Atypical EP, Zebra Wurly) do R&B na B1859+03, pady (Evolving, Soundscape, Drones) zamiast padu w J0437, Peaceful Sonar i Martian Message. Przed publikacją sprawdzić licencję paczki. Autor: „potem”; pomóc krok po kroku z nagraniem.
