@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pulsar.fm</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&display=swap">
 <style>
   :root {
     --tile: rgba(196, 221, 255, 0.1);
@@ -2704,16 +2706,6 @@ function renderSkyBase(dpr) {
   if (SW >= 560) sctx.fillText("galactic centre", gc.x, gc.y + 30);
 }
 
-// Celownik jak ramka ostrości w aparacie (autor, 19.11.2026): litera L w każdym rogu kwadratu, odsunięta od pulsara.
-function skyReticle(q, color, w, h = 15) {
-  const a = 5;
-  sctx.strokeStyle = color; sctx.lineWidth = w; sctx.lineCap = "round"; sctx.lineJoin = "round"; sctx.beginPath();
-  for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
-    const x = q.x + sx * h, y = q.y + sy * h;
-    sctx.moveTo(x, y - sy * a); sctx.lineTo(x, y); sctx.lineTo(x - sx * a, y);
-  }
-  sctx.stroke(); sctx.lineCap = "butt";
-}
 function drawSky(time) {
   sctx.clearRect(0, 0, SW, SH);
   sctx.drawImage(skyBase, 0, 0, SW, SH);
@@ -2730,33 +2722,43 @@ function drawSky(time) {
     const g = sctx.createRadialGradient(q.x, q.y, 0, q.x, q.y, rad * 3.2);
     g.addColorStop(0, `rgba(255,214,140,${0.25 + glow * 0.6})`); g.addColorStop(1, "rgba(255,214,140,0)");
     sctx.fillStyle = g; sctx.beginPath(); sctx.arc(q.x, q.y, rad * 3.2, 0, 6.283); sctx.fill();
-    sctx.fillStyle = "#fff4dc"; sctx.beginPath(); sctx.arc(q.x, q.y, 2.5 + glow * 1.5, 0, 6.283); sctx.fill();
+    // Znak pulsara wg projektu autora (26.11.2026): kropka 4 px w środku i okrąg 14 px z kreską 2 px (kreska do środka,
+    // więc rysujemy ją na promieniu 6). Szybkie zamiast okręgu mają gwiazdkę z drgań w tym samym rozmiarze.
+    sctx.fillStyle = "#fff4dc"; sctx.beginPath(); sctx.arc(q.x, q.y, 2, 0, 6.283); sctx.fill();
+    sctx.strokeStyle = "#fff4dc"; sctx.lineWidth = 2; sctx.lineJoin = "round"; sctx.beginPath();
     if (p.P < 0.2) {
-      // Drgający pierścień: im szybszy pulsar, tym ciaśniejsze drgania.
-      sctx.strokeStyle = "rgba(255,214,140,0.45)"; sctx.lineWidth = 1;
-      sctx.beginPath();
-      const n = Math.round(clamp(Math.log2(1 / p.P) * 3, 8, 40));
-      for (let i = 0; i <= 120; i++) { const a = (i / 120) * 6.283; const rr = 11 + 1.6 * Math.sin(a * n + time * 25); i ? sctx.lineTo(q.x + Math.cos(a) * rr, q.y + Math.sin(a) * rr) : sctx.moveTo(q.x + Math.cos(a) * rr, q.y + Math.sin(a) * rr); }
-      sctx.stroke();
+      // Im szybszy pulsar, tym więcej ramion (6–12), drgają jak wcześniej duży pierścień.
+      const n = Math.round(clamp(Math.log2(1 / p.P) * 1.2, 6, 12));
+      for (let i = 0; i <= 96; i++) { const a = (i / 96) * 6.283, rr = 5.4 + 0.9 * Math.sin(a * n + time * 25), x = q.x + Math.cos(a) * rr, y = q.y + Math.sin(a) * rr; i ? sctx.lineTo(x, y) : sctx.moveTo(x, y); }
+    } else sctx.arc(q.x, q.y, 6, 0, 6.283);
+    sctx.stroke();
+
+    // Podpis po prawej, JetBrains Mono 12/16, biały. Wybrany (grający) w białej pigułce z ikoną Play i czarnym napisem.
+    sctx.font = "400 12px 'JetBrains Mono', ui-monospace, Menlo, monospace";
+    sctx.textBaseline = "middle"; sctx.textAlign = "left";
+    const tw = sctx.measureText(p.short).width, boxW = sel ? 6 + 8 + 4 + tw + 6 : tw;
+    // Przy prawej krawędzi podpis przechodzi na lewo, żeby się nie uciął.
+    const left = q.x + 7 + 8 + boxW > SW - 6;
+    const bx = left ? q.x - 7 - 8 - boxW : q.x + 7 + 8;
+    if (sel) {
+      sctx.fillStyle = "rgba(255,255,255,0.9)"; sctx.beginPath(); sctx.roundRect(bx, q.y - 10, boxW, 20, 10); sctx.fill();
+      sctx.fillStyle = "#000"; sctx.beginPath(); // trójkąt Play 8 px
+      sctx.moveTo(bx + 6 + 1, q.y - 4); sctx.lineTo(bx + 6 + 8, q.y); sctx.lineTo(bx + 6 + 1, q.y + 4); sctx.closePath(); sctx.fill();
+      sctx.fillText(p.short, bx + 18, q.y + 0.5);
+    } else {
+      // Ciemna obwódka: podpis czytelny także na gwiazdach i Drodze Mlecznej.
+      sctx.strokeStyle = "rgba(5,6,11,0.85)"; sctx.lineWidth = 3;
+      sctx.strokeText(p.short, bx, q.y + 0.5); sctx.fillStyle = "#fff"; sctx.fillText(p.short, bx, q.y + 0.5);
     }
-    // Wybór jako celownik (autor, 19.11.2026): cztery krótkie kreski zamiast okręgu; najechany ma blady.
-    if (sel || p === skyHover) skyReticle(q, sel ? "#ffcf6e" : "rgba(255,207,110,0.45)", sel ? 2 : 1.4, p.P < 0.2 ? 17 : 15); // szybkie: za drgającym pierścieniem
-    sctx.fillStyle = sel ? "#ffcf6e" : "rgba(238,240,246,0.75)";
-    sctx.font = "400 11.5px -apple-system, sans-serif"; // bez pogrubienia (autor, 19.11.2026)
-    // Nazwa zawsze pod pulsarem, na środku, poniżej kółka wyboru (promień 17).
-    sctx.textAlign = "center"; sctx.textBaseline = "top";
-    // Ciemna obwódka: nazwa czytelna także na gwiazdach i sąsiednim pulsarze.
-    const fill = sctx.fillStyle; sctx.strokeStyle = "rgba(5,6,11,0.85)"; sctx.lineWidth = 3; sctx.lineJoin = "round";
-    sctx.strokeText(p.short, q.x, q.y + 25); sctx.fillStyle = fill;
-    sctx.fillText(p.short, q.x, q.y + 25);
-    // Najechany myszką (komputer): pod nazwą gatunek i tempo, zanim się wybierze (autor, 19.11.2026).
+    // Najechany myszką (komputer): pod podpisem gatunek i tempo tym samym krojem (autor, 19.11.2026).
     if (p === skyHover && !sel) {
-      // Jak nazwa (ten sam krój i kolor), tempo w osobnej linii.
       const g = GENRES[p.genre], tempo = g.flashes ? `${fmt(1 / p.P, 1)} flashes/s` : `${psrFacts(p).bpm} BPM`;
-      sctx.fillStyle = "rgba(238,240,246,0.75)";
-      for (const [i, line] of [g.label, tempo].entries()) { sctx.strokeText(line, q.x, q.y + 25 + 15 * (i + 1)); sctx.fillText(line, q.x, q.y + 25 + 15 * (i + 1)); }
+      sctx.strokeStyle = "rgba(5,6,11,0.85)"; sctx.lineWidth = 3; sctx.fillStyle = "rgba(255,255,255,0.6)";
+      if (left) { sctx.textAlign = "right"; }
+      const tx = left ? bx + boxW : bx;
+      for (const [i, line] of [g.label, tempo].entries()) { const y = q.y + 0.5 + 16 * (i + 1); sctx.strokeText(line, tx, y); sctx.fillText(line, tx, y); }
     }
-    sctx.textBaseline = "alphabetic";
+    sctx.textBaseline = "alphabetic"; sctx.textAlign = "left";
   }
 }
 
