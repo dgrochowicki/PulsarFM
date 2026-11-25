@@ -2740,6 +2740,7 @@ function drawSky(time) {
     // Przy prawej krawędzi podpis przechodzi na lewo, żeby się nie uciął.
     const left = q.x + 7 + 8 + boxW > SW - 6;
     const bx = left ? q.x - 7 - 8 - boxW : q.x + 7 + 8;
+    p.lab = { x: bx - 4, y: q.y - 12, w: boxW + 8, h: 24 }; // podpis też jest klikalny (autor, 26.11.2026)
     if (sel) {
       sctx.fillStyle = "rgba(255,255,255,0.9)"; sctx.beginPath(); sctx.roundRect(bx, q.y - 10, boxW, 20, 10); sctx.fill();
       sctx.fillStyle = "#000"; sctx.beginPath(); // trójkąt Play 8 px
@@ -2862,6 +2863,8 @@ function enableAutoPulsar() {
 }
 function skyPick(e, reach) {
   const r = sky.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  // Najpierw podpis: klik albo najechanie na napis wybiera jego pulsar.
+  for (const p of PULSARS) { const L = p.lab; if (L && x >= L.x && x <= L.x + L.w && y >= L.y && y <= L.y + L.h) return p; }
   let best = null, bd = reach;
   for (const p of PULSARS) { const q = skyXY(p.ra, p.dec), d = Math.hypot(q.x - x, q.y - y); if (d < bd) { bd = d; best = p; } }
   return best;
