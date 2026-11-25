@@ -204,6 +204,14 @@
     .pico[aria-disabled="true"] { cursor: default; }
     .info-pop { width: 440px; }
     #sunBtn { display: none; } /* dane są w odtwarzaczu */
+    #sideView { display: none !important; } /* mapa / obraz jako przełącznik w odtwarzaczu (autor, 26.11.2026) */
+    /* Przełącznik mapa | obraz: dwie ikony we wspólnej ramce, wybrana dostaje ramkę i 80% bieli jak inne ikony. */
+    .vseg { display: flex; gap: 2px; padding: 3px; height: 50px; box-sizing: border-box; border-radius: 16px; background: rgba(255,255,255,0.04); flex: 0 0 auto; }
+    .vseg button { width: 46px; height: 44px; padding: 0; border: 1px solid transparent; border-radius: 13px; background: none; color: rgba(255,255,255,0.4);
+      display: grid; place-items: center; cursor: pointer; transition: color .2s, border-color .2s, background-color .2s; }
+    .vseg svg { width: 18px; height: 18px; }
+    .vseg button[aria-pressed="true"] { border-color: rgba(255,255,255,0.14); background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.8); cursor: default; }
+    @media (hover: hover) { .vseg button[aria-pressed="false"]:hover { color: rgba(255,255,255,0.8); } }
     #sideAuto { display: none !important; } /* Auto jest w menu Shuffle w odtwarzaczu (autor, 26.11.2026) */
     /* Menu Shuffle / Auto nad przyciskiem w odtwarzaczu (autor, 26.11.2026): tytuł 12 px, opis 40% bieli. */
     .pm-pop { right: 70px; width: 240px; padding: 6px; display: flex; flex-direction: column; gap: 2px; transform-origin: 85% 100%; }
@@ -337,6 +345,10 @@
       <button class="ico" id="psrBtn" type="button" title="Choose a pulsar" aria-label="Choose a pulsar"></button>
       <button class="play" id="play" type="button" aria-label="Play" title="Play"></button>
       <span class="psep d-only"></span>
+      <div class="vseg d-only" role="group" aria-label="View">
+        <button type="button" data-view="map" aria-pressed="false" title="Sky map" aria-label="Sky map"></button>
+        <button type="button" data-view="vis" aria-pressed="false" title="Visuals" aria-label="Visuals"></button>
+      </div>
       <button class="pico d-only" id="shuffleBtn" type="button" aria-pressed="false" aria-haspopup="true" aria-expanded="false" title="Shuffle or Auto" aria-label="Shuffle or Auto"></button>
       <div class="pop pm-pop d-only" id="pmPop" role="menu">
         <button type="button" role="menuitemradio" aria-checked="false" data-pm="shuffle"><span class="pm-ic" data-icon="shuffle"></span><span><b>Shuffle</b><small>Changes every 3 min</small></span></button>
@@ -2944,8 +2956,8 @@ if (matchMedia("(hover: hover)").matches) {
 $("stats").onclick = (e) => { e.stopPropagation(); if (innerWidth <= 640) $("stats").classList.toggle("open"); };
 // Safari na iPhonie włącza :active (wciśnięcie) tylko, gdy strona słucha dotyku.
 document.addEventListener("touchstart", () => {}, { passive: true });
-function openSheet() { sheetOpen = true; document.body.classList.add("map"); $("sheet").classList.add("open"); for (const b of [$("psrBtn"), $("sideView")]) { b.innerHTML = ICONS.wave; b.title = b.ariaLabel = "Show the visuals"; } $("stylePop").classList.remove("open"); $("styleBtn").setAttribute("aria-expanded", false); renderCard(); sizeSky(); }
-function closeSheet() { sheetOpen = false; document.body.classList.remove("map"); $("sheet").classList.remove("open"); for (const b of [$("psrBtn"), $("sideView")]) { b.innerHTML = ICONS.sparkle; b.title = b.ariaLabel = "Choose a pulsar"; } toggleInfoPop(false); }
+function openSheet() { sheetOpen = true; document.body.classList.add("map"); $("sheet").classList.add("open"); for (const b of [$("psrBtn"), $("sideView")]) { b.innerHTML = ICONS.wave; b.title = b.ariaLabel = "Show the visuals"; } $("stylePop").classList.remove("open"); $("styleBtn").setAttribute("aria-expanded", false); renderCard(); sizeSky(); updateViewSeg(); }
+function closeSheet() { sheetOpen = false; document.body.classList.remove("map"); $("sheet").classList.remove("open"); for (const b of [$("psrBtn"), $("sideView")]) { b.innerHTML = ICONS.sparkle; b.title = b.ariaLabel = "Choose a pulsar"; } toggleInfoPop(false); updateViewSeg(); }
 $("psrBtn").innerHTML = $("sideView").innerHTML = ICONS.sparkle; $("lbIco").innerHTML = ICONS.live; $("sunBtn").innerHTML = ICONS.sun;
 $("dataBtn").innerHTML = ICONS.data;
 for (const el of document.querySelectorAll("#pmPop [data-icon]")) el.innerHTML = ICONS[el.dataset.icon];
@@ -2965,6 +2977,12 @@ updatePlayMode(); // ikony autora (docs/icons, 19.11.2026)
 function toggleInfoPop(open) {
   $("infoPop").classList.toggle("open", open); $("stMain").setAttribute("aria-expanded", open);
 }
+function updateViewSeg() { for (const b of document.querySelectorAll(".vseg [data-view]")) b.setAttribute("aria-pressed", String((b.dataset.view === "map") === sheetOpen)); }
+for (const b of document.querySelectorAll(".vseg [data-view]")) {
+  b.innerHTML = b.dataset.view === "map" ? ICONS.sparkle : ICONS.wave;
+  b.onclick = (e) => { e.stopPropagation(); if ((b.dataset.view === "map") !== sheetOpen) sheetOpen ? closeSheet() : openSheet(); };
+}
+updateViewSeg();
 $("psrBtn").onclick = $("sideView").onclick = (e) => { e.stopPropagation(); sheetOpen ? closeSheet() : openSheet(); };
 $("sideAuto").onclick = (e) => { e.stopPropagation(); autoPulsar ? disableAutoPulsar() : enableAutoPulsar(); };
 // Klik w panel odtwarzacza pokazuje informację o pulsarze, drugi klik (albo klik w samą informację) ją chowa.
