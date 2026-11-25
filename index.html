@@ -204,6 +204,18 @@
     .pico[aria-disabled="true"] { cursor: default; }
     .info-pop { width: 440px; }
     #sunBtn { display: none; } /* dane są w odtwarzaczu */
+    #sideAuto { display: none !important; } /* Auto jest w menu Shuffle w odtwarzaczu (autor, 26.11.2026) */
+    /* Menu Shuffle / Auto nad przyciskiem w odtwarzaczu (autor, 26.11.2026): tytuł 12 px, opis 40% bieli. */
+    .pm-pop { right: 70px; width: 240px; padding: 6px; display: flex; flex-direction: column; gap: 2px; transform-origin: 85% 100%; }
+    .pm-pop button { display: flex; align-items: center; gap: 12px; padding: 9px 12px; border: 1px solid transparent; border-radius: 12px; background: none;
+      color: rgba(255,255,255,0.8); text-align: left; cursor: pointer; font: inherit; }
+    .pm-pop .pm-ic { display: grid; place-items: center; color: rgba(255,255,255,0.4); }
+    .pm-pop .pm-ic svg { width: 18px; height: 18px; }
+    .pm-pop b { display: block; font-size: 12px; line-height: 16px; font-weight: 500; }
+    .pm-pop small { display: block; font-size: 12px; line-height: 16px; color: rgba(255,255,255,0.4); }
+    @media (hover: hover) { .pm-pop button:hover { background: rgba(255,255,255,0.06); } }
+    .pm-pop button[aria-checked="true"] { border-color: rgba(255,255,255,0.14); color: #fff; }
+    .pm-pop button[aria-checked="true"] .pm-ic { color: rgba(255,255,255,0.8); }
   }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
@@ -325,7 +337,11 @@
       <button class="ico" id="psrBtn" type="button" title="Choose a pulsar" aria-label="Choose a pulsar"></button>
       <button class="play" id="play" type="button" aria-label="Play" title="Play"></button>
       <span class="psep d-only"></span>
-      <button class="pico d-only" id="shuffleBtn" type="button" aria-pressed="false" aria-disabled="true" title="Shuffle (coming soon)" aria-label="Shuffle"></button>
+      <button class="pico d-only" id="shuffleBtn" type="button" aria-pressed="false" aria-haspopup="true" aria-expanded="false" title="Shuffle or Auto" aria-label="Shuffle or Auto"></button>
+      <div class="pop pm-pop d-only" id="pmPop" role="menu">
+        <button type="button" role="menuitemradio" aria-checked="false" data-pm="shuffle"><span class="pm-ic" data-icon="shuffle"></span><span><b>Shuffle</b><small>Changes every 3 min</small></span></button>
+        <button type="button" role="menuitemradio" aria-checked="false" data-pm="auto"><span class="pm-ic" data-icon="gps"></span><span><b>Auto</b><small>Highest pulsar in your sky</small></span></button>
+      </div>
       <button class="pico d-only" id="dataBtn" type="button" aria-pressed="false" title="Data from the Sun" aria-label="Data from the Sun"></button>
       <div class="pop info-pop" id="infoPop" title="Hide"></div>
     </div>
@@ -392,6 +408,7 @@ const ICON_PATHS = {
   sun: "M21 14.25C21.4142 14.25 21.75 14.5858 21.75 15C21.75 16.7902 21.0393 18.5076 19.7734 19.7734C18.5076 21.0393 16.7902 21.75 15 21.75C14.5858 21.75 14.25 21.4142 14.25 21C14.25 20.5858 14.5858 20.25 15 20.25C16.3924 20.25 17.7274 19.6965 18.7119 18.7119C19.6964 17.7274 20.25 16.3924 20.25 15C20.25 14.5858 20.5858 14.25 21 14.25ZM17 13.75C17.4142 13.75 17.75 14.0858 17.75 14.5C17.75 15.3619 17.4073 16.1884 16.7979 16.7979C16.1884 17.4073 15.3619 17.75 14.5 17.75C14.0858 17.75 13.75 17.4142 13.75 17C13.75 16.5858 14.0858 16.25 14.5 16.25C14.9641 16.25 15.4091 16.0655 15.7373 15.7373C16.0655 15.4091 16.25 14.9641 16.25 14.5C16.25 14.0858 16.5858 13.75 17 13.75ZM12.5264 2.41797C12.8209 2.1778 13.2557 2.1952 13.5303 2.46973L16.5303 5.46973C16.8231 5.76257 16.823 6.23737 16.5303 6.53027L14.0371 9.02246C14.2303 9.30931 14.3359 9.6492 14.3359 10C14.3359 10.4059 14.1944 10.7971 13.9395 11.1084L13.8232 11.2373L13.0605 12L14.0303 12.9697C14.3231 13.2626 14.3231 13.7374 14.0303 14.0303C13.7374 14.3231 13.2626 14.3231 12.9697 14.0303L12 13.0605L11.2373 13.8232C10.9092 14.1512 10.464 14.3359 10 14.3359C9.64924 14.3359 9.30928 14.2303 9.02246 14.0371L6.53027 16.5303C6.2374 16.8231 5.76262 16.8231 5.46973 16.5303L2.46973 13.5303C2.17683 13.2374 2.17683 12.7626 2.46973 12.4697L4.93945 10L3.17676 8.2373C2.8488 7.90918 2.6641 7.46392 2.66406 7C2.66408 6.53601 2.84874 6.09085 3.17676 5.7627L5.7627 3.17676C6.09082 2.84873 6.53603 2.66411 7 2.66406C7.46392 2.6641 7.90918 2.8488 8.2373 3.17676L10 4.93945L12.4697 2.46973L12.5264 2.41797ZM4.06055 13L6 14.9395L7.93945 13L6 11.0605L4.06055 13ZM7 4.16406C6.9338 4.16411 6.87008 4.19051 6.82324 4.2373L4.2373 6.82324C4.19052 6.8701 4.16408 6.93378 4.16406 7C4.1641 7.06618 4.19055 7.12992 4.2373 7.17676L9.82324 12.7627C9.87006 12.8094 9.93387 12.8359 10 12.8359C10.0662 12.8359 10.1299 12.8095 10.1768 12.7627L12.7627 10.1768C12.8095 10.1299 12.8359 10.0662 12.8359 10C12.8359 9.93383 12.8094 9.87009 12.7627 9.82324L7.17676 4.2373C7.12992 4.19055 7.06618 4.1641 7 4.16406ZM11.0605 6L13 7.93945L14.9395 6L13 4.06055L11.0605 6Z", // satelita (autor, 8.11.2026; nazwa sun zostaje w kodzie)
   wave: "M22.7682 12.4781C20.6119 17.0719 18.7369 19.125 16.6913 19.125C14.1 19.125 12.585 15.8963 10.9819 12.4781C10.3125 11.0419 9.61222 9.5625 8.89879 8.50594C8.2866 7.60219 7.73722 7.125 7.31254 7.125C6.95441 7.125 5.60254 7.51125 3.27285 12.4781C3.14604 12.7483 2.91711 12.957 2.63643 13.0583C2.49744 13.1085 2.34993 13.1308 2.20233 13.124C2.05472 13.1172 1.90989 13.0814 1.77613 13.0186C1.50598 12.8918 1.29727 12.6629 1.19592 12.3822C1.09456 12.1015 1.10886 11.792 1.23566 11.5219C3.39191 6.92813 5.26691 4.875 7.31254 4.875C9.90379 4.875 11.4188 8.10375 13.0219 11.5219C13.696 12.9581 14.3916 14.4422 15.105 15.4941C15.7172 16.3978 16.2666 16.875 16.6988 16.875C17.0569 16.875 18.4088 16.4888 20.7385 11.5219C20.8653 11.2517 21.0942 11.043 21.3749 10.9417C21.6556 10.8403 21.965 10.8546 22.2352 10.9814C22.5053 11.1082 22.7141 11.3371 22.8154 11.6178C22.9168 11.8985 22.9025 12.208 22.7757 12.4781H22.7682Z",
   sparkle: "M18.6563 11.7478L13.98 10.0238L12.2522 5.34375C12.1201 4.98542 11.8813 4.67621 11.568 4.45781C11.2547 4.2394 10.8819 4.12231 10.5 4.12231C10.1181 4.12231 9.74536 4.2394 9.43205 4.45781C9.11875 4.67621 8.87994 4.98542 8.74782 5.34375L7.02375 10.0238L2.34375 11.7478C1.98542 11.8799 1.67621 12.1187 1.45781 12.432C1.23941 12.7454 1.12231 13.1181 1.12231 13.5C1.12231 13.8819 1.23941 14.2546 1.45781 14.568C1.67621 14.8813 1.98542 15.1201 2.34375 15.2522L7.02 16.9762L8.74782 21.6562C8.87994 22.0146 9.11875 22.3238 9.43205 22.5422C9.74536 22.7606 10.1181 22.8777 10.5 22.8777C10.8819 22.8777 11.2547 22.7606 11.568 22.5422C11.8813 22.3238 12.1201 22.0146 12.2522 21.6562L13.9763 16.98L18.6563 15.2522C19.0146 15.1201 19.3238 14.8813 19.5422 14.568C19.7606 14.2546 19.8777 13.8819 19.8777 13.5C19.8777 13.1181 19.7606 12.7454 19.5422 12.432C19.3238 12.1187 19.0146 11.8799 18.6563 11.7478ZM12.7144 15.0441C12.5617 15.1003 12.423 15.1891 12.3079 15.3042C12.1928 15.4192 12.1041 15.5579 12.0478 15.7106L10.5 19.9012L8.95594 15.7106C8.89966 15.5579 8.81092 15.4192 8.69584 15.3042C8.58076 15.1891 8.44208 15.1003 8.28938 15.0441L4.09875 13.5L8.28938 11.9559C8.44208 11.8997 8.58076 11.8109 8.69584 11.6958C8.81092 11.5808 8.89966 11.4421 8.95594 11.2894L10.5 7.09875L12.0441 11.2894C12.1003 11.4421 12.1891 11.5808 12.3042 11.6958C12.4192 11.8109 12.5579 11.8997 12.7106 11.9559L16.9013 13.5L12.7144 15.0441ZM13.125 3.75C13.125 3.45163 13.2435 3.16548 13.4545 2.9545C13.6655 2.74353 13.9516 2.625 14.25 2.625H15.375V1.5C15.375 1.20163 15.4935 0.915483 15.7045 0.704505C15.9155 0.493526 16.2016 0.375 16.5 0.375C16.7984 0.375 17.0845 0.493526 17.2955 0.704505C17.5065 0.915483 17.625 1.20163 17.625 1.5V2.625H18.75C19.0484 2.625 19.3345 2.74353 19.5455 2.9545C19.7565 3.16548 19.875 3.45163 19.875 3.75C19.875 4.04837 19.7565 4.33452 19.5455 4.5455C19.3345 4.75647 19.0484 4.875 18.75 4.875H17.625V6C17.625 6.29837 17.5065 6.58452 17.2955 6.7955C17.0845 7.00647 16.7984 7.125 16.5 7.125C16.2016 7.125 15.9155 7.00647 15.7045 6.7955C15.4935 6.58452 15.375 6.29837 15.375 6V4.875H14.25C13.9516 4.875 13.6655 4.75647 13.4545 4.5455C13.2435 4.33452 13.125 4.04837 13.125 3.75ZM23.625 8.25C23.625 8.54837 23.5065 8.83452 23.2955 9.0455C23.0845 9.25647 22.7984 9.375 22.5 9.375H22.125V9.75C22.125 10.0484 22.0065 10.3345 21.7955 10.5455C21.5845 10.7565 21.2984 10.875 21 10.875C20.7016 10.875 20.4155 10.7565 20.2045 10.5455C19.9935 10.3345 19.875 10.0484 19.875 9.75V9.375H19.5C19.2016 9.375 18.9155 9.25647 18.7045 9.0455C18.4935 8.83452 18.375 8.54837 18.375 8.25C18.375 7.95163 18.4935 7.66548 18.7045 7.4545C18.9155 7.24353 19.2016 7.125 19.5 7.125H19.875V6.75C19.875 6.45163 19.9935 6.16548 20.2045 5.9545C20.4155 5.74353 20.7016 5.625 21 5.625C21.2984 5.625 21.5845 5.74353 21.7955 5.9545C22.0065 6.16548 22.125 6.45163 22.125 6.75V7.125H22.5C22.7984 7.125 23.0845 7.24353 23.2955 7.4545C23.5065 7.66548 23.625 7.95163 23.625 8.25Z",
+  gps: "M22.5 10.875H20.5519C20.3011 8.99337 19.438 7.2466 18.0957 5.90433C16.7534 4.56205 15.0066 3.6989 13.125 3.44812V1.5C13.125 1.20163 13.0065 0.915483 12.7955 0.704505C12.5845 0.493526 12.2984 0.375 12 0.375C11.7016 0.375 11.4155 0.493526 11.2045 0.704505C10.9935 0.915483 10.875 1.20163 10.875 1.5V3.44812C8.99337 3.6989 7.2466 4.56205 5.90433 5.90433C4.56205 7.2466 3.6989 8.99337 3.44812 10.875H1.5C1.20163 10.875 0.915483 10.9935 0.704505 11.2045C0.493526 11.4155 0.375 11.7016 0.375 12C0.375 12.2984 0.493526 12.5845 0.704505 12.7955C0.915483 13.0065 1.20163 13.125 1.5 13.125H3.44812C3.6989 15.0066 4.56205 16.7534 5.90433 18.0957C7.2466 19.438 8.99337 20.3011 10.875 20.5519V22.5C10.875 22.7984 10.9935 23.0845 11.2045 23.2955C11.4155 23.5065 11.7016 23.625 12 23.625C12.2984 23.625 12.5845 23.5065 12.7955 23.2955C13.0065 23.0845 13.125 22.7984 13.125 22.5V20.5519C15.0066 20.3011 16.7534 19.438 18.0957 18.0957C19.438 16.7534 20.3011 15.0066 20.5519 13.125H22.5C22.7984 13.125 23.0845 13.0065 23.2955 12.7955C23.5065 12.5845 23.625 12.2984 23.625 12C23.625 11.7016 23.5065 11.4155 23.2955 11.2045C23.0845 10.9935 22.7984 10.875 22.5 10.875ZM12 18.375C10.7391 18.375 9.5066 18.0011 8.45824 17.3006C7.40988 16.6001 6.59278 15.6045 6.11027 14.4396C5.62776 13.2747 5.50151 11.9929 5.74749 10.7563C5.99347 9.51967 6.60063 8.38375 7.49219 7.49219C8.38375 6.60063 9.51967 5.99347 10.7563 5.74749C11.9929 5.50151 13.2747 5.62776 14.4396 6.11027C15.6045 6.59278 16.6001 7.40988 17.3006 8.45824C18.0011 9.5066 18.375 10.7391 18.375 12C18.3733 13.6902 17.7011 15.3107 16.5059 16.5059C15.3107 17.7011 13.6902 18.3733 12 18.375ZM12 7.875C11.1842 7.875 10.3866 8.11693 9.70827 8.57019C9.02992 9.02345 8.50121 9.66769 8.189 10.4214C7.87679 11.1752 7.7951 12.0046 7.95426 12.8047C8.11343 13.6049 8.50629 14.3399 9.08318 14.9168C9.66008 15.4937 10.3951 15.8866 11.1953 16.0457C11.9954 16.2049 12.8248 16.1232 13.5786 15.811C14.3323 15.4988 14.9766 14.9701 15.4298 14.2917C15.8831 13.6134 16.125 12.8158 16.125 12C16.1238 10.9064 15.6888 9.85787 14.9154 9.08455C14.1421 8.31124 13.0936 7.87624 12 7.875ZM12 13.875C11.6292 13.875 11.2666 13.765 10.9583 13.559C10.65 13.353 10.4096 13.0601 10.2677 12.7175C10.1258 12.3749 10.0887 11.9979 10.161 11.6342C10.2334 11.2705 10.412 10.9364 10.6742 10.6742C10.9364 10.412 11.2705 10.2334 11.6342 10.161C11.9979 10.0887 12.3749 10.1258 12.7175 10.2677C13.0601 10.4096 13.353 10.65 13.559 10.9583C13.765 11.2666 13.875 11.6292 13.875 12C13.875 12.4973 13.6775 12.9742 13.3258 13.3258C12.9742 13.6775 12.4973 13.875 12 13.875Z",
   close: "M19.546 17.954C19.7573 18.1653 19.876 18.452 19.876 18.7509C19.876 19.0497 19.7573 19.3364 19.546 19.5477C19.3346 19.7591 19.048 19.8778 18.7491 19.8778C18.4502 19.8778 18.1636 19.7591 17.9522 19.5477L12 13.5937L6.04596 19.5459C5.83461 19.7572 5.54797 19.8759 5.24908 19.8759C4.9502 19.8759 4.66355 19.7572 4.45221 19.5459C4.24086 19.3345 4.12213 19.0479 4.12213 18.749C4.12213 18.4501 4.24086 18.1635 4.45221 17.9521L10.4063 11.9999L4.45408 6.04586C4.24274 5.83451 4.12401 5.54787 4.12401 5.24898C4.12401 4.9501 4.24274 4.66345 4.45408 4.45211C4.66543 4.24076 4.95207 4.12203 5.25096 4.12203C5.54984 4.12203 5.83649 4.24076 6.04783 4.45211L12 10.4062L17.9541 4.45117C18.1654 4.23983 18.4521 4.12109 18.751 4.12109C19.0498 4.12109 19.3365 4.23983 19.5478 4.45117C19.7592 4.66251 19.8779 4.94916 19.8779 5.24805C19.8779 5.54693 19.7592 5.83358 19.5478 6.04492L13.5938 11.9999L19.546 17.954Z",
 };
 const ICONS = Object.fromEntries(Object.entries(ICON_PATHS).map(([k, d]) => [k, `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}" fill="currentColor"/></svg>`]));
@@ -2792,6 +2809,7 @@ function renderCard() {
 
 function selectPulsar(p, manual = false) {
   if (manual && autoPulsar) disableAutoPulsar();
+  if (manual && shuffleOn) { shuffleOn = false; updatePlayMode(); } // ręczna zmiana stacji wyłącza Shuffle i Auto (autor, 26.11.2026)
   psr = p;
   renderCard();
   applyPulsarAudio();
@@ -2812,7 +2830,33 @@ function updateAutoButton() {
     button.setAttribute("aria-pressed", String(autoPulsar));
     button.title = autoPulsar ? $("autoStatus").textContent : "Pick the pulsar highest above you";
   }
+  updatePlayMode();
 }
+// Shuffle (pomysł autora 18.11.2026, menu 26.11.2026): co 3 minuty grania inny pulsar, przejście jak przy zmianie stacji (3 s).
+// Wyklucza się z Auto; ręczny wybór pulsara wyłącza oba. Pod ?dev co 30 s, żeby dało się sprawdzić.
+const SHUFFLE_S = () => (devMode ? 30 : 180);
+let shuffleOn = false, shuffleLeft = 180;
+const shuffleRecent = [];
+function shuffleNext() {
+  shuffleRecent.push(psr); if (shuffleRecent.length > 4) shuffleRecent.shift();
+  let pool = PULSARS.filter((p) => p !== psr && !GENRES[p.genre].silent && !shuffleRecent.includes(p));
+  if (!pool.length) pool = PULSARS.filter((p) => p !== psr && !GENRES[p.genre].silent);
+  selectPulsar(pool[Math.floor(Math.random() * pool.length)]);
+}
+function setPlayMode(m) { // "shuffle" | "auto" | null
+  shuffleOn = m === "shuffle"; shuffleLeft = SHUFFLE_S();
+  if (m === "auto") { if (!autoPulsar) enableAutoPulsar(); } else if (autoPulsar) disableAutoPulsar();
+  updatePlayMode();
+}
+function updatePlayMode() {
+  const b = $("shuffleBtn"), on = shuffleOn || autoPulsar;
+  if (!b) return;
+  b.innerHTML = autoPulsar ? ICONS.gps : ICONS.shuffle;
+  b.setAttribute("aria-pressed", String(on));
+  b.title = shuffleOn ? "Shuffle: a new pulsar every 3 min" : autoPulsar ? "Auto: " + $("autoStatus").textContent : "Shuffle or Auto";
+  for (const it of document.querySelectorAll("#pmPop [data-pm]")) it.setAttribute("aria-checked", String(it.dataset.pm === "shuffle" ? shuffleOn : autoPulsar));
+}
+setInterval(() => { if (shuffleOn && playing && --shuffleLeft <= 0) { shuffleLeft = SHUFFLE_S(); shuffleNext(); } }, 1000);
 function disableAutoPulsar() {
   autoPulsar = false;
   locationRequest++;
@@ -2903,7 +2947,20 @@ document.addEventListener("touchstart", () => {}, { passive: true });
 function openSheet() { sheetOpen = true; document.body.classList.add("map"); $("sheet").classList.add("open"); for (const b of [$("psrBtn"), $("sideView")]) { b.innerHTML = ICONS.wave; b.title = b.ariaLabel = "Show the visuals"; } $("stylePop").classList.remove("open"); $("styleBtn").setAttribute("aria-expanded", false); renderCard(); sizeSky(); }
 function closeSheet() { sheetOpen = false; document.body.classList.remove("map"); $("sheet").classList.remove("open"); for (const b of [$("psrBtn"), $("sideView")]) { b.innerHTML = ICONS.sparkle; b.title = b.ariaLabel = "Choose a pulsar"; } toggleInfoPop(false); }
 $("psrBtn").innerHTML = $("sideView").innerHTML = ICONS.sparkle; $("lbIco").innerHTML = ICONS.live; $("sunBtn").innerHTML = ICONS.sun;
-$("shuffleBtn").innerHTML = ICONS.shuffle; $("dataBtn").innerHTML = ICONS.data; // ikony autora (docs/icons, 19.11.2026)
+$("dataBtn").innerHTML = ICONS.data;
+for (const el of document.querySelectorAll("#pmPop [data-icon]")) el.innerHTML = ICONS[el.dataset.icon];
+const togglePmPop = (open) => { $("pmPop").classList.toggle("open", open); $("shuffleBtn").setAttribute("aria-expanded", String(open)); };
+$("shuffleBtn").onclick = (e) => { e.stopPropagation(); toggleInfoPop(false); togglePmPop(!$("pmPop").classList.contains("open")); };
+$("pmPop").onclick = (e) => {
+  e.stopPropagation();
+  const it = e.target.closest("[data-pm]"); if (!it) return;
+  const cur = shuffleOn ? "shuffle" : autoPulsar ? "auto" : null;
+  setPlayMode(cur === it.dataset.pm ? null : it.dataset.pm); // klik we włączony wyłącza
+  togglePmPop(false);
+};
+document.addEventListener("click", () => togglePmPop(false));
+addEventListener("keydown", (e) => { if (e.key === "Escape") togglePmPop(false); });
+updatePlayMode(); // ikony autora (docs/icons, 19.11.2026)
 // Okienko leży na mapie, mapa pod nim ma stały rozmiar.
 function toggleInfoPop(open) {
   $("infoPop").classList.toggle("open", open); $("stMain").setAttribute("aria-expanded", open);
