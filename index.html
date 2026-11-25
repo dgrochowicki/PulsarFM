@@ -198,7 +198,6 @@
     .pico { width: 50px; height: 50px; padding: 0; border: 1px solid transparent; border-radius: 16px; background: none; color: rgba(255,255,255,0.4); display: grid; place-items: center; cursor: pointer; flex: 0 0 auto;
       font: 13px "JetBrains Mono", ui-monospace, Menlo, monospace; transition: color .2s, border-color .2s, transform .2s cubic-bezier(0.2, 0.8, 0.2, 1); }
     .pico svg { width: 18px; height: 18px; }
-    .pico.pbox { width: 58px; }
     .pico[aria-pressed="true"] { border-color: rgba(255,255,255,0.14); color: rgba(255,255,255,0.8); }
     @media (hover: hover) { .pico:not([aria-disabled="true"]):hover { color: rgba(255,255,255,0.8); } }
     .pico:not([aria-disabled="true"]):active { transform: scale(0.94); }
@@ -327,7 +326,6 @@
       <button class="play" id="play" type="button" aria-label="Play" title="Play"></button>
       <span class="psep d-only"></span>
       <button class="pico d-only" id="shuffleBtn" type="button" aria-pressed="false" aria-disabled="true" title="Shuffle (coming soon)" aria-label="Shuffle"></button>
-      <button class="pico pbox d-only" id="liveBtn" type="button" aria-pressed="false">Live</button>
       <button class="pico d-only" id="dataBtn" type="button" aria-pressed="false" title="Data from the Sun" aria-label="Data from the Sun"></button>
       <div class="pop info-pop" id="infoPop" title="Hide"></div>
     </div>
@@ -616,9 +614,6 @@ function setStatus() {
   else { text = "Manual"; tip = "Manual control (dev)."; }
   const lb = $("livebar");
   lb.className = "livebar " + cls; $("lbText").textContent = text; $("lbMore").textContent = more;
-  const lv = $("liveBtn");
-  lv.setAttribute("aria-pressed", cls === "on");
-  lv.title = devMode ? (mode === "live" ? "Live data · click for the 3-hour replay" : "Replay · click to go back to live data") : tip;
   lb.dataset.pre = cls === "on" ? "measured" : time ? "last" : ""; lb.dataset.time = time;
   tickLive();
   if (lb.dataset.tip !== undefined) lb.dataset.tip = tip; else lb.title = tip;
@@ -2926,9 +2921,6 @@ function setDataOn(on) {
 }
 try { setDataOn(localStorage.getItem("pfm.data") === "1"); } catch (e) { setDataOn(false); }
 $("sunBtn").onclick = $("dataBtn").onclick = (e) => { e.stopPropagation(); setDataOn(!document.body.classList.contains("data-on")); };
-// Live w odtwarzaczu: włączony, gdy grają dane na żywo. Pod ?dev przełącza Live / Replay 3 h (dawny przełącznik autora).
-$("liveBtn").onclick = (e) => { e.stopPropagation(); if (devMode) enterMode(mode === "live" ? "replay" : "live"); };
-if (!devMode) $("liveBtn").setAttribute("aria-disabled", "true");
 document.addEventListener("click", () => { if (!sheetOpen) toggleInfoPop(false); });
 // Okienko „czym to jest” po kliknięciu nazwy (na ekranie głównym i na mapie).
 function toggleAbout(open) {
