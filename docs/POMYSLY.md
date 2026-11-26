@@ -139,3 +139,7 @@ Autor: dodajemy w wolnej chwili, lista otwarta. Zasada: tempo z samych błysków
 ## Presety Zebralette 3 jako próbki (rozmowa 20.11.2026)
 
 Autor ma 50 presetów Zebralette 3 (Alessandro Cardinale, „Morpheus”, pliki `.h2p`, lokalnie w `docs/research/`, nie commitować). Barwa oscylatora jest w nieopisanym formacie u-he, więc nie da się ich odtworzyć w Tone.js. Plan: nagrać kilka nut z wybranych presetów w DAW (Zebralette 3 jest darmowy) i podpiąć jak próbki VCSL. Kandydaci: pianina elektryczne (Almost DX EP, Atypical EP, Zebra Wurly) do R&B na B1859+03, pady (Evolving, Soundscape, Drones) zamiast padu w J0437, Peaceful Sonar i Martian Message. Przed publikacją sprawdzić licencję paczki. Autor: „potem”; pomóc krok po kroku z nagraniem.
+
+## Horyzont na mapie (rozmowa 26.11.2026)
+
+Pomysł: zaznaczyć na mapie horyzont z miejsca słuchacza (lokalizacja i czas UTC są już liczone dla Auto). Autor nie jest przekonany do przyciemniania nieba pod horyzontem ani czy to w ogóle potrzebne; ewentualnie później symbolicznie, samą kreską.

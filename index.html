@@ -223,6 +223,8 @@
       background: var(--card); -webkit-backdrop-filter: var(--card-blur); backdrop-filter: var(--card-blur); } /* kryjące: podpisy mapy nie prześwitują; odcień jak #C4DDFF 8% na ciemnym */
     .dv, .dv b { transition: color 1.2s ease; }
     .dv.lit, .dv.lit b { color: #ffcf6e; transition: color .15s ease; }
+    /* Zwinięta karta wiatru pokazuje też gęstość: oba pomiary razem tworzą melodię (autor, 26.11.2026). */
+    .dvs { display: flex; } .dv-dens { margin-left: 1ch; } .dcard.open .dv-dens { display: none; }
     .dh { display: flex; width: 100%; justify-content: space-between; align-items: baseline; gap: 12px; padding: 13px 18px; border: 0; background: none; color: #fff; cursor: pointer; text-align: left;
       font: 12px/16px "JetBrains Mono", ui-monospace, Menlo, monospace; }
     .dh-in { padding: 0; cursor: default; }
@@ -364,7 +366,7 @@
        pozostałe rozwijają się po kliknięciu. Melodia i rytm to prawdziwe nuty z windMelody(). -->
   <div class="dpanel d-only" id="dpanel">
     <section class="dcard open" data-k="wind">
-      <button class="dh" type="button" aria-expanded="true"><span class="dk">Solar wind</span><span class="dv"><b id="dWind">–</b> km/s</span></button>
+      <button class="dh" type="button" aria-expanded="true"><span class="dk">Solar wind</span><span class="dvs"><span class="dv"><b id="dWind">–</b> km/s</span><span class="dv dv-dens">·&nbsp;<b id="dDensH">–</b> p/cm³</span></span></button>
       <div class="db"><div class="db-in">
         <svg class="dchart" id="dChart" viewBox="0 0 252 70" aria-hidden="true"></svg>
         <div class="drow"><span class="dk2">Melody</span><span class="dnotes" id="dNotes">–</span></div>
@@ -759,7 +761,7 @@ function tickLive() {
   const fresh = lb.classList.contains("on") && Date.now() - packetAt < 3000;
   r.classList.toggle("fresh", fresh); lb.classList.toggle("fresh", fresh); document.body.classList.toggle("fresh-data", fresh);
   // Panel danych (autor, 26.11.2026): zamiast żółtej ramki karty świeci na żółto sama wartość, która się zmieniła.
-  for (const [k, id] of [["wind", "dWind"], ["dens", "dDens"], ["temp", "dTemp"], ["mag", "dBz"], ["kp", "dKp"], ["flare", "dX"]])
+  for (const [k, id] of [["wind", "dWind"], ["dens", "dDens"], ["dens", "dDensH"], ["temp", "dTemp"], ["mag", "dBz"], ["kp", "dKp"], ["flare", "dX"]])
     $(id).closest(".dv").classList.toggle("lit", fresh && packetChanged.has(k));
   lb.querySelector(".lb-pre").textContent = fresh ? "" : lb.dataset.pre || "";
   $("lbTime").textContent = fresh ? "new data" : lb.dataset.time || "";
@@ -3269,7 +3271,7 @@ function melLight(i, name) {
 }
 function updateDataPanel(xc) {
   if (!document.body.classList.contains("data-on")) return; // schowany: nie liczymy
-  $("dWind").textContent = fmt(cur.wind, 1); $("dDens").textContent = fmt(cur.dens, 1);
+  $("dWind").textContent = fmt(cur.wind, 1); $("dDens").textContent = $("dDensH").textContent = fmt(cur.dens, 1);
   const live = mode === "live" && !onRecording() && lastLive;
   const t = live ? lastLive.temp : NaN;
   // Zaokrąglone do setek, żeby K i °C (różnica 273) dało się odróżnić; spacja jako separator tysięcy.
