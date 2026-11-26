@@ -234,6 +234,11 @@
     .dsteps i { height: 18px; border-radius: 4px; background: rgba(255,255,255,0.06); font: 600 9px/18px -apple-system, BlinkMacSystemFont, sans-serif; font-style: normal; color: #1a1406; text-align: center; overflow: hidden; }
     .dsteps i.on { background: #f3d68e; }
     .dsmall { font: 11px/14px -apple-system, BlinkMacSystemFont, sans-serif; color: rgba(255,255,255,0.45); }
+    /* Mały przełącznik K / °C w karcie temperatury (autor, 26.11.2026), w stylu przełącznika mapa/obraz. */
+    .dunit { display: inline-flex; gap: 2px; padding: 2px; margin: 0 0 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.14); }
+    .dunit button { min-width: 34px; height: 24px; padding: 0 8px; border: 0; border-radius: 8px; background: none; cursor: pointer;
+      color: rgba(255,255,255,0.4); font: 12px/16px "JetBrains Mono", ui-monospace, Menlo, monospace; }
+    .dunit button[aria-pressed="true"] { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.8); }
     .dtext { margin: 2px 0 0; font-size: 12px; line-height: 17px; color: rgba(255,255,255,0.55); }
     .ddl { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; margin: 2px 0 10px; font: 12px/16px "JetBrains Mono", ui-monospace, Menlo, monospace; }
     .ddl dt { color: rgba(255,255,255,0.5); } .ddl dd { margin: 0; text-align: right; color: #fff; font-variant-numeric: tabular-nums; }
@@ -354,8 +359,11 @@
       </div></div>
     </section>
     <section class="dcard" data-k="temp">
-      <button class="dh" type="button" aria-expanded="false"><span class="dk">Temperature</span><span class="dv"><b id="dTemp">–</b> K</span></button>
-      <div class="db"><div class="db-in"><p class="dtext">Heat of the solar wind protons at L1. Not in the music yet.</p></div></div>
+      <button class="dh" type="button" aria-expanded="false"><span class="dk">Temperature</span><span class="dv"><b id="dTemp">–</b> <span id="dTempU">K</span></span></button>
+      <div class="db"><div class="db-in">
+        <div class="dunit" role="group" aria-label="Unit"><button type="button" data-u="K" aria-pressed="true">K</button><button type="button" data-u="C" aria-pressed="false">°C</button></div>
+        <p class="dtext">Heat of the solar wind protons at L1. Not in the music yet.</p>
+      </div></div>
     </section>
     <section class="dcard" data-k="mag">
       <button class="dh" type="button" aria-expanded="false"><span class="dk">Magnetic field</span><span class="dv"><b id="dBz">–</b> nT</span></button>
@@ -3118,12 +3126,25 @@ function drawMelodyPanel() {
   $("dSteps").innerHTML = names.map((n) => (n ? `<i class="on">${n}</i>` : "<i></i>")).join("");
   $("dCount").textContent = `${names.filter(Boolean).length} / 16 steps`;
 }
+let tempUnit = "K";
+try { if (localStorage.getItem("pfm.temp") === "C") tempUnit = "C"; } catch (e) {}
+for (const b of document.querySelectorAll(".dunit button")) {
+  b.setAttribute("aria-pressed", String(b.dataset.u === tempUnit));
+  b.onclick = () => {
+    tempUnit = b.dataset.u;
+    try { localStorage.setItem("pfm.temp", tempUnit); } catch (e) {}
+    for (const o of document.querySelectorAll(".dunit button")) o.setAttribute("aria-pressed", String(o === b));
+  };
+}
 function updateDataPanel(xc) {
   if (!document.body.classList.contains("data-on")) return; // schowany: nie liczymy
   $("dWind").textContent = fmt(cur.wind, 1); $("dDens").textContent = fmt(cur.dens, 1);
   const live = mode === "live" && !onRecording() && lastLive;
   const t = live ? lastLive.temp : NaN;
-  $("dTemp").textContent = Number.isFinite(t) ? Math.round(t / 1000).toLocaleString("en-US").replace(/,/g, " ") + " 000" : "–";
+  // Zaokrąglone do setek, żeby K i °C (różnica 273) dało się odróżnić; spacja jako separator tysięcy.
+  const tv = tempUnit === "C" ? t - 273.15 : t;
+  $("dTemp").textContent = Number.isFinite(t) ? (Math.round(tv / 100) * 100).toLocaleString("en-US").replace(/,/g, " ") : "–";
+  $("dTempU").textContent = tempUnit === "C" ? "°C" : "K";
   $("dBz").textContent = $("dBz2").textContent = fmt(cur.bz, 1);
   $("dBy").textContent = fmt(cur.by, 1);
   $("dBt").textContent = live && Number.isFinite(lastLive.bt) ? fmt(lastLive.bt, 1) : "–";
