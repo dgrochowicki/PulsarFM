@@ -192,10 +192,10 @@
     .st-main .t div { font: 10px/1.4 "JetBrains Mono", ui-monospace, Menlo, monospace; letter-spacing: 0; color: var(--dim); margin-top: 3px; }
     .st-main .t div .bpm { display: none; }
     .pwave { flex: 1 1 0; min-width: 60px; height: 36px; margin: 0 8px 0 16px; } /* stała przerwa od nazwy, słupki wypełniają resztę */
-    .play { width: 50px; height: 50px; border-radius: 16px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: #fff; }
+    .play { width: 42px; height: 42px; border-radius: 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: #fff; }
     @media (hover: hover) { .play:hover { background: rgba(255,255,255,0.1); } }
-    .psep { width: 1px; height: 46px; background: rgba(255,255,255,0.09); margin: 0 6px; flex: 0 0 auto; }
-    .pico { width: 50px; height: 50px; padding: 0; border: 1px solid transparent; border-radius: 16px; background: none; color: rgba(255,255,255,0.4); display: grid; place-items: center; cursor: pointer; flex: 0 0 auto;
+    .psep { width: 1px; height: 38px; background: rgba(255,255,255,0.09); margin: 0 6px; flex: 0 0 auto; }
+    .pico { width: 42px; height: 42px; padding: 0; border: 1px solid transparent; border-radius: 14px; background: none; color: rgba(255,255,255,0.4); display: grid; place-items: center; cursor: pointer; flex: 0 0 auto;
       font: 13px "JetBrains Mono", ui-monospace, Menlo, monospace; transition: color .2s, border-color .2s, transform .2s cubic-bezier(0.2, 0.8, 0.2, 1); }
     .pico svg { width: 18px; height: 18px; }
     .pico[aria-pressed="true"] { border-color: rgba(255,255,255,0.14); color: rgba(255,255,255,0.8); }
@@ -205,9 +205,10 @@
     .info-pop { width: 440px; }
     #sunBtn { display: none; } /* dane są w odtwarzaczu */
     #sideView { display: none !important; } /* mapa / obraz jako przełącznik w odtwarzaczu (autor, 26.11.2026) */
-    /* Przełącznik mapa | obraz (autor, 26.11.2026): ramka wokół całego przełącznika, wybrana ikona ma tło i 80% bieli. */
-    .vseg { display: flex; gap: 2px; padding: 3px; height: 50px; box-sizing: border-box; border-radius: 16px; border: 1px solid rgba(255,255,255,0.14); flex: 0 0 auto; }
-    .vseg button { width: 46px; height: 42px; padding: 0; border: 0; border-radius: 12px; background: none; color: rgba(255,255,255,0.4);
+    /* Przełącznik mapa | obraz (autor, 26.11.2026): ramka wokół całego przełącznika, wybrana ikona ma tło i 80% bieli.
+       Wysokość 42 z ramką, w środku przyciski 36, 2 px od ramki; pozostałe przyciski w panelu 42 px. */
+    .vseg { display: flex; gap: 2px; padding: 2px; height: 42px; box-sizing: border-box; border-radius: 14px; border: 1px solid rgba(255,255,255,0.14); flex: 0 0 auto; }
+    .vseg button { width: 36px; height: 36px; padding: 0; border: 0; border-radius: 11px; background: none; color: rgba(255,255,255,0.4);
       display: grid; place-items: center; cursor: pointer; transition: color .2s, border-color .2s, background-color .2s; }
     .vseg svg { width: 18px; height: 18px; }
     .vseg button[aria-pressed="true"] { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.8); cursor: default; }
