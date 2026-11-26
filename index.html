@@ -187,6 +187,8 @@
      Ikony: domyślnie 40% bieli, włączona dostaje ramkę i 80% bieli. Telefon na razie bez zmian. */
   @media (min-width: 641px) {
     .station { width: min(826px, calc(100vw - 48px)); gap: 10px; padding: 0 10px 0 0; }
+    /* Odtwarzacz jak karty danych (autor, 26.11.2026): kryjące tło i ta sama obwódka, zamiast półprzezroczystego kafelka. */
+    .station.tile { background: var(--card); box-shadow: inset 0 0 0 1px var(--card-line); }
     .st-main { flex: 0 1 auto; gap: 18px; padding-left: 24px; }
     .st-main b { font-size: 17px; }
     .st-main .t div { font: 10px/1.4 "JetBrains Mono", ui-monospace, Menlo, monospace; letter-spacing: 0; color: var(--dim); margin-top: 3px; }
@@ -252,7 +254,7 @@
     /* Styl obrazu: pigułka z nazwą i kropkami, tylko na obrazie. Klik w nazwę = następny styl, w kropkę = ten styl. */
     .style-wrap { display: none !important; }
     .spill { flex: 0 0 auto !important; margin: 0 auto; display: flex; align-items: center; gap: 14px; height: 40px; padding: 0 16px 0 4px; border-radius: 20px;
-      border: 1px solid rgba(255,255,255,0.12); background: rgba(12,13,18,0.85); }
+      border: 1px solid var(--card-line); background: var(--card); }
     body.map .spill { display: none; }
     .sp-name { border: 0; background: none; color: #fff; font-size: 14px; padding: 0 0 0 14px; height: 100%; cursor: pointer; white-space: nowrap; }
     .sp-dots { display: flex; gap: 4px; }
