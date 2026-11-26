@@ -212,18 +212,7 @@
     .vseg svg { width: 18px; height: 18px; }
     .vseg button[aria-pressed="true"] { border-color: rgba(255,255,255,0.14); background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.8); cursor: default; }
     @media (hover: hover) { .vseg button[aria-pressed="false"]:hover { color: rgba(255,255,255,0.8); } }
-    #sideAuto { display: none !important; } /* Auto jest w menu Shuffle w odtwarzaczu (autor, 26.11.2026) */
-    /* Menu Shuffle / Auto nad przyciskiem w odtwarzaczu (autor, 26.11.2026): tytuł 12 px, opis 40% bieli. */
-    .pm-pop { right: 70px; width: 240px; padding: 6px; display: flex; flex-direction: column; gap: 2px; transform-origin: 85% 100%; }
-    .pm-pop button { display: flex; align-items: center; gap: 12px; padding: 9px 12px; border: 1px solid transparent; border-radius: 12px; background: none;
-      color: rgba(255,255,255,0.8); text-align: left; cursor: pointer; font: inherit; }
-    .pm-pop .pm-ic { display: grid; place-items: center; color: rgba(255,255,255,0.4); }
-    .pm-pop .pm-ic svg { width: 18px; height: 18px; }
-    .pm-pop b { display: block; font-size: 12px; line-height: 16px; font-weight: 500; }
-    .pm-pop small { display: block; font-size: 12px; line-height: 16px; color: rgba(255,255,255,0.4); }
-    @media (hover: hover) { .pm-pop button:hover { background: rgba(255,255,255,0.06); } }
-    .pm-pop button[aria-checked="true"] { border-color: rgba(255,255,255,0.14); color: #fff; }
-    .pm-pop button[aria-checked="true"] .pm-ic { color: rgba(255,255,255,0.8); }
+    #sideAuto { display: none !important; } /* Auto jest ikoną w odtwarzaczu (autor, 26.11.2026) */
   }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
@@ -349,11 +338,8 @@
         <button type="button" data-view="map" aria-pressed="false" title="Sky map" aria-label="Sky map"></button>
         <button type="button" data-view="vis" aria-pressed="false" title="Visuals" aria-label="Visuals"></button>
       </div>
-      <button class="pico d-only" id="shuffleBtn" type="button" aria-pressed="false" aria-haspopup="true" aria-expanded="false" title="Shuffle or Auto" aria-label="Shuffle or Auto"></button>
-      <div class="pop pm-pop d-only" id="pmPop" role="menu">
-        <button type="button" role="menuitemradio" aria-checked="false" data-pm="shuffle"><span class="pm-ic" data-icon="shuffle"></span><span><b>Shuffle</b><small>Changes every 3 min</small></span></button>
-        <button type="button" role="menuitemradio" aria-checked="false" data-pm="auto"><span class="pm-ic" data-icon="gps"></span><span><b>Auto</b><small>Highest pulsar in your sky</small></span></button>
-      </div>
+      <button class="pico d-only" id="shuffleBtn" type="button" aria-pressed="false" title="Shuffle · changes every 3 min" aria-label="Shuffle"></button>
+      <button class="pico d-only" id="autoBtn" type="button" aria-pressed="false" title="Auto · highest pulsar in your sky" aria-label="Auto"></button>
       <button class="pico d-only" id="dataBtn" type="button" aria-pressed="false" title="Data from the Sun" aria-label="Data from the Sun"></button>
       <div class="pop info-pop" id="infoPop" title="Hide"></div>
     </div>
@@ -2861,12 +2847,11 @@ function setPlayMode(m) { // "shuffle" | "auto" | null
   updatePlayMode();
 }
 function updatePlayMode() {
-  const b = $("shuffleBtn"), on = shuffleOn || autoPulsar;
-  if (!b) return;
-  b.innerHTML = autoPulsar ? ICONS.gps : ICONS.shuffle;
-  b.setAttribute("aria-pressed", String(on));
-  b.title = shuffleOn ? "Shuffle: a new pulsar every 3 min" : autoPulsar ? "Auto: " + $("autoStatus").textContent : "Shuffle or Auto";
-  for (const it of document.querySelectorAll("#pmPop [data-pm]")) it.setAttribute("aria-checked", String(it.dataset.pm === "shuffle" ? shuffleOn : autoPulsar));
+  const sb = $("shuffleBtn"), ab = $("autoBtn");
+  if (!sb || !ab) return;
+  sb.setAttribute("aria-pressed", String(shuffleOn));
+  ab.setAttribute("aria-pressed", String(autoPulsar));
+  ab.title = autoPulsar ? "Auto · " + $("autoStatus").textContent : "Auto · highest pulsar in your sky";
 }
 setInterval(() => { if (shuffleOn && playing && --shuffleLeft <= 0) { shuffleLeft = SHUFFLE_S(); shuffleNext(); } }, 1000);
 function disableAutoPulsar() {
@@ -2960,19 +2945,11 @@ function openSheet() { sheetOpen = true; document.body.classList.add("map"); $("
 function closeSheet() { sheetOpen = false; document.body.classList.remove("map"); $("sheet").classList.remove("open"); for (const b of [$("psrBtn"), $("sideView")]) { b.innerHTML = ICONS.sparkle; b.title = b.ariaLabel = "Choose a pulsar"; } toggleInfoPop(false); updateViewSeg(); }
 $("psrBtn").innerHTML = $("sideView").innerHTML = ICONS.sparkle; $("lbIco").innerHTML = ICONS.live; $("sunBtn").innerHTML = ICONS.sun;
 $("dataBtn").innerHTML = ICONS.data;
-for (const el of document.querySelectorAll("#pmPop [data-icon]")) el.innerHTML = ICONS[el.dataset.icon];
-const togglePmPop = (open) => { $("pmPop").classList.toggle("open", open); $("shuffleBtn").setAttribute("aria-expanded", String(open)); };
-$("shuffleBtn").onclick = (e) => { e.stopPropagation(); toggleInfoPop(false); togglePmPop(!$("pmPop").classList.contains("open")); };
-$("pmPop").onclick = (e) => {
-  e.stopPropagation();
-  const it = e.target.closest("[data-pm]"); if (!it) return;
-  const cur = shuffleOn ? "shuffle" : autoPulsar ? "auto" : null;
-  setPlayMode(cur === it.dataset.pm ? null : it.dataset.pm); // klik we włączony wyłącza
-  togglePmPop(false);
-};
-document.addEventListener("click", () => togglePmPop(false));
-addEventListener("keydown", (e) => { if (e.key === "Escape") togglePmPop(false); });
-updatePlayMode(); // ikony autora (docs/icons, 19.11.2026)
+// Shuffle i Auto: dwie ikony on/off, wykluczają się; klik we włączoną wyłącza (autor, 26.11.2026). Ikony autora z docs/icons.
+$("shuffleBtn").innerHTML = ICONS.shuffle; $("autoBtn").innerHTML = ICONS.gps;
+$("shuffleBtn").onclick = (e) => { e.stopPropagation(); setPlayMode(shuffleOn ? null : "shuffle"); };
+$("autoBtn").onclick = (e) => { e.stopPropagation(); setPlayMode(autoPulsar ? null : "auto"); };
+updatePlayMode();
 // Okienko leży na mapie, mapa pod nim ma stały rozmiar.
 function toggleInfoPop(open) {
   $("infoPop").classList.toggle("open", open); $("stMain").setAttribute("aria-expanded", open);
