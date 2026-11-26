@@ -2795,9 +2795,6 @@ function renderSkyBase(dpr) {
     for (const s of BGSTARS) { const p = skyXY(s.ra, s.dec); sctx.fillStyle = "rgba(255,255,255,0.35)"; sctx.fillRect(p.x, p.y, s.r, s.r); }
   }
   sctx.restore();
-  const gc = skyXY(17.761, -29.0);
-  sctx.fillStyle = "rgba(238,240,246,0.35)"; sctx.font = "10.5px -apple-system, sans-serif"; sctx.textAlign = "center";
-  if (SW >= 560) sctx.fillText("galactic centre", gc.x, gc.y + 30);
 }
 
 function drawSky(time) {
