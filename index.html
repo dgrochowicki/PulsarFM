@@ -221,7 +221,8 @@
     body:not(.data-on) .dpanel { opacity: 0; visibility: hidden; transform: translateX(24px); transition: opacity .2s ease, transform .25s ease, visibility 0s linear .25s; }
     .dcard { border-radius: 18px; border: 1px solid var(--card-line); box-shadow: inset 0 0 0 1px transparent; transition: box-shadow .8s ease;
       background: var(--card); -webkit-backdrop-filter: var(--card-blur); backdrop-filter: var(--card-blur); } /* kryjące: podpisy mapy nie prześwitują; odcień jak #C4DDFF 8% na ciemnym */
-    .fresh-data .dcard { box-shadow: inset 0 0 0 1px rgba(255, 207, 110, 0.55); transition: box-shadow .15s ease; }
+    .dv, .dv b { transition: color 1.2s ease; }
+    .dv.lit, .dv.lit b { color: #ffcf6e; transition: color .15s ease; }
     .dh { display: flex; width: 100%; justify-content: space-between; align-items: baseline; gap: 12px; padding: 13px 18px; border: 0; background: none; color: #fff; cursor: pointer; text-align: left;
       font: 12px/16px "JetBrains Mono", ui-monospace, Menlo, monospace; }
     .dh-in { padding: 0; cursor: default; }
@@ -661,7 +662,7 @@ const newestActive = (rows, key) => rows.find((r) => r.active && r[key] != null)
 // Sonda, z której NOAA bierze dane (pole source przy active: true); NOAA sama przełącza się między sondami.
 const CRAFT = { SOLAR1: "SOLAR-1", DSCOVR: "DSCOVR", ACE: "ACE", IMAP: "IMAP" };
 const craftName = (s) => s ? CRAFT[s] || s : "";
-let packetAt = 0;
+let packetAt = 0, packetChanged = new Set();
 async function fetchLive() {
   try {
     const [wind, mag, kp, xr] = await Promise.allSettled([
@@ -682,7 +683,16 @@ async function fetchLive() {
         out.xray = Number(last.flux); out.xrayTag = last.time_tag; out.flareLevel = newFlareLevel(long);
       }
     }
-    if (lastLive && out.time > lastLive.time) packetAt = Date.now(); // nowa minuta pomiaru, nie pierwszy odczyt
+    if (lastLive && out.time > lastLive.time) {
+      packetAt = Date.now(); // nowa minuta pomiaru, nie pierwszy odczyt
+      // Które pomiary się zmieniły: ich wartości w panelu danych zaświecą na żółto.
+      const p = lastLive, ch = (a, b) => Number.isFinite(a) && a !== b;
+      packetChanged = new Set([
+        ch(out.wind, p.wind) && "wind", ch(out.dens, p.dens) && "dens", ch(out.temp, p.temp) && "temp",
+        (ch(out.bz, p.bz) || ch(out.by, p.by) || ch(out.bt, p.bt)) && "mag", ch(out.kp, p.kp) && "kp",
+        out.xray && p.xray && xrayClass(out.xray).letter !== xrayClass(p.xray).letter && "flare",
+      ].filter(Boolean));
+    }
     liveOK = true; lastLive = out; lastOkAt = Date.now();
     const tail = wind.value.filter((r) => r.active && r.proton_speed != null).slice(0, 17).reverse().map((r) => Number(r.proton_speed));
     if (tail.length === 17) windTail = tail;
@@ -748,6 +758,9 @@ function tickLive() {
   const lb = $("livebar"), r = lb.querySelector(".lb-r");
   const fresh = lb.classList.contains("on") && Date.now() - packetAt < 3000;
   r.classList.toggle("fresh", fresh); lb.classList.toggle("fresh", fresh); document.body.classList.toggle("fresh-data", fresh);
+  // Panel danych (autor, 26.11.2026): zamiast żółtej ramki karty świeci na żółto sama wartość, która się zmieniła.
+  for (const [k, id] of [["wind", "dWind"], ["dens", "dDens"], ["temp", "dTemp"], ["mag", "dBz"], ["kp", "dKp"], ["flare", "dX"]])
+    $(id).closest(".dv").classList.toggle("lit", fresh && packetChanged.has(k));
   lb.querySelector(".lb-pre").textContent = fresh ? "" : lb.dataset.pre || "";
   $("lbTime").textContent = fresh ? "new data" : lb.dataset.time || "";
 }
