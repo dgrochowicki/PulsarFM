@@ -408,7 +408,8 @@
       <button class="sq tile" id="styleBtn" type="button" aria-haspopup="true" aria-expanded="false"></button>
       <div class="pop style-pop" id="stylePop">
         <div class="styles" id="styles">
-          <button data-style="ridges" class="on">Ridges</button>
+          <button data-style="marble" class="on">Marble</button>
+          <button data-style="ridges">Ridges</button>
           <button data-style="waves">Waves</button>
           <button data-style="cymatics">Cymatics</button>
           <button data-style="color">Colour</button>
@@ -2129,7 +2130,7 @@ function layout() {
 }
 
 const vis = {
-  style: "ridges", pulses: 0, chordPc: null, beatT: 0, pulseT: 0, flareT: 0, flareLevel: 0, hue: 220, hueTarget: 220, fast: false, clear: true,
+  style: "marble", pulses: 0, chordPc: null, beatT: 0, pulseT: 0, flareT: 0, flareLevel: 0, hue: 220, hueTarget: 220, fast: false, clear: true,
   beat() { this.beatT = 1; },
   pulse() { this.pulses++; this.pulseT = 1; this.pulseAt = performance.now() / 1000; },
   note(n) {
@@ -2674,13 +2675,90 @@ function drawColor(L, dt, time) {
   ctx.drawImage(COLOR.c, 0, 0, W, H);
 }
 
+// ---------- Styl: Marmur (ze szkicu dashboardu, autor 26.11.2026: główna wizualizacja) ----------
+// Marmurkowanie farbą z zawijanej szumem przestrzeni (domain warping), WebGL. Każdy pulsar ma swoją paletę (przejście 2 s
+// przy zmianie stacji); wiatr to prędkość płynięcia, gęstość drobność wzoru, Bz na południe ściemnia i różowi, błysk
+// i bit pulsara rozjaśniają żyłki, rozbłysk rozświetla całość. Liczone w mniejszej rozdzielczości i rozciągane: wzór jest miękki.
+const MARBLE_PAL = {
+  ambient: ["#04121a", "#0c4656", "#3fa0a8", "#f2a46a"], hiphop: ["#120402", "#8a2606", "#f0661c", "#ffe2bc"],
+  techno: ["#020101", "#24030a", "#d8140f", "#ff5a3a"], triphop: ["#0c0212", "#4a0c58", "#c8287e", "#ffa0d4"],
+  downtempo: ["#020e0a", "#0d4a38", "#5cb08a", "#f6d27a"], drone: ["#030508", "#101c28", "#3c5a70", "#b8d0e0"],
+  choral: ["#0e0904", "#4a3410", "#c49a3c", "#fff0c8"], deep: ["#03020a", "#141050", "#3a3ad0", "#a8a0ff"],
+  vela: ["#010607", "#063a3a", "#18c0b0", "#e8fff8"], crab: ["#050608", "#1e3a1a", "#9cc040", "#ffb060"],
+  glass: ["#020812", "#0b3060", "#4aa8e8", "#e6f6ff"], orbit: ["#060805", "#283010", "#a0a838", "#fff6b0"],
+  terzan: ["#04020c", "#2a0a48", "#9a2ad8", "#ff9ae0"], dub: ["#020a04", "#0c3a14", "#3aa048", "#e8f0a0"],
+};
+const MARBLE_FRAG = `precision highp float;
+uniform vec2 R; uniform float T, beat, warp, dark, flare; uniform vec3 c0, c1, c2, c3;
+float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float n(vec2 p){ vec2 i = floor(p), f = fract(p), u = f*f*(3.-2.*f);
+  return mix(mix(h(i), h(i+vec2(1,0)), u.x), mix(h(i+vec2(0,1)), h(i+vec2(1,1)), u.x), u.y); }
+float fbm(vec2 p){ float v = 0., a = .5; mat2 m = mat2(1.6, 1.2, -1.2, 1.6);
+  for (int i = 0; i < 6; i++) { v += a * n(p); p = m * p; a *= .5; } return v; }
+void main(){
+  vec2 uv = (gl_FragCoord.xy - .5*R) / R.y;
+  vec2 p = uv * warp + 1.3;
+  vec2 q = vec2(fbm(p + .07*T), fbm(p + vec2(5.2, 1.3) - .05*T));
+  vec2 r = vec2(fbm(p + 3.8*q + vec2(1.7, 9.2) + .11*T), fbm(p + 3.8*q + vec2(8.3, 2.8) - .09*T));
+  float f = fbm(p + 4.*r);
+  vec3 col = mix(c0, c1, clamp(f*f*3.2, 0., 1.));
+  col = mix(col, c2, clamp(length(q)*q.x*1.1, 0., 1.));
+  col = mix(col, c3, clamp(pow(r.x, 3.)*1.6, 0., 1.));
+  float vein = pow(1. - abs(sin(f*30. + r.y*8.)), 40.);
+  col += c3 * vein * (.28 + .5*beat) * smoothstep(.35, .75, f);
+  col *= .5 + .85*f + .2*beat + .6*flare;
+  col = smoothstep(0., 1., col*1.08);
+  col = mix(col, vec3(dot(col, vec3(.3,.5,.2))) * vec3(1.05,.55,.8), dark*.35);
+  col *= 1. - .45*dot(uv, uv);
+  col += (h(gl_FragCoord.xy + fract(T)*91.) - .5) * .035;
+  gl_FragColor = vec4(pow(max(col, 0.), vec3(.95)), 1.);
+}`;
+const MARBLE = (() => {
+  const c = document.createElement("canvas");
+  const gl = c.getContext("webgl", { antialias: false, premultipliedAlpha: false });
+  if (!gl) return null;
+  const sh = (type, src) => { const x = gl.createShader(type); gl.shaderSource(x, src); gl.compileShader(x); return x; };
+  const pr = gl.createProgram();
+  gl.attachShader(pr, sh(gl.VERTEX_SHADER, "attribute vec2 a; void main(){ gl_Position = vec4(a, 0., 1.); }"));
+  gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, MARBLE_FRAG)); gl.linkProgram(pr);
+  if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) return null;
+  gl.useProgram(pr);
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+  const U = {}; for (const k of ["R", "T", "beat", "warp", "dark", "flare", "c0", "c1", "c2", "c3"]) U[k] = gl.getUniformLocation(pr, k);
+  return { c, gl, U, t: Math.random() * 50, pal: null };
+})();
+const hexRGB = (s) => [1, 3, 5].map((i) => parseInt(s.slice(i, i + 2), 16) / 255);
+function drawMarble(L, dt, time) {
+  if (!MARBLE) return drawColor(L, dt, time); // bez WebGL zostaje Kolor
+  const { c, gl, U } = MARBLE;
+  // Około 960 px szerokości wystarcza: wzór jest miękki, a pełna rozdzielczość kosztuje kilka razy więcej.
+  const k = Math.min(1, 960 / W), w = Math.round(W * k), h = Math.round(H * k);
+  if (c.width !== w || c.height !== h) { c.width = w; c.height = h; gl.viewport(0, 0, w, h); }
+  const want = (MARBLE_PAL[psr.genre] || MARBLE_PAL.ambient).map(hexRGB);
+  if (!MARBLE.pal) MARBLE.pal = want.map((x) => x.slice());
+  const a = 1 - Math.exp(-dt * 2);
+  MARBLE.pal.forEach((col, i) => { for (let j = 0; j < 3; j++) col[j] += (want[i][j] - col[j]) * a; gl.uniform3fv(U["c" + i], col); });
+  MARBLE.t += dt * map(cur.wind, 300, 800, 0.35, 1.3);
+  gl.uniform2f(U.R, w, h); gl.uniform1f(U.T, MARBLE.t);
+  gl.uniform1f(U.beat, Math.min(1, vis.pulseT * 0.8 + vis.beatT));
+  gl.uniform1f(U.warp, map(cur.dens, 1, 20, 1.5, 3.2));
+  gl.uniform1f(U.dark, southward());
+  gl.uniform1f(U.flare, Math.min(1, vis.flareT * (vis.flareLevel >= 4 ? 1 : 0.6)));
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(c, 0, 0, W, H);
+}
+
 const STYLE_NOTES = {
+  marble: "Paint marbling in the pulsar's colours. Flow: wind speed, fineness: density, darker and pinker: Bz south, bright veins: the pulsar's beat, a flash: solar flare.",
   ridges: "One line per pulsar turn: the shape of the sound right now. Colour: Bz, tremble: wind, tall peak: flare.",
   waves: "Waves that carry the sound: the newest wave swells with the music (bass at the bottom, highs at the top) and keeps that shape as it travels out. Shape: wind, thickness: density, colour: Bz and Kp.",
   cymatics: "Sand settles into the figure of the current chord. Amount: wind density, shaking: speed, colour: Bz.",
   color: "Top field: aurora, bottom: wind and Bz. The border moves with wind pressure, everything breathes with the pulsar.",
 }
-const STYLES = { ridges: drawRidges, waves: drawRings, cymatics: drawCymatics, color: drawColor, bauhaus: drawBauhaus, scope: drawScope };
+const STYLES = { marble: drawMarble, ridges: drawRidges, waves: drawRings, cymatics: drawCymatics, color: drawColor, bauhaus: drawBauhaus, scope: drawScope };
 
 // ---------- Mapa pulsarów ----------
 // Całe niebo jako prostokąt na cały ekran. Rektascensja rośnie w lewo, jak na mapach nieba; środek mapy to 12h.
@@ -3264,6 +3342,7 @@ document.addEventListener("click", (e) => { if (!$("modePop").contains(e.target)
 showMode();
 // Ikony wizualizacji: mały obrazek tego, co rysuje dany styl.
 const STYLE_ICONS = {
+  marble: '<path d="M3 8c3-3 6 2 9-1s5-3 9 0M3 13c4-2 5 3 9 0s6-2 9 1M3 18c3-2 6 2 9-1s5-2 9 0"/>',
   ridges: '<path d="M2 8c3 0 4-4 7-4s4 4 7 4 4-2 6-2M2 13c3 0 4-4 7-4s4 4 7 4 4-2 6-2M2 18c3 0 4-4 7-4s4 4 7 4 4-2 6-2"/>',
   waves: '<circle cx="12" cy="12" r="2.2" fill="currentColor"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="10"/>',
   cymatics: '<circle cx="12" cy="12" r="10"/><path d="M12 2c4 5 4 15 0 20c-4-5-4-15 0-20M2 12c5-4 15-4 20 0c-5 4-15 4-20 0"/>',
