@@ -233,6 +233,13 @@
     .dsteps { display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; margin: 10px 0 8px; }
     .dsteps i { height: 18px; border-radius: 4px; background: rgba(255,255,255,0.06); font: 600 9px/18px -apple-system, BlinkMacSystemFont, sans-serif; font-style: normal; color: #1a1406; text-align: center; overflow: hidden; }
     .dsteps i.on { background: #f3d68e; }
+    /* Przy graniu kroki z nutą przygasają, a krok, który właśnie gra, zapala się na żółto (autor, 26.11.2026). */
+    .dsteps i { transition: background-color .6s ease, color .6s ease, box-shadow .6s ease; }
+    .dsteps.live i.on { background: rgba(255,207,110,0.22); color: rgba(255,207,110,0.85); }
+    .dsteps i.on.lit { background: #ffcf6e; color: #1a1406; box-shadow: 0 0 10px rgba(255,207,110,0.55); transition: none; }
+    .dnotes span { transition: color .6s ease; } .dnotes span.lit { color: #ffcf6e; transition: none; }
+    .dchart circle[data-i] { transition: fill .6s ease, stroke .6s ease; }
+    .dchart circle.lit { fill: #ffcf6e; stroke: #ffcf6e; transition: none; }
     .dsmall { font: 11px/14px -apple-system, BlinkMacSystemFont, sans-serif; color: rgba(255,255,255,0.45); }
     /* Mały przełącznik K / °C w karcie temperatury (autor, 26.11.2026), w stylu przełącznika mapa/obraz. */
     .dunit { display: inline-flex; gap: 2px; padding: 2px; margin: 10px 0 4px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.14); }
@@ -834,6 +841,8 @@ const E = {
   m: (deg, oct = 0) => midiOf(E.root + oct * 12, E.scale(), deg),
   n: (deg, oct = 0) => nn(E.m(deg, oct)),
   note(n, t) { Tone.Draw.schedule(() => vis.note(n), t); },
+  // Krok i (0–15) melodii z wiatru właśnie zabrzmiał: zapala się w panelu danych (autor, 26.11.2026).
+  mel(i, t) { Tone.Draw.schedule(() => melLight(i), t); },
   chord(notes, t) {
     if (A && E.glow() > 0) {
       A.shimmer.releaseAll(t);
@@ -918,7 +927,7 @@ const GENRES = {
           }
           nf.frequency.rampTo(map(E.bright(), 0, 1, 250, 2200), 2);
           const mel = windMelody(), mi = (bar % 8) * 2 + (s >> 3); // jedna nuta melodii na półnutę
-          if (mel ? s % 8 === 0 && mel[mi] != null : s % 4 === 0 && chance(0.03 + E.busy() * 0.08)) { const n = E.n(mel ? 7 + mel[mi] : motif.at(bar * 4 + s / 4), 0); bell.triggerAttackRelease(n, "2n", t, 0.5); E.note(n, t); }
+          if (mel ? s % 8 === 0 && mel[mi] != null : s % 4 === 0 && chance(0.03 + E.busy() * 0.08)) { const n = E.n(mel ? 7 + mel[mi] : motif.at(bar * 4 + s / 4), 0); bell.triggerAttackRelease(n, "2n", t, 0.5); E.note(n, t); if (mel) E.mel(mi, t); }
           if (s === 0 && bar % 4 === 3) motif.mutate(0.6);
           // Im głębszy dołek tła, tym częściej szept; poza dołkiem cisza.
           const deep = Math.max(0, dipRead.getValue()[0]) ** 2;
@@ -965,6 +974,7 @@ const GENRES = {
           const snap = tones.reduce((a, b) => (Math.abs(b - sop) < Math.abs(a - sop) ? b : a));
           voices.push(mel ? nn(sop) : nn(snap));
           organ.releaseAll(t); organ.triggerAttack(voices, t, 0.55);
+          if (own != null) E.mel(k % 16, t);
           choir.releaseAll(t); choir.triggerAttack(voices.slice(2), t, 0.4 + E.busy() * 0.3);
           E.chord(voices, t); E.note(voices[voices.length - 1], t);
           k++;
@@ -1023,7 +1033,7 @@ const GENRES = {
             const n = E.n((mel ? 4 + mel[i] : d) + (E.bright() > 0.6 ? 7 : 0), 0);
             const v = wind ? 0.35 + Math.min(gust / 12, 1) * 0.45 : 0.35 + Math.random() * 0.45;
             if (harp.loaded) harp.triggerAttackRelease(n, "2n", t, v);
-            E.note(n, t);
+            E.note(n, t); if (mel) E.mel(i, t);
           }
         },
         pulse(t) { kick.triggerAttackRelease(E.n(0, -3), "4n", t, 0.8); },
@@ -1095,7 +1105,7 @@ const GENRES = {
             const n = E.n(mel ? melLo + mel[i] : md, deep ? 0 : -1), v = mel ? 0.5 + Math.min(gust / 12, 1) * 0.4 : 0.7;
             if (!deep) melF.frequency.setValueAtTime(3500 * (0.6 + E.bright() * 0.8), t);
             melody.triggerAttackRelease(n, deep ? "16n" : 0.12, t, v);
-            E.note(n, t);
+            E.note(n, t); if (mel) E.mel(i, t);
           }
           // Szepty przy większej zmianie wiatru: nowy pomiar z różnicą od 5 km/s daje 4 takty szeptów. Gęstość dokłada sylaby.
           if (!deep && s === 0) {
@@ -1184,8 +1194,9 @@ const GENRES = {
           if (fresh) { beep.triggerAttackRelease(F * 88, 0.08, t, 0.8); beep.triggerAttackRelease(F * 88, 0.08, t + 0.18, 0.8); }
           // Sonar co 16 błysków (około 1,4 s), jeśli melodia z wiatru ma w tym miejscu nutę.
           if (k % 16 !== 8) return;
-          const mel = windMelody(), d = mel ? mel[ping++ % 16] : chance(0.4) ? (ping++ * 5) % 9 : null;
+          const mel = windMelody(), pi = ping % 16, d = mel ? mel[ping++ % 16] : chance(0.4) ? (ping++ * 5) % 9 : null;
           if (d == null) return;
+          if (mel) E.mel(pi, t);
           const hz = F * 2 * HARM[mood()][clamp(d + 3, 0, 13)]; // oktawę wyżej (autor), około 0,7–2,6 kHz
           sonar.triggerAttackRelease(hz * 1.015, 0.25, t, 0.85); sonar.frequency.exponentialRampToValueAtTime(hz, t + 0.3); E.note(Tone.Frequency(hz).toNote(), t);
         },
@@ -1218,7 +1229,7 @@ const GENRES = {
           if (s === 14 && chance(0.15 + E.busy() * 0.3)) rim.triggerAttackRelease("16n", t, 0.5); // echo „rzucone” w delay
           // Bas gra tu melodię z wiatru. Bez danych własna linia idąca za akordem.
           const mel = windMelody(), mi = (bar % 2) * 8 + (s >> 1), d = mel ? (s % 2 === 0 && mel[mi] != null ? mel[mi] - 7 : null) : line.at(s);
-          if (d != null) bass.triggerAttackRelease(E.n(mel ? d : d + deg, -2), "8n", t, 0.9);
+          if (d != null) { bass.triggerAttackRelease(E.n(mel ? d : d + deg, -2), "8n", t, 0.9); if (mel) E.mel(mi, t); }
           if (s === 0) E.chord(chordDegs(deg, 3).map((x) => E.n(x, -1)), t);
           if (s === 0 && bar % 4 === 3) line.mutate(0.5);
         },
@@ -1275,6 +1286,7 @@ const GENRES = {
           if (!mel && chance(0.35)) d = [2, 4, 3, 5, 1, 4][fallback++ % 6];
           if (d == null) return;
           const long = mel ? mel[(mi + 1) % 16] == null : chance(0.5);
+          if (mel) E.mel(mi, t);
           blow(F * TPT[mood()][clamp(d + 3, 0, 13)], long ? Tone.Time("1m").toSeconds() * 0.9 : Tone.Time("2n").toSeconds() * 0.85, t);
         },
       };
@@ -1375,7 +1387,7 @@ const GENRES = {
           rests = 0;
           const n = tune(hz(d), bar);
           play(n, Tone.Time("1m").toSeconds() * 1.1, t, 0.7);
-          E.note(Tone.Frequency(n).toNote(), t);
+          E.note(Tone.Frequency(n).toNote(), t); if (mel) E.mel(mi, t);
         },
       };
     },
@@ -1450,7 +1462,7 @@ const GENRES = {
             if (d != null) {
               const n = E.n(d, 0);
               glass.triggerAttackRelease(n, "2n", t, 0.5 + Math.min(windChange(i) / 12, 1) * 0.3);
-              E.note(n, t);
+              E.note(n, t); if (mel) E.mel(i, t);
             }
           }
           if (s === 0 && bar % 4 === 3) motif.mutate(0.5);
@@ -1529,7 +1541,7 @@ const GENRES = {
             if (d != null) {
               const n = E.n(d, 0);
               fire(vib, n, at, 0.45 + Math.min(windChange(i) / 12, 1) * 0.35);
-              E.note(n, at);
+              E.note(n, at); if (mel) E.mel(i, at);
             }
           }
           if (s === 0 && bar % 4 === 3) melody.mutate(0.5);
@@ -1608,7 +1620,7 @@ const GENRES = {
             if (d != null) {
               const n = E.n(d, 0);
               fire(harp, n, t, 0.5 + Math.min(windChange(i) / 12, 1) * 0.3);
-              E.note(n, t);
+              E.note(n, t); if (mel) E.mel(i, t);
             }
           }
           if (s === 0 && bar % 4 === 3) motif.mutate(0.5);
@@ -1671,7 +1683,7 @@ const GENRES = {
             if (d != null) {
               const n = E.n(d, 1);
               if (flute.loaded) flute.triggerAttackRelease(n, six * 7, t, 0.45 + Math.min(windChange(i) / 12, 1) * 0.3);
-              E.note(n, t);
+              E.note(n, t); if (mel) E.mel(i, t);
             }
           }
           if (s === 0 && bar % 4 === 3) motif.mutate(0.5);
@@ -1763,7 +1775,7 @@ const GENRES = {
           if (d == null) return;
           const n = into(hz(d), F / 2);
           lead.triggerAttackRelease(n, len * 0.9, t, 0.6);
-          E.note(Tone.Frequency(n).toNote(), t);
+          E.note(Tone.Frequency(n).toNote(), t); if (mel) E.mel(bar % 16, t);
         },
       };
     },
@@ -3117,12 +3129,12 @@ function drawMelodyPanel() {
   // Wykres: 16 ostatnich minut wiatru, kółka tam, gdzie gra nuta; duże kółko to najnowszy pomiar. Pod spodem 16 kroków frazy.
   const v = w.slice(1), lo = Math.min(...v), hi = Math.max(...v), rng = Math.max(hi - lo, 6), W = 252, x = (i) => 4 + (i * (W - 8)) / 15, y = (val) => 44 - ((val - (lo + hi) / 2) / rng + 0.5) * 36;
   let svg = `<polyline points="${v.map((val, i) => `${x(i).toFixed(1)},${y(val).toFixed(1)}`).join(" ")}" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1.5" stroke-linejoin="round"/>`;
-  v.forEach((val, i) => { if (mel[i] != null) svg += `<circle cx="${x(i).toFixed(1)}" cy="${y(val).toFixed(1)}" r="3" fill="#0c0d12" stroke="rgba(255,255,255,0.75)" stroke-width="1.5"/>`; });
+  v.forEach((val, i) => { if (mel[i] != null) svg += `<circle data-i="${i}" cx="${x(i).toFixed(1)}" cy="${y(val).toFixed(1)}" r="3" fill="#0c0d12" stroke="rgba(255,255,255,0.75)" stroke-width="1.5"/>`; });
   svg += `<circle cx="${x(15).toFixed(1)}" cy="${y(v[15]).toFixed(1)}" r="5" fill="#0c0d12" stroke="#fff" stroke-width="1.8"/>`;
   for (let i = 0; i < 16; i++) svg += `<circle cx="${x(i).toFixed(1)}" cy="66" r="1" fill="rgba(255,255,255,0.3)"/>`;
   $("dChart").innerHTML = svg;
   const names = mel.map((d) => (d == null ? null : melNoteName(d)));
-  $("dNotes").innerHTML = names.filter(Boolean).map((n) => `<span>${n}</span>`).join("");
+  $("dNotes").innerHTML = names.map((n, i) => (n ? `<span data-i="${i}">${n}</span>` : "")).join("");
   $("dSteps").innerHTML = names.map((n) => (n ? `<i class="on">${n}</i>` : "<i></i>")).join("");
   $("dCount").textContent = `${names.filter(Boolean).length} / 16 steps`;
 }
@@ -3135,6 +3147,16 @@ for (const b of document.querySelectorAll(".dunit button")) {
     try { localStorage.setItem("pfm.temp", tempUnit); } catch (e) {}
     for (const o of document.querySelectorAll(".dunit button")) o.setAttribute("aria-pressed", String(o === b));
   };
+}
+// Zapalenie kroku melodii: komórka rytmu, nazwa nuty i kółko na wykresie na chwilę żółkną, potem gasną.
+function melLight(i) {
+  if (!document.body.classList.contains("data-on")) return;
+  const els = [$("dSteps").children[i], ...document.querySelectorAll(`#dChart [data-i="${i}"], #dNotes [data-i="${i}"]`)];
+  for (const el of els) {
+    if (!el) continue;
+    clearTimeout(el._lit); el.classList.add("lit");
+    el._lit = setTimeout(() => el.classList.remove("lit"), 260);
+  }
 }
 function updateDataPanel(xc) {
   if (!document.body.classList.contains("data-on")) return; // schowany: nie liczymy
@@ -3152,6 +3174,7 @@ function updateDataPanel(xc) {
   $("dBz").style.setProperty("--c", southward() > 0.05 ? mix([238, 240, 246], ROSE, southward()) : "#fff");
   $("dKp").style.setProperty("--c", cur.kp >= 4 ? mix([238, 240, 246], [95, 211, 141], map(cur.kp, 3, 8, 0.3, 1)) : "#fff");
   drawMelodyPanel();
+  $("dSteps").classList.toggle("live", playing);
 }
 function fmt(v, d = 0) { return Number.isFinite(v) ? v.toFixed(d).replace("-", "−") : "–"; }
 setInterval(() => {
