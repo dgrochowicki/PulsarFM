@@ -192,7 +192,7 @@
     .st-main .t div { font: 10px/1.4 "JetBrains Mono", ui-monospace, Menlo, monospace; letter-spacing: 0; color: var(--dim); margin-top: 3px; }
     .st-main .t div .bpm { display: none; }
     .pwave { flex: 1 1 0; min-width: 60px; height: 36px; margin: 0 8px 0 16px; } /* stała przerwa od nazwy, słupki wypełniają resztę */
-    .play { width: 42px; height: 42px; border-radius: 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: #fff; }
+    .play { width: 42px; height: 42px; border-radius: 14px; background: rgba(255,255,255,0.05); border: 0; color: #fff; } /* bez obwódki (autor, 26.11.2026) */
     @media (hover: hover) { .play:hover { background: rgba(255,255,255,0.1); } }
     .psep { width: 1px; height: 38px; background: rgba(255,255,255,0.09); margin: 0 6px; flex: 0 0 auto; }
     .pico { width: 42px; height: 42px; padding: 0; border: 1px solid transparent; border-radius: 14px; background: none; color: rgba(255,255,255,0.4); display: grid; place-items: center; cursor: pointer; flex: 0 0 auto;
@@ -842,7 +842,8 @@ const E = {
   n: (deg, oct = 0) => nn(E.m(deg, oct)),
   note(n, t) { Tone.Draw.schedule(() => vis.note(n), t); },
   // Krok i (0–15) melodii z wiatru właśnie zabrzmiał: zapala się w panelu danych (autor, 26.11.2026).
-  mel(i, t) { Tone.Draw.schedule(() => melLight(i), t); },
+  // n to nuta, która naprawdę zabrzmiała (nazwa albo Hz): panel pokazuje jej nazwę.
+  mel(i, t, n) { const name = n == null ? null : FLAT_NAMES[((Math.round(Tone.Frequency(n).toMidi()) % 12) + 12) % 12]; Tone.Draw.schedule(() => melLight(i, name), t); },
   chord(notes, t) {
     if (A && E.glow() > 0) {
       A.shimmer.releaseAll(t);
@@ -927,7 +928,7 @@ const GENRES = {
           }
           nf.frequency.rampTo(map(E.bright(), 0, 1, 250, 2200), 2);
           const mel = windMelody(), mi = (bar % 8) * 2 + (s >> 3); // jedna nuta melodii na półnutę
-          if (mel ? s % 8 === 0 && mel[mi] != null : s % 4 === 0 && chance(0.03 + E.busy() * 0.08)) { const n = E.n(mel ? 7 + mel[mi] : motif.at(bar * 4 + s / 4), 0); bell.triggerAttackRelease(n, "2n", t, 0.5); E.note(n, t); if (mel) E.mel(mi, t); }
+          if (mel ? s % 8 === 0 && mel[mi] != null : s % 4 === 0 && chance(0.03 + E.busy() * 0.08)) { const n = E.n(mel ? 7 + mel[mi] : motif.at(bar * 4 + s / 4), 0); bell.triggerAttackRelease(n, "2n", t, 0.5); E.note(n, t); if (mel) E.mel(mi, t, n); }
           if (s === 0 && bar % 4 === 3) motif.mutate(0.6);
           // Im głębszy dołek tła, tym częściej szept; poza dołkiem cisza.
           const deep = Math.max(0, dipRead.getValue()[0]) ** 2;
@@ -974,7 +975,7 @@ const GENRES = {
           const snap = tones.reduce((a, b) => (Math.abs(b - sop) < Math.abs(a - sop) ? b : a));
           voices.push(mel ? nn(sop) : nn(snap));
           organ.releaseAll(t); organ.triggerAttack(voices, t, 0.55);
-          if (own != null) E.mel(k % 16, t);
+          if (own != null) E.mel(k % 16, t, nn(sop));
           choir.releaseAll(t); choir.triggerAttack(voices.slice(2), t, 0.4 + E.busy() * 0.3);
           E.chord(voices, t); E.note(voices[voices.length - 1], t);
           k++;
@@ -987,7 +988,7 @@ const GENRES = {
 
   // B0329+54: ambient z arpeggio, ale motywem zamiast losowych nut.
   ambient: {
-    label: "Ambient", pulseRole: "Stopa", scales: ["lydian", "aeolian"],
+    label: "Ambient", melShift: 4, pulseRole: "Stopa", scales: ["lydian", "aeolian"],
     make(B) {
       const pf = new Tone.Filter(900, "lowpass", -24).connect(B.rev);
       const pad = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fatcustom", partials: windPartials(), count: 3, spread: 22 }, envelope: { attack: 4, decay: 1, sustain: 0.75, release: 8 } }), -32).connect(pf); // tło ciszej (autor, 16.11.2026)
@@ -1033,7 +1034,7 @@ const GENRES = {
             const n = E.n((mel ? 4 + mel[i] : d) + (E.bright() > 0.6 ? 7 : 0), 0);
             const v = wind ? 0.35 + Math.min(gust / 12, 1) * 0.45 : 0.35 + Math.random() * 0.45;
             if (harp.loaded) harp.triggerAttackRelease(n, "2n", t, v);
-            E.note(n, t); if (mel) E.mel(i, t);
+            E.note(n, t); if (mel) E.mel(i, t, n);
           }
         },
         pulse(t) { kick.triggerAttackRelease(E.n(0, -3), "4n", t, 0.8); },
@@ -1105,7 +1106,7 @@ const GENRES = {
             const n = E.n(mel ? melLo + mel[i] : md, deep ? 0 : -1), v = mel ? 0.5 + Math.min(gust / 12, 1) * 0.4 : 0.7;
             if (!deep) melF.frequency.setValueAtTime(3500 * (0.6 + E.bright() * 0.8), t);
             melody.triggerAttackRelease(n, deep ? "16n" : 0.12, t, v);
-            E.note(n, t); if (mel) E.mel(i, t);
+            E.note(n, t); if (mel) E.mel(i, t, n);
           }
           // Szepty przy większej zmianie wiatru: nowy pomiar z różnicą od 5 km/s daje 4 takty szeptów. Gęstość dokłada sylaby.
           if (!deep && s === 0) {
@@ -1134,7 +1135,7 @@ const GENRES = {
 
   // B0950+08: 118,6 BPM. To samo co techno, ale niesie je akord, nie acid.
   deep: {
-    label: "Deep", pulseRole: "Hi-hat", thin: true, scales: ["dorian", "phrygian"],
+    label: "Deep", melShift: 4, pulseRole: "Hi-hat", thin: true, scales: ["dorian", "phrygian"],
     make(B) { return GENRES.techno.make(B, true); },
   },
 
@@ -1196,8 +1197,8 @@ const GENRES = {
           if (k % 16 !== 8) return;
           const mel = windMelody(), pi = ping % 16, d = mel ? mel[ping++ % 16] : chance(0.4) ? (ping++ * 5) % 9 : null;
           if (d == null) return;
-          if (mel) E.mel(pi, t);
           const hz = F * 2 * HARM[mood()][clamp(d + 3, 0, 13)]; // oktawę wyżej (autor), około 0,7–2,6 kHz
+          if (mel) E.mel(pi, t, hz);
           sonar.triggerAttackRelease(hz * 1.015, 0.25, t, 0.85); sonar.frequency.exponentialRampToValueAtTime(hz, t + 0.3); E.note(Tone.Frequency(hz).toNote(), t);
         },
       };
@@ -1229,7 +1230,7 @@ const GENRES = {
           if (s === 14 && chance(0.15 + E.busy() * 0.3)) rim.triggerAttackRelease("16n", t, 0.5); // echo „rzucone” w delay
           // Bas gra tu melodię z wiatru. Bez danych własna linia idąca za akordem.
           const mel = windMelody(), mi = (bar % 2) * 8 + (s >> 1), d = mel ? (s % 2 === 0 && mel[mi] != null ? mel[mi] - 7 : null) : line.at(s);
-          if (d != null) { bass.triggerAttackRelease(E.n(mel ? d : d + deg, -2), "8n", t, 0.9); if (mel) E.mel(mi, t); }
+          if (d != null) { const bn = E.n(mel ? d : d + deg, -2); bass.triggerAttackRelease(bn, "8n", t, 0.9); if (mel) E.mel(mi, t, bn); }
           if (s === 0) E.chord(chordDegs(deg, 3).map((x) => E.n(x, -1)), t);
           if (s === 0 && bar % 4 === 3) line.mutate(0.5);
         },
@@ -1286,7 +1287,7 @@ const GENRES = {
           if (!mel && chance(0.35)) d = [2, 4, 3, 5, 1, 4][fallback++ % 6];
           if (d == null) return;
           const long = mel ? mel[(mi + 1) % 16] == null : chance(0.5);
-          if (mel) E.mel(mi, t);
+          if (mel) E.mel(mi, t, F * TPT[mood()][clamp(d + 3, 0, 13)]);
           blow(F * TPT[mood()][clamp(d + 3, 0, 13)], long ? Tone.Time("1m").toSeconds() * 0.9 : Tone.Time("2n").toSeconds() * 0.85, t);
         },
       };
@@ -1387,7 +1388,7 @@ const GENRES = {
           rests = 0;
           const n = tune(hz(d), bar);
           play(n, Tone.Time("1m").toSeconds() * 1.1, t, 0.7);
-          E.note(Tone.Frequency(n).toNote(), t); if (mel) E.mel(mi, t);
+          E.note(Tone.Frequency(n).toNote(), t); if (mel) E.mel(mi, t, n);
         },
       };
     },
@@ -1395,7 +1396,7 @@ const GENRES = {
 
   // B2255+58 (od 17.11.2026, wcześniej J0437): 162,9 błysku na minutę, każdy błysk to uderzenie, tempo liquid drum and bass. Szybki rytm pod wolnym chórem i szkłem.
   glass: {
-    label: "Liquid drum and bass", thin: true, tempoFloor: 100, pulseBurst: true, scales: ["lydian", "aeolian"],
+    label: "Liquid drum and bass", melShift: 5, thin: true, tempoFloor: 100, pulseBurst: true, scales: ["lydian", "aeolian"],
     make(B) {
       const vf = new Tone.Filter({ frequency: 900, type: "bandpass", Q: 0.8 }).connect(B.rev);
       const choir = vol(new Tone.PolySynth(Tone.Synth, { oscillator: { type: "fatsine", count: 4, spread: 25 }, envelope: { attack: 3, decay: 1, sustain: 0.8, release: 6 } }), -23).connect(vf);
@@ -1462,7 +1463,7 @@ const GENRES = {
             if (d != null) {
               const n = E.n(d, 0);
               glass.triggerAttackRelease(n, "2n", t, 0.5 + Math.min(windChange(i) / 12, 1) * 0.3);
-              E.note(n, t); if (mel) E.mel(i, t);
+              E.note(n, t); if (mel) E.mel(i, t, n);
             }
           }
           if (s === 0 && bar % 4 === 3) motif.mutate(0.5);
@@ -1474,7 +1475,7 @@ const GENRES = {
   // B1706−16 (od 19.11.2026): 91,9 błysku na minutę, każdy błysk to ćwierćnuta, tempo hip-hopu bez mnożenia. Boom bap w stylu lo-fi:
   // perkusja z próbek ze swingiem, głęboki bas 808, akordy na pianinie przez filtr i falowanie taśmy, melodia z wiatru na wibrafonie, trzaski płyty.
   hiphop: {
-    label: "Hip-hop", pulseRole: "Hi-hat", thin: true, scales: ["dorian", "aeolian"],
+    label: "Hip-hop", melShift: 4, pulseRole: "Hi-hat", thin: true, scales: ["dorian", "aeolian"],
     make(B) {
       const fire = (node, note, t, v) => { if (node.loaded) node.triggerAttack(note, t, v); };
       const kick = vol(sampler({ C2: "hh-stopa-1", D2: "hh-stopa-2" }, 0.2), -12).connect(B.lim);
@@ -1541,7 +1542,7 @@ const GENRES = {
             if (d != null) {
               const n = E.n(d, 0);
               fire(vib, n, at, 0.45 + Math.min(windChange(i) / 12, 1) * 0.35);
-              E.note(n, at); if (mel) E.mel(i, at);
+              E.note(n, at); if (mel) E.mel(i, at, n);
             }
           }
           if (s === 0 && bar % 4 === 3) melody.mutate(0.5);
@@ -1557,7 +1558,7 @@ const GENRES = {
   // B1508+55 (od 19.11.2026): 81,1 błysku na minutę, każdy błysk to ćwierćnuta, bez mnożenia. Trip-hop, kierunek Massive Attack i Tricky
   // (cechy stylu, bez kopiowania utworów): ciężki, wolny bit jak spowolniony sampel, dubowy bas, smyczki w pogłosie, klawesyn z melodią z wiatru.
   triphop: {
-    label: "Trip-hop", pulseRole: "Impuls", thin: true, scales: ["aeolian", "phrygian"],
+    label: "Trip-hop", melShift: 4, pulseRole: "Impuls", thin: true, scales: ["aeolian", "phrygian"],
     make(B) {
       const fire = (node, note, t, v) => { if (node.loaded) node.triggerAttack(note, t, v); };
       // Bębny przez wspólny, przybrudzony tor: lekkie nasycenie i przyciemnienie, jak bit zgrany z płyty i zwolniony.
@@ -1620,7 +1621,7 @@ const GENRES = {
             if (d != null) {
               const n = E.n(d, 0);
               fire(harp, n, t, 0.5 + Math.min(windChange(i) / 12, 1) * 0.3);
-              E.note(n, t); if (mel) E.mel(i, t);
+              E.note(n, t); if (mel) E.mel(i, t, n);
             }
           }
           if (s === 0 && bar % 4 === 3) motif.mutate(0.5);
@@ -1683,7 +1684,7 @@ const GENRES = {
             if (d != null) {
               const n = E.n(d, 1);
               if (flute.loaded) flute.triggerAttackRelease(n, six * 7, t, 0.45 + Math.min(windChange(i) / 12, 1) * 0.3);
-              E.note(n, t); if (mel) E.mel(i, t);
+              E.note(n, t); if (mel) E.mel(i, t, n);
             }
           }
           if (s === 0 && bar % 4 === 3) motif.mutate(0.5);
@@ -1775,7 +1776,7 @@ const GENRES = {
           if (d == null) return;
           const n = into(hz(d), F / 2);
           lead.triggerAttackRelease(n, len * 0.9, t, 0.6);
-          E.note(Tone.Frequency(n).toNote(), t); if (mel) E.mel(bar % 16, t);
+          E.note(Tone.Frequency(n).toNote(), t); if (mel) E.mel(bar % 16, t, n);
         },
       };
     },
@@ -3116,15 +3117,18 @@ for (const c of document.querySelectorAll(".dcard")) c.querySelector(".dh").oncl
 };
 const FLAT_NAMES = ["C", "D♭", "D", "E♭", "E", "F", "G♭", "G", "A♭", "A", "B♭", "B"];
 // Nazwa nuty melodii dla grającego pulsara: ta sama skala i tonacja, co w muzyce (gatunek, nastrój z Bz, transpozycja pulsara).
+// Nazwa nuty przed zagraniem: stopień przesunięty tak jak w gatunku (melShift). Gatunki eksperymentalne mają własne wysokości
+// (wielokrotności częstotliwości pulsara), więc tam nazwy poprawiają się same, gdy nuta naprawdę zabrzmi (melSeen).
+let melSeen = {};
 function melNoteName(deg) {
-  const sc = GENRES[psr.genre].scales || ["major", "minor"], scale = SCALES[sc[mood === "dark" ? 1 : 0]] || Object.values(SCALES)[0];
-  return FLAT_NAMES[((midiOf(62 + M.tr, scale, deg) % 12) + 12) % 12];
+  const g = GENRES[psr.genre], sc = g.scales || ["major", "minor"], scale = SCALES[sc[mood === "dark" ? 1 : 0]] || Object.values(SCALES)[0];
+  return FLAT_NAMES[((midiOf(62 + M.tr, scale, deg + (g.melShift || 0)) % 12) + 12) % 12];
 }
 let dpKey = "";
 function drawMelodyPanel() {
   const w = windValues(), mel = windMelody(), key = JSON.stringify([w, mel, psr.genre, mood, M.tr]);
   if (key === dpKey) return;
-  dpKey = key;
+  dpKey = key; melSeen = {};
   if (!w || !mel) { $("dChart").innerHTML = ""; $("dNotes").textContent = "–"; $("dSteps").innerHTML = "<i></i>".repeat(16); $("dCount").textContent = "–"; return; }
   // Wykres: 16 ostatnich minut wiatru, kółka tam, gdzie gra nuta; duże kółko to najnowszy pomiar. Pod spodem 16 kroków frazy.
   const v = w.slice(1), lo = Math.min(...v), hi = Math.max(...v), rng = Math.max(hi - lo, 6), W = 252, x = (i) => 4 + (i * (W - 8)) / 15, y = (val) => 44 - ((val - (lo + hi) / 2) / rng + 0.5) * 36;
@@ -3149,7 +3153,13 @@ for (const b of document.querySelectorAll(".dunit button")) {
   };
 }
 // Zapalenie kroku melodii: komórka rytmu, nazwa nuty i kółko na wykresie na chwilę żółkną, potem gasną.
-function melLight(i) {
+function melLight(i, name) {
+  if (name && melSeen[i] !== name) {
+    melSeen[i] = name;
+    const sp = document.querySelector(`#dNotes [data-i="${i}"]`), cell = $("dSteps").children[i];
+    if (sp) sp.textContent = name;
+    if (cell && cell.classList.contains("on")) cell.textContent = name;
+  }
   if (!document.body.classList.contains("data-on")) return;
   const els = [$("dSteps").children[i], ...document.querySelectorAll(`#dChart [data-i="${i}"], #dNotes [data-i="${i}"]`)];
   for (const el of els) {
