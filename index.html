@@ -423,7 +423,7 @@
           <button data-style="ridges">Ridges</button>
           <button data-style="waves">Waves</button>
           <button data-style="cymatics">Cymatics</button>
-          <button data-style="color">Colour</button>
+          <button data-style="aurora">Aurora</button>
           <button data-style="bauhaus">Bauhaus</button>
           <button data-style="scope">Oscilloscope</button>
         </div>
@@ -2685,23 +2685,6 @@ function drawCymatics(L, dt, time) {
   }
 }
 
-// ---------- Kierunek 5: Pole koloru ----------
-// Dwa wolno oddychające pola. Mały canvas powiększony na cały ekran daje miękkie brzegi prawie bez kosztu.
-const COLOR = (() => { const c = document.createElement("canvas"); c.width = 18; c.height = 26; return { c, g: c.getContext("2d") }; })();
-function drawColor(L, dt, time) {
-  const g = COLOR.g, so = southward(), al = auroraLevel(), breath = 0.5 + 0.5 * Math.sin(time * 0.35);
-  const beat = (vis.pulseT + vis.beatT) * 5 + vis.flareT * 26;
-  const split = map(standoff(), 5, 14, 0.66, 0.36) * 26;
-  g.fillStyle = `hsl(${lerp(232, 318, so)}, 30%, ${6 + beat * 0.2}%)`; g.fillRect(0, 0, 18, 26);
-  g.fillStyle = `hsl(${lerp(216, 158, al)}, ${lerp(34, 46, al)}%, ${lerp(17, 27, al) + breath * 2 + beat}%)`;
-  g.fillRect(2, 2, 14, split - 3);
-  // Od bursztynu do karminu przez czerwień, nie przez zieleń.
-  g.fillStyle = `hsl(${(lerp(32, -14, so) + 360) % 360}, ${lerp(58, 66, so)}%, ${map(cur.wind, 300, 800, 24, 40) + (1 - breath) * 2 + beat}%)`;
-  g.fillRect(2, split + 1, 14, 23 - split);
-  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(COLOR.c, 0, 0, W, H);
-}
-
 // ---------- Styl: Marmur (ze szkicu dashboardu, autor 26.11.2026: główna wizualizacja) ----------
 // Marmurkowanie farbą z zawijanej szumem przestrzeni (domain warping), WebGL. Każdy pulsar ma swoją paletę (przejście 2 s
 // przy zmianie stacji); wiatr to prędkość płynięcia, gęstość drobność wzoru, Bz na południe ściemnia i różowi, błysk
@@ -2740,42 +2723,107 @@ void main(){
   col += (h(gl_FragCoord.xy + fract(T)*91.) - .5) * .035;
   gl_FragColor = vec4(pow(max(col, 0.), vec3(.95)), 1.);
 }`;
-const MARBLE = (() => {
+// Wspólne dla stylów WebGL: jeden trójkąt na cały ekran, shader liczy każdy piksel. Każdy styl ma swój kontekst.
+function makeShader(frag, names) {
   const c = document.createElement("canvas");
   const gl = c.getContext("webgl", { antialias: false, premultipliedAlpha: false });
   if (!gl) return null;
   const sh = (type, src) => { const x = gl.createShader(type); gl.shaderSource(x, src); gl.compileShader(x); return x; };
   const pr = gl.createProgram();
   gl.attachShader(pr, sh(gl.VERTEX_SHADER, "attribute vec2 a; void main(){ gl_Position = vec4(a, 0., 1.); }"));
-  gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, MARBLE_FRAG)); gl.linkProgram(pr);
+  gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, frag)); gl.linkProgram(pr);
   if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) return null;
   gl.useProgram(pr);
   gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
   gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-  const U = {}; for (const k of ["R", "T", "beat", "warp", "dark", "flare", "c0", "c1", "c2", "c3"]) U[k] = gl.getUniformLocation(pr, k);
+  const U = {}; for (const k of ["R", "T", "c0", "c1", "c2", "c3", ...names]) U[k] = gl.getUniformLocation(pr, k);
   return { c, gl, U, t: Math.random() * 50, pal: null };
-})();
+}
 const hexRGB = (s) => [1, 3, 5].map((i) => parseInt(s.slice(i, i + 2), 16) / 255);
-function drawMarble(L, dt, time) {
-  if (!MARBLE) return drawColor(L, dt, time); // bez WebGL zostaje Kolor
-  const { c, gl, U } = MARBLE;
-  // Około 960 px szerokości wystarcza: wzór jest miękki, a pełna rozdzielczość kosztuje kilka razy więcej.
+// Rozmiar, paleta pulsara (przejście 2 s) i czas; potem styl ustawia swoje dane, rysuje i kładzie obraz na scenę.
+function runShader(S, dt, speed, set) {
+  const { c, gl, U } = S;
+  // Około 960 px szerokości wystarcza: obraz jest miękki, a pełna rozdzielczość kosztuje kilka razy więcej.
   const k = Math.min(1, 960 / W), w = Math.round(W * k), h = Math.round(H * k);
   if (c.width !== w || c.height !== h) { c.width = w; c.height = h; gl.viewport(0, 0, w, h); }
   const want = (MARBLE_PAL[psr.genre] || MARBLE_PAL.ambient).map(hexRGB);
-  if (!MARBLE.pal) MARBLE.pal = want.map((x) => x.slice());
+  if (!S.pal) S.pal = want.map((x) => x.slice());
   const a = 1 - Math.exp(-dt * 2);
-  MARBLE.pal.forEach((col, i) => { for (let j = 0; j < 3; j++) col[j] += (want[i][j] - col[j]) * a; gl.uniform3fv(U["c" + i], col); });
-  MARBLE.t += dt * map(cur.wind, 300, 800, 0.35, 1.3);
-  gl.uniform2f(U.R, w, h); gl.uniform1f(U.T, MARBLE.t);
-  gl.uniform1f(U.beat, Math.min(1, vis.pulseT * 0.8 + vis.beatT));
-  gl.uniform1f(U.warp, map(cur.dens, 1, 20, 1.5, 3.2));
-  gl.uniform1f(U.dark, southward());
-  gl.uniform1f(U.flare, Math.min(1, vis.flareT * (vis.flareLevel >= 4 ? 1 : 0.6)));
+  S.pal.forEach((col, i) => { for (let j = 0; j < 3; j++) col[j] += (want[i][j] - col[j]) * a; gl.uniform3fv(U["c" + i], col); });
+  S.t += dt * speed;
+  gl.uniform2f(U.R, w, h); gl.uniform1f(U.T, S.t);
+  set(gl, U);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
   ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
   ctx.drawImage(c, 0, 0, W, H);
+}
+const MARBLE = makeShader(MARBLE_FRAG, ["beat", "warp", "dark", "flare"]);
+function drawMarble(L, dt, time) {
+  if (!MARBLE) return drawRidges(L, dt, time); // bez WebGL zostają Grzbiety
+  runShader(MARBLE, dt, map(cur.wind, 300, 800, 0.35, 1.3), (gl, U) => {
+    gl.uniform1f(U.beat, Math.min(1, vis.pulseT * 0.8 + vis.beatT));
+    gl.uniform1f(U.warp, map(cur.dens, 1, 20, 1.5, 3.2));
+    gl.uniform1f(U.dark, southward());
+    gl.uniform1f(U.flare, Math.min(1, vis.flareT * (vis.flareLevel >= 4 ? 1 : 0.6)));
+  });
+}
+
+// ---------- Styl: Zorza (autor, 26.11.2026: zamiast Koloru) ----------
+// Kilka zasłon światła jedna za drugą, w kolorach pulsara. Kp i Bz (auroraLevel) to wysokość i jasność zasłon, wiatr to
+// prędkość falowania, gęstość to liczba promieni, Bz na południe barwi górę na różowo jak czerwona zorza wysoko w atmosferze,
+// bit pulsara przebiega jasnością po dolnej krawędzi, rozbłysk rozświetla niebo.
+const AURORA_FRAG = `precision highp float;
+uniform vec2 R; uniform float T, beat, level, rays, dark, flare; uniform vec3 c0, c1, c2, c3;
+// Gwiazdy: losowanie bez sin() z dużych liczb, które w Safari daje za mało dokładne wyniki (gwiazdy parami).
+float hs(vec2 p){ vec3 q = fract(vec3(p.xyx) * .1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
+float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float n(vec2 p){ vec2 i = floor(p), f = fract(p), u = f*f*(3.-2.*f);
+  return mix(mix(h(i), h(i+vec2(1,0)), u.x), mix(h(i+vec2(0,1)), h(i+vec2(1,1)), u.x), u.y); }
+float fbm(vec2 p){ float v = 0., a = .5; for (int i = 0; i < 5; i++) { v += a * n(p); p = p * 2.03 + 1.7; a *= .5; } return v; }
+void main(){
+  vec2 uv = gl_FragCoord.xy / R; float ar = R.x / R.y, x = uv.x * ar;
+  // Niebo: ciemne u góry, odrobinę jaśniejsze przy horyzoncie, w barwie pulsara; rzadkie gwiazdy.
+  vec3 col = mix(c1 * .1 + c0 * .8, c0 * .45, smoothstep(0., .9, uv.y));
+  vec2 sg = floor(gl_FragCoord.xy / 3.); float st = hs(sg);
+  col += step(.997, st) * (.2 + .3 * hs(sg + 3.1)) * smoothstep(.15, .6, uv.y);
+  float hgt = .22 + .38 * level;                                   // jak wysoko sięgają zasłony
+  for (int i = 0; i < 3; i++) {
+    float fi = float(i), far = 1. - fi * .22;
+    float sx = x * (.6 + fi * .3) + fi * 4.3;
+    // Zasłona nie biegnie przez całe niebo: pojawia się i znika wzdłuż horyzontu.
+    float there = smoothstep(.38, .62, fbm(vec2(sx * .3 + T * .025 + fi * 9.1, fi)));
+    // Dolna krawędź zasłony: głębokie fałdy, które powoli płyną w bok.
+    float fold = fbm(vec2(sx * .7 + T * .05 * (1. + fi * .3), fi * 2.7 + T * .02));
+    float edge = .3 + fi * .13 + .3 * (fold - .5) + .045 * sin(sx * 2.4 + 3. * fold + T * .35);
+    float d = uv.y - edge;
+    // Promienie: ostre pionowe pasma, gęstsze przy większej gęstości wiatru, migoczą w czasie.
+    float r = n(vec2(sx * rays * 2.2 + 3. * fold, T * .3 + fi * 5.)) * .6 + n(vec2(sx * rays * 6., T * .5 - fi)) * .4;
+    r = pow(smoothstep(.3, .9, r), 2.);
+    float up = exp(-max(d, 0.) / (hgt * far * (.45 + .55 * r)));      // gaśnie ku górze
+    float low = smoothstep(-.012, .006, d);                           // ostra dolna krawędź
+    float glow = exp(-abs(d) * 60.) * (.35 + .9 * beat);             // jasny brzeg pulsuje z bitem
+    float k = clamp(d / (hgt * far), 0., 1.);
+    vec3 cc = mix(c2 * 1.4, c3, smoothstep(.0, .6, k));
+    cc = mix(cc, vec3(1., .25, .45), dark * smoothstep(.25, .9, k) * .8); // czerwień wysoko przy Bz na południe
+    float a = (low * up * (.18 + 1.1 * r) + glow * low) * (.55 + .45 * level) * far * there;
+    col += cc * a * .9;
+  }
+  col += c3 * flare * .35 * (1. - uv.y * .5);
+  col *= 1. - .35 * dot(uv - .5, uv - .5);
+  col += (h(gl_FragCoord.xy + fract(T) * 91.) - .5) * .03;
+  gl_FragColor = vec4(1. - exp(-max(col, 0.) * 1.3), 1.);           // miękkie nasycenie zamiast przepalenia
+}`;
+const AURORA = makeShader(AURORA_FRAG, ["beat", "level", "rays", "dark", "flare"]);
+function drawAurora(L, dt, time) {
+  if (!AURORA) return drawRidges(L, dt, time);
+  runShader(AURORA, dt, map(cur.wind, 300, 800, 0.5, 1.6), (gl, U) => {
+    gl.uniform1f(U.beat, Math.min(1, vis.pulseT * 0.8 + vis.beatT));
+    gl.uniform1f(U.level, auroraLevel());
+    gl.uniform1f(U.rays, map(cur.dens, 1, 20, 2.5, 7));
+    gl.uniform1f(U.dark, southward());
+    gl.uniform1f(U.flare, Math.min(1, vis.flareT * (vis.flareLevel >= 4 ? 1 : 0.6)));
+  });
 }
 
 const STYLE_NOTES = {
@@ -2783,9 +2831,9 @@ const STYLE_NOTES = {
   ridges: "One line per pulsar turn: the shape of the sound right now. Colour: Bz, tremble: wind, tall peak: flare.",
   waves: "Waves that carry the sound: the newest wave swells with the music (bass at the bottom, highs at the top) and keeps that shape as it travels out. Shape: wind, thickness: density, colour: Bz and Kp.",
   cymatics: "Sand settles into the figure of the current chord. Amount: wind density, shaking: speed, colour: Bz.",
-  color: "Top field: aurora, bottom: wind and Bz. The border moves with wind pressure, everything breathes with the pulsar.",
+  aurora: "Curtains of light in the pulsar's colours. Height and brightness: Kp and Bz, sway: wind speed, rays: density, red on top: Bz south, the lower edge glows with the beat, a flash: solar flare.",
 }
-const STYLES = { marble: drawMarble, ridges: drawRidges, waves: drawRings, cymatics: drawCymatics, color: drawColor, bauhaus: drawBauhaus, scope: drawScope };
+const STYLES = { marble: drawMarble, ridges: drawRidges, waves: drawRings, cymatics: drawCymatics, aurora: drawAurora, bauhaus: drawBauhaus, scope: drawScope };
 
 // ---------- Mapa pulsarów ----------
 // Całe niebo jako prostokąt na cały ekran. Rektascensja rośnie w lewo, jak na mapach nieba; środek mapy to 12h.
@@ -3379,7 +3427,7 @@ const STYLE_ICONS = {
   ridges: '<path d="M2 8c3 0 4-4 7-4s4 4 7 4 4-2 6-2M2 13c3 0 4-4 7-4s4 4 7 4 4-2 6-2M2 18c3 0 4-4 7-4s4 4 7 4 4-2 6-2"/>',
   waves: '<circle cx="12" cy="12" r="2.2" fill="currentColor"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="10"/>',
   cymatics: '<circle cx="12" cy="12" r="10"/><path d="M12 2c4 5 4 15 0 20c-4-5-4-15 0-20M2 12c5-4 15-4 20 0c-5 4-15 4-20 0"/>',
-  color: '<defs><linearGradient id="icoGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7aa2ff"/><stop offset="1" stop-color="#ff7ab6"/></linearGradient></defs><circle cx="12" cy="12" r="10" fill="url(#icoGrad)" stroke="none"/>',
+  aurora: '<path d="M3 20c1-6 2-12 4-14M8 20c1-5 2-10 4-12M13 20c1-5 2-9 4-11M18 20c.6-4 1.5-7 3-9"/>',
   bauhaus: '<circle cx="8" cy="9" r="5" fill="currentColor" stroke="none"/><path d="M13 21a8 8 0 0 1 8-8"/><rect x="14" y="3" width="6" height="6"/>',
   scope: '<path d="M2 12c2.5-7 5-7 7.5 0s5 7 7.5 0 3-5 5-3"/>',
 };

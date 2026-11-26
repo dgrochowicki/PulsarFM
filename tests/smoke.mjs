@@ -221,7 +221,7 @@ const layers = await page.evaluate(async () => {
 });
 check(Object.keys(layers).length === 13 && Object.values(layers).every(Boolean), `warstwy do wyciszenia: ${Object.keys(layers).length} gatunków`);
 
-for (const st of ["ridges", "waves", "cymatics", "color", "bauhaus", "scope"]) {
+for (const st of ["marble", "ridges", "waves", "cymatics", "aurora", "bauhaus", "scope"]) {
   // Wybór stylu jest tylko pod ?dev, więc ustawiamy go wprost.
   await page.evaluate((x) => { vis.style = x; vis.clear = true; showStyle(); }, st);
   await page.waitForTimeout(2500);
