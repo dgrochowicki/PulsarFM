@@ -2700,7 +2700,8 @@ const MARBLE_PAL = {
 };
 const MARBLE_FRAG = `precision highp float;
 uniform vec2 R; uniform float T, beat, warp, dark, flare; uniform vec3 c0, c1, c2, c3;
-float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+// Losowanie bez sin(): sin() z dużych liczb jest na części kart (i w Safari) niedokładne i rysuje pasy.
+float h(vec2 p){ vec3 q = fract(vec3(p.xyx) * .1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
 float n(vec2 p){ vec2 i = floor(p), f = fract(p), u = f*f*(3.-2.*f);
   return mix(mix(h(i), h(i+vec2(1,0)), u.x), mix(h(i+vec2(0,1)), h(i+vec2(1,1)), u.x), u.y); }
 float fbm(vec2 p){ float v = 0., a = .5; mat2 m = mat2(1.6, 1.2, -1.2, 1.6);
@@ -2716,11 +2717,11 @@ void main(){
   col = mix(col, c3, clamp(pow(r.x, 3.)*1.6, 0., 1.));
   float vein = pow(1. - abs(sin(f*30. + r.y*8.)), 40.);
   col += c3 * vein * (.28 + .5*beat) * smoothstep(.35, .75, f);
+  // Bez ziarna (autor, 26.11.2026): losowanie z sin() dawało na GPU paski przesuwające się co klatkę.
   col *= .5 + .85*f + .2*beat + .6*flare;
   col = smoothstep(0., 1., col*1.08);
   col = mix(col, vec3(dot(col, vec3(.3,.5,.2))) * vec3(1.05,.55,.8), dark*.35);
   col *= 1. - .45*dot(uv, uv);
-  col += (h(gl_FragCoord.xy + fract(T)*91.) - .5) * .035;
   gl_FragColor = vec4(pow(max(col, 0.), vec3(.95)), 1.);
 }`;
 // Wspólne dla stylów WebGL: jeden trójkąt na cały ekran, shader liczy każdy piksel. Każdy styl ma swój kontekst.
@@ -2775,18 +2776,15 @@ function drawMarble(L, dt, time) {
 // bit pulsara przebiega jasnością po dolnej krawędzi, rozbłysk rozświetla niebo.
 const AURORA_FRAG = `precision highp float;
 uniform vec2 R; uniform float T, beat, level, rays, dark, flare; uniform vec3 c0, c1, c2, c3;
-// Gwiazdy: losowanie bez sin() z dużych liczb, które w Safari daje za mało dokładne wyniki (gwiazdy parami).
-float hs(vec2 p){ vec3 q = fract(vec3(p.xyx) * .1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
-float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+// Losowanie bez sin(): sin() z dużych liczb jest na części kart (i w Safari) niedokładne i rysuje pasy.
+float h(vec2 p){ vec3 q = fract(vec3(p.xyx) * .1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
 float n(vec2 p){ vec2 i = floor(p), f = fract(p), u = f*f*(3.-2.*f);
   return mix(mix(h(i), h(i+vec2(1,0)), u.x), mix(h(i+vec2(0,1)), h(i+vec2(1,1)), u.x), u.y); }
 float fbm(vec2 p){ float v = 0., a = .5; for (int i = 0; i < 5; i++) { v += a * n(p); p = p * 2.03 + 1.7; a *= .5; } return v; }
 void main(){
   vec2 uv = gl_FragCoord.xy / R; float ar = R.x / R.y, x = uv.x * ar;
-  // Niebo: ciemne u góry, odrobinę jaśniejsze przy horyzoncie, w barwie pulsara; rzadkie gwiazdy.
+  // Niebo: ciemne u góry, odrobinę jaśniejsze przy horyzoncie, w barwie pulsara (gwiazdy autor usunął, 26.11.2026).
   vec3 col = mix(c1 * .1 + c0 * .8, c0 * .45, smoothstep(0., .9, uv.y));
-  vec2 sg = floor(gl_FragCoord.xy / 3.); float st = hs(sg);
-  col += step(.997, st) * (.2 + .3 * hs(sg + 3.1)) * smoothstep(.15, .6, uv.y);
   float hgt = .22 + .38 * level;                                   // jak wysoko sięgają zasłony
   for (int i = 0; i < 3; i++) {
     float fi = float(i), far = 1. - fi * .22;
@@ -2811,7 +2809,6 @@ void main(){
   }
   col += c3 * flare * .35 * (1. - uv.y * .5);
   col *= 1. - .35 * dot(uv - .5, uv - .5);
-  col += (h(gl_FragCoord.xy + fract(T) * 91.) - .5) * .03;
   gl_FragColor = vec4(1. - exp(-max(col, 0.) * 1.3), 1.);           // miękkie nasycenie zamiast przepalenia
 }`;
 const AURORA = makeShader(AURORA_FRAG, ["beat", "level", "rays", "dark", "flare"]);
