@@ -1199,6 +1199,7 @@ const GENRES = {
       const dataStamp = () => (onRecording() ? replayIdx : lastLive ? lastLive.time : 0);
       let flash = 0, stamp = null, ping = 0;
       return {
+        melHz: (d) => F * 2 * HARM[mood()][clamp(d + 3, 0, 13)], // wysokość nuty dla panelu danych, jak w sonarze
         mix: { Melodia: sonar, "Tło": pad, Impuls: zap, "Piknięcie": beep, Bas: { output: bassBus } },
         nodes: [zPan, zf, crush, zap, bf2, beep, bassBus, cheb, purr, cf, pad, sonar], tun: [],
         step(t, s, bar) {
@@ -1293,6 +1294,7 @@ const GENRES = {
       let fallback = 0;
       const blow = (hz, dur, t) => { if (!tpt.loaded) return; tpt.triggerAttackRelease(hz, dur, t, 0.8); E.note(Tone.Frequency(hz).toNote(), t); };
       return {
+        melHz: (d) => F * TPT[mood()][clamp(d + 3, 0, 13)],
         mix: { Melodia: tpt, "Tło": { output: pOut }, Impuls: zap },
         nodes: [zPan, zf, crush, zap, pOut, pf, breathe, pad, echo, tpt], tun: [],
         step(t, s, bar) {
@@ -1376,6 +1378,7 @@ const GENRES = {
       const drift = (bar) => (4 + 22 * Math.sin(Math.PI * orbitPhase(psr.orbit)) ** 2) * (1 - Math.abs((bar % 16) / 8 - 1)); // odpływ od tonu pulsara w centach
       let spark = 0, fallback = 0, rests = 0, lastLow = F / 2, root = 0;
       return {
+        melHz: (d) => hz(d),
         mix: { Melodia: { output: padBus }, "Tło": { output: axisOut }, Impuls: zap, Bas: bass },
         nodes: [axisOut, axis, zPan, zf, crush, zap, chorus, dry, tail, tailIn, pf, padBus, ...voices.flatMap((v) => [v.syn, ...v.parts]), airOut, airEnv, air, ...airF, bass], tun: [],
         step(t, s, bar) {
@@ -1771,6 +1774,7 @@ const GENRES = {
       const into = (f, lo) => { while (f >= lo * 2) f /= 2; while (f < lo) f *= 2; return f; };
       let spark = 0, root = 0, fallback = 0, vi = 0;
       return {
+        melHz: (d) => into(hz(d), F / 2),
         mix: { Melodia: lead, Akordy: { output: padBus }, "Tło": { output: axisOut }, Impuls: zap, Bas: low },
         nodes: [zPan, zf, crush, zap, axisOut, axisEnv, axis, padBus, padDry, ...voices.flatMap((v) => [v.syn, ...v.parts]), low, ...lowW.parts, echo, lead], tun: [],
         step(t, s, bar) {
@@ -3219,15 +3223,21 @@ for (const c of document.querySelectorAll(".dcard")) c.querySelector(".dh").oncl
 const FLAT_NAMES = ["C", "D♭", "D", "E♭", "E", "F", "G♭", "G", "A♭", "A", "B♭", "B"];
 // Nazwa nuty melodii dla grającego pulsara: ta sama skala i tonacja, co w muzyce (gatunek, nastrój z Bz, transpozycja pulsara).
 // Nazwa nuty przed zagraniem: stopień przesunięty tak jak w gatunku (melShift). Gatunki eksperymentalne mają własne wysokości
-// (wielokrotności częstotliwości pulsara), więc tam nazwy poprawiają się same, gdy nuta naprawdę zabrzmi (melSeen).
+// (wielokrotności częstotliwości pulsara) i podają je przez melHz; gdyby nazwa się nie zgodziła (np. dryf w J0437),
+// poprawia się sama, gdy nuta naprawdę zabrzmi (melSeen).
 let melSeen = {};
 function melNoteName(deg) {
+  // Gatunek eksperymentalny, który właśnie gra, sam podaje wysokość nuty (melHz): nazwa od razu taka, jak zabrzmi.
+  if (G && G.inst && G.inst.melHz && G.make === GENRES[psr.genre].make) {
+    const midi = Math.round(Tone.Frequency(G.inst.melHz(deg)).toMidi());
+    return FLAT_NAMES[((midi % 12) + 12) % 12];
+  }
   const g = GENRES[psr.genre], sc = g.scales || ["major", "minor"], scale = SCALES[sc[mood === "dark" ? 1 : 0]] || Object.values(SCALES)[0];
   return FLAT_NAMES[((midiOf(62 + M.tr, scale, deg + (g.melShift || 0)) % 12) + 12) % 12];
 }
 let dpKey = "";
 function drawMelodyPanel() {
-  const w = windValues(), mel = windMelody(), key = JSON.stringify([w, mel, psr.genre, mood, M.tr]);
+  const w = windValues(), mel = windMelody(), key = JSON.stringify([w, mel, psr.genre, mood, M.tr, !!(G && G.inst && G.make === GENRES[psr.genre].make)]);
   if (key === dpKey) return;
   dpKey = key; melSeen = {};
   if (!w || !mel) { $("dChart").innerHTML = ""; $("dNotes").textContent = "–"; $("dSteps").innerHTML = "<i></i>".repeat(16); $("dCount").textContent = "–"; return; }
