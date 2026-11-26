@@ -2781,6 +2781,14 @@ function renderSkyBase(dpr) {
   sctx.strokeStyle = "rgba(255,255,255,0.06)"; sctx.lineWidth = 1;
   for (let dec = -60; dec <= 60; dec += 30) { sctx.beginPath(); for (let ra = 0; ra <= 24.01; ra += 0.25) { const p = skyXY(ra === 24 ? 23.999 : ra, dec); ra === 0 ? sctx.moveTo(p.x, p.y) : sctx.lineTo(p.x, p.y); } sctx.stroke(); }
   for (let ra = 0; ra < 24; ra += 3) { sctx.beginPath(); for (let dec = -90; dec <= 90; dec += 3) { const p = skyXY(ra + 0.0001, dec); dec === -90 ? sctx.moveTo(p.x, p.y) : sctx.lineTo(p.x, p.y); } sctx.stroke(); }
+  // Podziałka (autor, 26.11.2026): godziny rektascensji u góry pasa, deklinacja przy lewej krawędzi.
+  sctx.font = "400 10px 'JetBrains Mono', ui-monospace, Menlo, monospace"; sctx.fillStyle = "rgba(255,255,255,0.35)";
+  sctx.textBaseline = "top"; sctx.textAlign = "left";
+  const yTop = skyMid - 65 * skyScale;
+  for (let ra = 0; ra < 24; ra += 3) { const x = skyXY(ra + 0.0001, 0).x; if (x > 24 && x < SW - 40) sctx.fillText(ra + "h", x + 4, yTop); }
+  sctx.textBaseline = "bottom";
+  for (let dec = -60; dec <= 60; dec += 30) sctx.fillText((dec > 0 ? "+" : dec < 0 ? "\u2212" : "") + Math.abs(dec) + "\u00b0", 8, skyXY(0.0001, dec).y - 3);
+  sctx.textBaseline = "alphabetic";
   if (typeof SKYDATA !== "undefined") drawSkyData(sctx, SKY_VARIANTS[skyVariant]);
   else {
     // Zapas, gdyby data/sky.js się nie wczytał: rozmyte pasmo i losowe gwiazdy.
@@ -2796,6 +2804,9 @@ function renderSkyBase(dpr) {
   }
   sctx.restore();
 }
+
+// Podziałka jest w JetBrains Mono: po wczytaniu kroju narysować tło jeszcze raz.
+if (document.fonts) document.fonts.ready.then(() => { if (SW) renderSkyBase(Math.min(window.devicePixelRatio || 1, 2)); });
 
 function drawSky(time) {
   sctx.clearRect(0, 0, SW, SH);
