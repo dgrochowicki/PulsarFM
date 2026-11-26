@@ -11,7 +11,8 @@
   :root {
     --tile: rgba(196, 221, 255, 0.1);
     --base: rgba(5, 6, 11, 0.55);
-    --card: #161920; --card-line: rgba(255, 255, 255, 0.06);
+    /* Wspólna powierzchnia kart, okienek i odtwarzacza (autor, 26.11.2026): odcień #161920, lekko przezroczysty, z rozmyciem. */
+    --card: rgba(22, 25, 32, 0.72); --card-line: rgba(255, 255, 255, 0.06); --card-blur: blur(24px) saturate(1.4);
     --line: rgba(255, 255, 255, 0.09);
     --text: #eef0f6;
     --dim: rgba(238, 240, 246, 0.55);
@@ -76,7 +77,7 @@
   .panel.hidden { opacity: 0; pointer-events: none; }
   .panel.hidden * { pointer-events: none !important; }
   /* Odtwarzacz na dole na środku: najpierw co gra, na końcu Play (jak w odtwarzaczach). Klik w panel = informacja o pulsarze. */
-  .bar { position: fixed; z-index: 10; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 24px); display: flex; justify-content: center; pointer-events: none; }
+  .bar { position: fixed; z-index: 11; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 24px); display: flex; justify-content: center; pointer-events: none; }
   .bar > * { pointer-events: auto; }
   .play { flex: 0 0 auto; width: 54px; height: 54px; padding: 0; border: 0; border-radius: 14px; background: #e8e9ec; color: #000; display: grid; place-items: center; cursor: pointer; }
   .play svg { width: 18px; height: 18px; }
@@ -85,7 +86,7 @@
   .sq[aria-expanded="true"] { color: #fff; }
   .sq[aria-pressed="true"] { color: #ffcf6e; }
 
-  .station { position: relative; width: var(--player-w); height: 70px; display: flex; align-items: center; gap: 4px; padding: 0 8px 0 0; }
+  .station { position: relative; isolation: isolate; width: var(--player-w); height: 70px; display: flex; align-items: center; gap: 4px; padding: 0 8px 0 0; }
   .st-main { flex: 1; min-width: 0; height: 100%; display: flex; align-items: center; gap: 24px; padding: 0 8px 0 24px; /* odstęp kropka–nazwa = lewy margines */ border: 0; background: none; text-align: left; cursor: pointer; }
   .dot { width: 12px; height: 12px; border-radius: 50%; background: #fff4dc; flex: 0 0 auto; }
   .st-main .t { min-width: 0; transition: opacity .15s; }
@@ -110,6 +111,7 @@
   /* Okienka półprzezroczyste: pod spodem widać mapę albo obraz, rozmyte. */
   /* Okienka jak karty danych (autor, 26.11.2026): kryjące tło #161920, obwódka 6% bieli, zaokrąglenie 18. */
   .pop { position: absolute; bottom: calc(100% + 8px); background: var(--card); border: 1px solid var(--card-line); border-radius: var(--r); z-index: 5;
+    -webkit-backdrop-filter: var(--card-blur); backdrop-filter: var(--card-blur);
     visibility: hidden; opacity: 0; transform: translateY(6px) scale(.98); transform-origin: 50% 100%;
     transition: opacity .18s ease, transform .18s ease, visibility 0s linear .18s; }
   .pop.open { visibility: visible; opacity: 1; transform: none; transition: opacity .18s ease, transform .18s ease; }
@@ -188,7 +190,10 @@
   @media (min-width: 641px) {
     .station { width: min(826px, calc(100vw - 48px)); gap: 10px; padding: 0 10px 0 0; }
     /* Odtwarzacz jak karty danych (autor, 26.11.2026): kryjące tło i ta sama obwódka, zamiast półprzezroczystego kafelka. */
-    .station.tile { background: var(--card); box-shadow: inset 0 0 0 1px var(--card-line); }
+    /* Rozmycie na warstwie pod spodem, nie na samym odtwarzaczu: inaczej okienko z informacją (w środku) nie rozmywałoby tła. */
+    .station.tile { background: none; box-shadow: inset 0 0 0 1px var(--card-line); }
+    .station.tile::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--card);
+      -webkit-backdrop-filter: var(--card-blur); backdrop-filter: var(--card-blur); }
     .st-main { flex: 0 1 auto; gap: 18px; padding-left: 24px; }
     .st-main b { font-size: 17px; }
     .st-main .t div { font: 10px/1.4 "JetBrains Mono", ui-monospace, Menlo, monospace; letter-spacing: 0; color: var(--dim); margin-top: 3px; }
@@ -215,7 +220,7 @@
       transition: opacity .25s ease, transform .3s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s; }
     body:not(.data-on) .dpanel { opacity: 0; visibility: hidden; transform: translateX(24px); transition: opacity .2s ease, transform .25s ease, visibility 0s linear .25s; }
     .dcard { border-radius: 18px; border: 1px solid var(--card-line); box-shadow: inset 0 0 0 1px transparent; transition: box-shadow .8s ease;
-      background: var(--card); } /* kryjące: podpisy mapy nie prześwitują; odcień jak #C4DDFF 8% na ciemnym */
+      background: var(--card); -webkit-backdrop-filter: var(--card-blur); backdrop-filter: var(--card-blur); } /* kryjące: podpisy mapy nie prześwitują; odcień jak #C4DDFF 8% na ciemnym */
     .fresh-data .dcard { box-shadow: inset 0 0 0 1px rgba(255, 207, 110, 0.55); transition: box-shadow .15s ease; }
     .dh { display: flex; width: 100%; justify-content: space-between; align-items: baseline; gap: 12px; padding: 13px 18px; border: 0; background: none; color: #fff; cursor: pointer; text-align: left;
       font: 12px/16px "JetBrains Mono", ui-monospace, Menlo, monospace; }
@@ -254,8 +259,9 @@
     /* Styl obrazu: pigułka z nazwą i kropkami, tylko na obrazie. Klik w nazwę = następny styl, w kropkę = ten styl. */
     .style-wrap { display: none !important; }
     .spill { flex: 0 0 auto !important; margin: 0 auto; display: flex; align-items: center; gap: 14px; height: 40px; padding: 0 16px 0 4px; border-radius: 20px;
-      border: 1px solid var(--card-line); background: var(--card); }
+      border: 1px solid var(--card-line); background: var(--card); -webkit-backdrop-filter: var(--card-blur); backdrop-filter: var(--card-blur); }
     body.map .spill { display: none; }
+    .spill { transition: opacity .18s ease; } body.info-open .spill { opacity: 0; pointer-events: none; } /* okienko z informacją leży w tym miejscu */
     .sp-name { border: 0; background: none; color: #fff; font-size: 14px; padding: 0 0 0 14px; height: 100%; cursor: pointer; white-space: nowrap; }
     .sp-dots { display: flex; gap: 4px; }
     .sp-dots button { width: 14px; height: 14px; padding: 3px; border: 0; background: none; cursor: pointer; display: grid; place-items: center; }
@@ -3145,7 +3151,7 @@ $("autoBtn").onclick = (e) => { e.stopPropagation(); setPlayMode(autoPulsar ? nu
 updatePlayMode();
 // Okienko leży na mapie, mapa pod nim ma stały rozmiar.
 function toggleInfoPop(open) {
-  $("infoPop").classList.toggle("open", open); $("stMain").setAttribute("aria-expanded", open);
+  $("infoPop").classList.toggle("open", open); document.body.classList.toggle("info-open", open); $("stMain").setAttribute("aria-expanded", open);
 }
 function updateViewSeg() { for (const b of document.querySelectorAll(".vseg [data-view]")) b.setAttribute("aria-pressed", String((b.dataset.view === "map") === sheetOpen)); }
 for (const b of document.querySelectorAll(".vseg [data-view]")) {
