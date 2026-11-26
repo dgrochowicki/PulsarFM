@@ -235,9 +235,9 @@
     .dsteps i.on { background: #f3d68e; }
     .dsmall { font: 11px/14px -apple-system, BlinkMacSystemFont, sans-serif; color: rgba(255,255,255,0.45); }
     /* Mały przełącznik K / °C w karcie temperatury (autor, 26.11.2026), w stylu przełącznika mapa/obraz. */
-    .dunit { display: inline-flex; gap: 2px; padding: 2px; margin: 0 0 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.14); }
-    .dunit button { min-width: 34px; height: 24px; padding: 0 8px; border: 0; border-radius: 8px; background: none; cursor: pointer;
-      color: rgba(255,255,255,0.4); font: 12px/16px "JetBrains Mono", ui-monospace, Menlo, monospace; }
+    .dunit { display: inline-flex; gap: 2px; padding: 2px; margin: 10px 0 4px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.14); }
+    .dunit button { min-width: 26px; height: 18px; padding: 0 6px; border: 0; border-radius: 6px; background: none; cursor: pointer;
+      color: rgba(255,255,255,0.4); font: 10px/14px "JetBrains Mono", ui-monospace, Menlo, monospace; }
     .dunit button[aria-pressed="true"] { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.8); }
     .dtext { margin: 2px 0 0; font-size: 12px; line-height: 17px; color: rgba(255,255,255,0.55); }
     .ddl { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; margin: 2px 0 10px; font: 12px/16px "JetBrains Mono", ui-monospace, Menlo, monospace; }
@@ -361,8 +361,8 @@
     <section class="dcard" data-k="temp">
       <button class="dh" type="button" aria-expanded="false"><span class="dk">Temperature</span><span class="dv"><b id="dTemp">–</b> <span id="dTempU">K</span></span></button>
       <div class="db"><div class="db-in">
-        <div class="dunit" role="group" aria-label="Unit"><button type="button" data-u="K" aria-pressed="true">K</button><button type="button" data-u="C" aria-pressed="false">°C</button></div>
         <p class="dtext">Heat of the solar wind protons at L1. Not in the music yet.</p>
+        <div class="dunit" role="group" aria-label="Unit"><button type="button" data-u="K" aria-pressed="true">K</button><button type="button" data-u="C" aria-pressed="false">°C</button></div>
       </div></div>
     </section>
     <section class="dcard" data-k="mag">
