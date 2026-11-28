@@ -300,8 +300,26 @@
   /* Na mapie zostaje odtwarzacz i przyciski; dane pokazują się tak samo jak na obrazie. */
 
   .skywrap { position: absolute; inset: 0; isolation: isolate; }
-  #sky { display: block; position: relative; touch-action: manipulation; cursor: pointer; }
-  #skyBase { position: absolute; left: 0; top: 0; pointer-events: none; }
+  #sky { display: block; touch-action: manipulation; cursor: pointer; }
+  /* Pulsary na mapie: elementy nad niebem, klik i najechanie obsługuje płótno pod spodem. */
+  #skyMarks { position: absolute; left: 0; top: 0; pointer-events: none; }
+  .pm { position: absolute; left: 0; top: 0; }
+  .pm.sel { z-index: 1; }
+  .pg { position: absolute; left: -29px; top: -29px; width: 58px; height: 58px; border-radius: 50%; will-change: transform, opacity;
+    background: radial-gradient(closest-side, rgba(255,214,140,0.85), rgba(255,214,140,0)); }
+  .pi { position: absolute; left: -8px; top: -8px; width: 16px; height: 16px; overflow: visible; }
+  .pi circle { fill: #fff4dc; } .pi .ring, .pi path { fill: none; stroke: #fff4dc; stroke-width: 2; stroke-linejoin: round; }
+  .pl { position: absolute; left: 15px; top: -10px; white-space: nowrap; color: #fff;
+    font: 400 12px/20px "JetBrains Mono", ui-monospace, Menlo, monospace;
+    text-shadow: 0 0 1px #05060b, 0 0 2px #05060b, 0 0 3px rgba(5,6,11,0.85); }
+  .pl b { display: block; font-weight: 400; }
+  .pl small { display: none; font-size: 12px; line-height: 16px; color: rgba(255,255,255,0.6); margin-top: 0; }
+  .pm.hover:not(.sel) small { display: block; }
+  .pm.left .pl { left: auto; right: 15px; text-align: right; }
+  /* Wybrany: biała pigułka z trójkątem Play 8 px i czarnym napisem. */
+  .pm.sel .pl b { position: relative; height: 20px; padding: 0 6px 0 18px; border-radius: 10px; background: rgba(255,255,255,0.9);
+    color: #000; text-shadow: none; }
+  .pm.sel .pl b::before { content: ""; position: absolute; left: 7px; top: 6px; border-left: 7px solid #000; border-top: 4px solid transparent; border-bottom: 4px solid transparent; }
 
   /* Telefon: dane w jednym rzędzie nad paskiem, styl obrazu w prawym górnym rogu. */
   @media (max-width: 640px) {
@@ -498,7 +516,7 @@
     </div>
   </div>
   <div class="sr" id="autoStatus" aria-live="polite">Auto choice off.</div>
-  <div class="skywrap"><canvas id="skyBase"></canvas><canvas id="sky"></canvas></div>
+  <div class="skywrap"><canvas id="sky"></canvas><div id="skyMarks"></div></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/tone@14.8.49/build/Tone.js"></script>
@@ -2160,7 +2178,7 @@ function layout() {
 const vis = {
   style: "marble", pulses: 0, chordPc: null, beatT: 0, pulseT: 0, flareT: 0, flareLevel: 0, hue: 220, hueTarget: 220, fast: false, clear: true,
   beat() { this.beatT = 1; },
-  pulse() { this.pulses++; this.pulseT = 1; this.pulseAt = performance.now() / 1000; },
+  pulse() { this.pulses++; this.pulseT = 1; this.pulseAt = performance.now() / 1000; skyBeat(); },
   note(n) {
     const s = stars[Math.floor(Math.random() * stars.length)]; if (s) s.f = 1;
   },
@@ -2277,7 +2295,7 @@ function frame(t) {
   dotGlow(t / 1000);
   drawPlayerWave(t);
   // Mapa zakrywa scenę, więc nie ma po co jej rysować.
-  if (sheetOpen) drawSky(t / 1000);
+  if (sheetOpen) syncSkyMarks();
   else {
     const L = layout();
     if (vis.style === "bauhaus") stepParticles(L, dt);
@@ -2836,10 +2854,9 @@ const STYLES = { marble: drawMarble, ridges: drawRidges, waves: drawRings, cymat
 // ---------- Mapa pulsarów ----------
 // Całe niebo jako prostokąt na cały ekran. Rektascensja rośnie w lewo, jak na mapach nieba; środek mapy to 12h.
 const sky = $("sky"), sctx = sky.getContext("2d");
-// Tło nieba leży na osobnym płótnie pod spodem i nie jest przerysowywane; na górnym co klatkę czyścimy tylko okolice pulsarów
-// (Safari, 28.11.2026: pełne przerysowanie mapy co klatkę grzało komputer).
-const skyBase = $("skyBase");
-let sheetOpen = false, SW = 0, SH = 0, skyMid = 0, skyScale = 1, skyDirty = [];
+// Niebo rysowane raz, przy zmianie rozmiaru, wprost na płótno; pulsary to elementy nad nim (makeSkyMarks).
+const skyBase = sky;
+let sheetOpen = false, SW = 0, SH = 0, skyMid = 0, skyScale = 1;
 const RAD = Math.PI / 180;
 const DEFAULT_LOCATION = { lat: 53.4285, lon: 14.5528 };
 let autoPulsar = false, autoLocation = null, autoLocationNote = "", locationRequest = 0;
@@ -2941,9 +2958,9 @@ function sizeSky() {
   skyMid = (top + bottom) / 2; skyScale = (bottom - top) / 130;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   sky.width = SW * dpr; sky.height = SH * dpr; sky.style.width = SW + "px"; sky.style.height = SH + "px";
-  skyBase.style.width = SW + "px"; skyBase.style.height = SH + "px";
-  sctx.setTransform(dpr, 0, 0, dpr, 0, 0); skyDirty = [];
+  sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   renderSkyBase(dpr);
+  placeSkyMarks();
 }
 
 // Tło mapy się nie zmienia: rysowane raz, przy zmianie rozmiaru.
@@ -2983,65 +3000,63 @@ function renderSkyBase(dpr) {
 // Podziałka jest w JetBrains Mono: po wczytaniu kroju narysować tło jeszcze raz.
 if (document.fonts) document.fonts.ready.then(() => { if (SW) renderSkyBase(Math.min(window.devicePixelRatio || 1, 2)); });
 
-function drawSky(time) {
-  for (const r of skyDirty) sctx.clearRect(r[0], r[1], r[2], r[3]);
-  skyDirty = [];
-
-  // Pulsary: miganie w prawdziwym rytmie; szybkie drgają, bo oko nie nadąża.
+// Pulsary na mapie (28.11.2026): małe elementy strony nad nieruchomym niebem. Miganie to Web Animations, które przeglądarka
+// liczy sama na karcie graficznej, więc na otwartej mapie nic nie jest rysowane co klatkę (wcześniej Safari grzało komputer).
+// Wygląd jak wcześniej na płótnie: poświata w prawdziwym rytmie, kropka 4 px z okręgiem 14 px, szybkie mają drgającą gwiazdkę.
+const skyMarks = $("skyMarks");
+let skySel = null, skyHoverEl = null;
+// Jasność błysku jak wcześniej: g = e^(−9·faza); poświata ma przezroczystość 0,25 + 0,6·g i promień (3 + 6·g)·3,2 px.
+const glowFrame = (g, offset) => ({ offset, opacity: (0.25 + 0.6 * g) / 0.85, transform: `scale(${((3 + 6 * g) / 9).toFixed(3)})` });
+const SLOW_GLOW = [0, 0.03, 0.07, 0.12, 0.18, 0.26, 0.36, 0.5, 1].map((ph) => glowFrame(Math.exp(-ph * 9), ph));
+function makeSkyMarks() {
   for (const p of PULSARS) {
-    const q = skyXY(p.ra, p.dec);
-    const sel = p === psr;
-    let glow;
-    // Grający pulsar miga razem z uderzeniem (vis.pulseAt z Tone.Draw), a nie z własnego zegara.
-    if (p.P >= 0.2) { const ph = sel && playing && vis.pulseAt ? (Math.max(0, time - vis.pulseAt) / p.P) % 1 : (time % p.P) / p.P; glow = Math.exp(-ph * 9); }
-    else glow = 0.55 + 0.25 * Math.sin(time * 40 + p.ra);
-    const rad = 3 + glow * 6;
-    const g = sctx.createRadialGradient(q.x, q.y, 0, q.x, q.y, rad * 3.2);
-    g.addColorStop(0, `rgba(255,214,140,${0.25 + glow * 0.6})`); g.addColorStop(1, "rgba(255,214,140,0)");
-    sctx.fillStyle = g; sctx.beginPath(); sctx.arc(q.x, q.y, rad * 3.2, 0, 6.283); sctx.fill();
-    // Znak pulsara wg projektu autora (26.11.2026): kropka 4 px w środku i okrąg 14 px z kreską 2 px (kreska do środka,
-    // więc rysujemy ją na promieniu 6). Szybkie zamiast okręgu mają gwiazdkę z drgań w tym samym rozmiarze.
-    sctx.fillStyle = "#fff4dc"; sctx.beginPath(); sctx.arc(q.x, q.y, 2, 0, 6.283); sctx.fill();
-    sctx.strokeStyle = "#fff4dc"; sctx.lineWidth = 2; sctx.lineJoin = "round"; sctx.beginPath();
+    const el = document.createElement("div"); el.className = "pm";
+    const g = GENRES[p.genre], tempo = g.flashes ? `${fmt(1 / p.P, 1)} flashes/s` : `${psrFacts(p).bpm} BPM`;
+    let icon;
     if (p.P < 0.2) {
-      // Im szybszy pulsar, tym więcej ramion (6–12), drgają jak wcześniej duży pierścień.
+      // Gwiazdka: im szybszy pulsar, tym więcej ramion (6–12); fala biegnie wokół, więc to po prostu obrót.
       const n = Math.round(clamp(Math.log2(1 / p.P) * 1.2, 6, 12));
-      for (let i = 0; i <= 96; i++) { const a = (i / 96) * 6.283, rr = 5.4 + 0.9 * Math.sin(a * n + time * 25), x = q.x + Math.cos(a) * rr, y = q.y + Math.sin(a) * rr; i ? sctx.lineTo(x, y) : sctx.moveTo(x, y); }
-    } else sctx.arc(q.x, q.y, 6, 0, 6.283);
-    sctx.stroke();
-
-    // Podpis po prawej, JetBrains Mono 12/16, biały. Wybrany (grający) w białej pigułce z ikoną Play i czarnym napisem.
-    sctx.font = "400 12px 'JetBrains Mono', ui-monospace, Menlo, monospace";
-    sctx.textBaseline = "middle"; sctx.textAlign = "left";
-    const tw = sctx.measureText(p.short).width, boxW = sel ? 6 + 8 + 4 + tw + 6 : tw;
-    // Przy prawej krawędzi podpis przechodzi na lewo, żeby się nie uciął.
-    const left = q.x + 7 + 8 + boxW > SW - 6;
-    const bx = left ? q.x - 7 - 8 - boxW : q.x + 7 + 8;
-    p.lab = { x: bx - 4, y: q.y - 12, w: boxW + 8, h: 24 }; // podpis też jest klikalny (autor, 26.11.2026)
-    if (sel) {
-      sctx.fillStyle = "rgba(255,255,255,0.9)"; sctx.beginPath(); sctx.roundRect(bx, q.y - 10, boxW, 20, 10); sctx.fill();
-      sctx.fillStyle = "#000"; sctx.beginPath(); // trójkąt Play 8 px
-      sctx.moveTo(bx + 6 + 1, q.y - 4); sctx.lineTo(bx + 6 + 8, q.y); sctx.lineTo(bx + 6 + 1, q.y + 4); sctx.closePath(); sctx.fill();
-      sctx.fillText(p.short, bx + 18, q.y + 0.5);
-    } else {
-      // Ciemna obwódka: podpis czytelny także na gwiazdach i Drodze Mlecznej.
-      sctx.strokeStyle = "rgba(5,6,11,0.85)"; sctx.lineWidth = 3;
-      sctx.strokeText(p.short, bx, q.y + 0.5); sctx.fillStyle = "#fff"; sctx.fillText(p.short, bx, q.y + 0.5);
+      let d = ""; for (let i = 0; i <= 96; i++) { const a = (i / 96) * 6.283, r = 5.4 + 0.9 * Math.sin(a * n); d += (i ? "L" : "M") + (Math.cos(a) * r).toFixed(2) + " " + (Math.sin(a) * r).toFixed(2); }
+      icon = `<svg class="pi" viewBox="-8 -8 16 16"><circle r="2"/><g class="star"><path d="${d}"/></g></svg>`;
+      p.spin = n;
+    } else icon = `<svg class="pi" viewBox="-8 -8 16 16"><circle r="2"/><circle class="ring" r="6"/></svg>`;
+    el.innerHTML = `<i class="pg"></i>${icon}<span class="pl"><b>${p.short}</b><small>${g.label}<br>${tempo}</small></span>`;
+    skyMarks.appendChild(el);
+    const glow = el.firstChild, anims = [];
+    if (p.P >= 0.2) anims.push(glow.animate(SLOW_GLOW, { duration: p.P * 1000, iterations: Infinity }));
+    else {
+      // Szybki: poświata drży jak wcześniej 0,55 ± 0,25 (sin 40t), gwiazdka obraca się o jedno ramię co 2π/25 s.
+      anims.push(glow.animate([glowFrame(0.8, 0), glowFrame(0.3, 1)], { duration: 1000 * Math.PI / 40, iterations: Infinity, direction: "alternate", easing: "ease-in-out" }));
+      anims.push(el.querySelector(".star").animate([{ transform: "rotate(0deg)" }, { transform: `rotate(${-360 / p.spin}deg)` }], { duration: 1000 * 2 * Math.PI / 25, iterations: Infinity }));
     }
-    // Najechany myszką (komputer): pod podpisem gatunek i tempo tym samym krojem (autor, 19.11.2026).
-    if (p === skyHover && !sel) {
-      const g = GENRES[p.genre], tempo = g.flashes ? `${fmt(1 / p.P, 1)} flashes/s` : `${psrFacts(p).bpm} BPM`;
-      sctx.strokeStyle = "rgba(5,6,11,0.85)"; sctx.lineWidth = 3; sctx.fillStyle = "rgba(255,255,255,0.6)";
-      if (left) { sctx.textAlign = "right"; }
-      const tx = left ? bx + boxW : bx;
-      for (const [i, line] of [g.label, tempo].entries()) { const y = q.y + 0.5 + 16 * (i + 1); sctx.strokeText(line, tx, y); sctx.fillText(line, tx, y); }
-    }
-    sctx.textBaseline = "alphabetic"; sctx.textAlign = "left";
-    // Obszar do wyczyszczenia w następnej klatce: poświata (do 29 px) i podpis z dwiema liniami pod spodem.
-    // Gatunek pod najechanym podpisem bywa szerszy od nazwy, stąd zapas.
-    const wide = p === skyHover ? 200 : 6, x0 = Math.min(q.x - 31, bx - wide), x1 = Math.max(q.x + 31, bx + boxW + wide);
-    skyDirty.push([x0, q.y - 31, x1 - x0, 80]);
+    // Wszystkie w fazie z zegarem strony, jak wcześniej (czas modulo okres).
+    for (const a of anims) a.currentTime = performance.now() % (a.effect.getTiming().duration);
+    p.mk = { el, anims };
   }
+  skyMarksRun(sheetOpen);
+}
+function skyMarksRun(on) { for (const p of PULSARS) for (const a of p.mk?.anims || []) on ? a.play() : a.pause(); }
+// Grający wolny pulsar miga razem z uderzeniem w muzyce (vis.pulse z Tone.Draw), a nie z własnego zegara.
+function skyBeat() { const a = psr.P >= 0.2 && sheetOpen && psr.mk && psr.mk.anims[0]; if (a) a.currentTime = 0; }
+// Położenie po zmianie rozmiaru; podpis przy prawej krawędzi przechodzi na lewo, żeby się nie uciął.
+function placeSkyMarks() {
+  if (!PULSARS[0].mk) makeSkyMarks();
+  for (const p of PULSARS) {
+    const q = skyXY(p.ra, p.dec), el = p.mk.el;
+    el.style.transform = `translate(${q.x}px, ${q.y}px)`;
+    el.classList.toggle("sel", p === psr);
+    el.classList.toggle("left", q.x + 15 + el.querySelector("b").offsetWidth > SW - 6);
+  }
+  skySel = psr;
+}
+// Co klatkę na mapie tylko porównanie: zmiana stacji (klik, Auto, Shuffle) przestawia podpisy.
+function syncSkyMarks() { if (skySel !== psr && PULSARS[0].mk) placeSkyMarks(); }
+function setSkyHover(p) {
+  const el = p && p.mk ? p.mk.el : null;
+  if (el === skyHoverEl) return;
+  if (skyHoverEl) skyHoverEl.classList.remove("hover");
+  if (el) el.classList.add("hover");
+  skyHoverEl = el;
 }
 
 // Karta pulsara wg projektu autora (18.11.2026): nazwa, opis, tabelka (obrót, błyski, odległość, gatunek, tempo, tonacja), jak gra.
@@ -3171,7 +3186,7 @@ function enableAutoPulsar() {
 function skyPick(e, reach) {
   const r = sky.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
   // Najpierw podpis: klik albo najechanie na napis wybiera jego pulsar.
-  for (const p of PULSARS) { const L = p.lab; if (L && x >= L.x && x <= L.x + L.w && y >= L.y && y <= L.y + L.h) return p; }
+  for (const p of PULSARS) { if (!p.mk) continue; const L = p.mk.el.querySelector("b").getBoundingClientRect(); if (e.clientX >= L.left - 4 && e.clientX <= L.right + 4 && e.clientY >= L.top - 2 && e.clientY <= L.bottom + 2) return p; }
   let best = null, bd = reach;
   for (const p of PULSARS) { const q = skyXY(p.ra, p.dec), d = Math.hypot(q.x - x, q.y - y); if (d < bd) { bd = d; best = p; } }
   return best;
@@ -3179,8 +3194,8 @@ function skyPick(e, reach) {
 sky.addEventListener("click", (e) => { const best = skyPick(e, 40); if (best) selectPulsar(best, true); });
 let skyHover = null;
 if (matchMedia("(hover: hover)").matches) {
-  sky.addEventListener("pointermove", (e) => { skyHover = skyPick(e, 30); sky.style.cursor = skyHover ? "pointer" : "default"; });
-  sky.addEventListener("pointerleave", () => { skyHover = null; });
+  sky.addEventListener("pointermove", (e) => { skyHover = skyPick(e, 30); sky.style.cursor = skyHover ? "pointer" : "default"; setSkyHover(skyHover); });
+  sky.addEventListener("pointerleave", () => { skyHover = null; setSkyHover(null); });
 }
 // Podpowiedzi: zamiast systemowego dymka z title pokazujemy własny, po krótkiej chwili. Tylko z myszką.
 (() => {
@@ -3212,8 +3227,8 @@ if (matchMedia("(hover: hover)").matches) {
 $("stats").onclick = (e) => { e.stopPropagation(); if (innerWidth <= 640) $("stats").classList.toggle("open"); };
 // Safari na iPhonie włącza :active (wciśnięcie) tylko, gdy strona słucha dotyku.
 document.addEventListener("touchstart", () => {}, { passive: true });
-function openSheet() { sheetOpen = true; document.body.classList.add("map"); $("sheet").classList.add("open"); for (const b of [$("psrBtn"), $("sideView")]) { b.innerHTML = ICONS.wave; b.title = b.ariaLabel = "Show the visuals"; } $("stylePop").classList.remove("open"); $("styleBtn").setAttribute("aria-expanded", false); renderCard(); sizeSky(); updateViewSeg(); }
-function closeSheet() { sheetOpen = false; document.body.classList.remove("map"); $("sheet").classList.remove("open"); for (const b of [$("psrBtn"), $("sideView")]) { b.innerHTML = ICONS.sparkle; b.title = b.ariaLabel = "Choose a pulsar"; } toggleInfoPop(false); updateViewSeg(); }
+function openSheet() { sheetOpen = true; document.body.classList.add("map"); $("sheet").classList.add("open"); for (const b of [$("psrBtn"), $("sideView")]) { b.innerHTML = ICONS.wave; b.title = b.ariaLabel = "Show the visuals"; } $("stylePop").classList.remove("open"); $("styleBtn").setAttribute("aria-expanded", false); renderCard(); sizeSky(); skyMarksRun(true); updateViewSeg(); }
+function closeSheet() { sheetOpen = false; document.body.classList.remove("map"); $("sheet").classList.remove("open"); for (const b of [$("psrBtn"), $("sideView")]) { b.innerHTML = ICONS.sparkle; b.title = b.ariaLabel = "Choose a pulsar"; } toggleInfoPop(false); skyMarksRun(false); setSkyHover(null); updateViewSeg(); }
 $("psrBtn").innerHTML = $("sideView").innerHTML = ICONS.sparkle; $("lbIco").innerHTML = ICONS.live; $("sunBtn").innerHTML = ICONS.sun;
 $("dataBtn").innerHTML = ICONS.data;
 // Shuffle i Auto: dwie ikony on/off, wykluczają się; klik we włączoną wyłącza (autor, 26.11.2026). Ikony autora z docs/icons.
