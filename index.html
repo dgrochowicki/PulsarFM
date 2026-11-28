@@ -299,8 +299,9 @@
   .sheet-head { position: relative; z-index: 1; }
   /* Na mapie zostaje odtwarzacz i przyciski; dane pokazują się tak samo jak na obrazie. */
 
-  .skywrap { position: absolute; inset: 0; }
-  #sky { display: block; touch-action: manipulation; cursor: pointer; }
+  .skywrap { position: absolute; inset: 0; isolation: isolate; }
+  #sky { display: block; position: relative; touch-action: manipulation; cursor: pointer; }
+  #skyBase { position: absolute; left: 0; top: 0; pointer-events: none; }
 
   /* Telefon: dane w jednym rzędzie nad paskiem, styl obrazu w prawym górnym rogu. */
   @media (max-width: 640px) {
@@ -497,7 +498,7 @@
     </div>
   </div>
   <div class="sr" id="autoStatus" aria-live="polite">Auto choice off.</div>
-  <div class="skywrap"><canvas id="sky"></canvas></div>
+  <div class="skywrap"><canvas id="skyBase"></canvas><canvas id="sky"></canvas></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/tone@14.8.49/build/Tone.js"></script>
@@ -2835,7 +2836,10 @@ const STYLES = { marble: drawMarble, ridges: drawRidges, waves: drawRings, cymat
 // ---------- Mapa pulsarów ----------
 // Całe niebo jako prostokąt na cały ekran. Rektascensja rośnie w lewo, jak na mapach nieba; środek mapy to 12h.
 const sky = $("sky"), sctx = sky.getContext("2d");
-let sheetOpen = false, SW = 0, SH = 0, skyBase = null, skyMid = 0, skyScale = 1;
+// Tło nieba leży na osobnym płótnie pod spodem i nie jest przerysowywane; na górnym co klatkę czyścimy tylko okolice pulsarów
+// (Safari, 28.11.2026: pełne przerysowanie mapy co klatkę grzało komputer).
+const skyBase = $("skyBase");
+let sheetOpen = false, SW = 0, SH = 0, skyMid = 0, skyScale = 1, skyDirty = [];
 const RAD = Math.PI / 180;
 const DEFAULT_LOCATION = { lat: 53.4285, lon: 14.5528 };
 let autoPulsar = false, autoLocation = null, autoLocationNote = "", locationRequest = 0;
@@ -2937,13 +2941,13 @@ function sizeSky() {
   skyMid = (top + bottom) / 2; skyScale = (bottom - top) / 130;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   sky.width = SW * dpr; sky.height = SH * dpr; sky.style.width = SW + "px"; sky.style.height = SH + "px";
-  sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  skyBase.style.width = SW + "px"; skyBase.style.height = SH + "px";
+  sctx.setTransform(dpr, 0, 0, dpr, 0, 0); skyDirty = [];
   renderSkyBase(dpr);
 }
 
 // Tło mapy się nie zmienia: rysowane raz, przy zmianie rozmiaru.
 function renderSkyBase(dpr) {
-  skyBase = document.createElement("canvas");
   skyBase.width = sky.width; skyBase.height = sky.height;
   const sctx = skyBase.getContext("2d");
   sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -2980,8 +2984,8 @@ function renderSkyBase(dpr) {
 if (document.fonts) document.fonts.ready.then(() => { if (SW) renderSkyBase(Math.min(window.devicePixelRatio || 1, 2)); });
 
 function drawSky(time) {
-  sctx.clearRect(0, 0, SW, SH);
-  sctx.drawImage(skyBase, 0, 0, SW, SH);
+  for (const r of skyDirty) sctx.clearRect(r[0], r[1], r[2], r[3]);
+  skyDirty = [];
 
   // Pulsary: miganie w prawdziwym rytmie; szybkie drgają, bo oko nie nadąża.
   for (const p of PULSARS) {
@@ -3033,6 +3037,10 @@ function drawSky(time) {
       for (const [i, line] of [g.label, tempo].entries()) { const y = q.y + 0.5 + 16 * (i + 1); sctx.strokeText(line, tx, y); sctx.fillText(line, tx, y); }
     }
     sctx.textBaseline = "alphabetic"; sctx.textAlign = "left";
+    // Obszar do wyczyszczenia w następnej klatce: poświata (do 29 px) i podpis z dwiema liniami pod spodem.
+    // Gatunek pod najechanym podpisem bywa szerszy od nazwy, stąd zapas.
+    const wide = p === skyHover ? 200 : 6, x0 = Math.min(q.x - 31, bx - wide), x1 = Math.max(q.x + 31, bx + boxW + wide);
+    skyDirty.push([x0, q.y - 31, x1 - x0, 80]);
   }
 }
 
@@ -3326,31 +3334,33 @@ function melLight(i, name) {
 }
 function updateDataPanel(xc) {
   if (!document.body.classList.contains("data-on")) return; // schowany: nie liczymy
-  $("dWind").textContent = fmt(cur.wind, 1); $("dDens").textContent = $("dDensH").textContent = fmt(cur.dens, 1);
+  setText("dWind", fmt(cur.wind, 1)); setText("dDens", fmt(cur.dens, 1)); setText("dDensH", fmt(cur.dens, 1));
   const live = mode === "live" && !onRecording() && lastLive;
   const t = live ? lastLive.temp : NaN;
   // Zaokrąglone do setek, żeby K i °C (różnica 273) dało się odróżnić; spacja jako separator tysięcy.
   const tv = tempUnit === "C" ? t - 273.15 : t;
-  $("dTemp").textContent = Number.isFinite(t) ? (Math.round(tv / 100) * 100).toLocaleString("en-US").replace(/,/g, " ") : "–";
-  $("dTempU").textContent = tempUnit === "C" ? "°C" : "K";
-  $("dBz").textContent = $("dBz2").textContent = fmt(cur.bz, 1);
-  $("dBy").textContent = fmt(cur.by, 1);
-  $("dBt").textContent = live && Number.isFinite(lastLive.bt) ? fmt(lastLive.bt, 1) : "–";
-  $("dKp").textContent = fmt(cur.kp, 1); $("dX").textContent = xc.letter;
+  setText("dTemp", Number.isFinite(t) ? (Math.round(tv / 100) * 100).toLocaleString("en-US").replace(/,/g, " ") : "–");
+  setText("dTempU", tempUnit === "C" ? "°C" : "K");
+  setText("dBz", fmt(cur.bz, 1)); setText("dBz2", fmt(cur.bz, 1));
+  setText("dBy", fmt(cur.by, 1));
+  setText("dBt", live && Number.isFinite(lastLive.bt) ? fmt(lastLive.bt, 1) : "–");
+  setText("dKp", fmt(cur.kp, 1)); setText("dX", xc.letter);
   $("dBz").style.setProperty("--c", southward() > 0.05 ? mix([238, 240, 246], ROSE, southward()) : "#fff");
   $("dKp").style.setProperty("--c", cur.kp >= 4 ? mix([238, 240, 246], [95, 211, 141], map(cur.kp, 3, 8, 0.3, 1)) : "#fff");
   drawMelodyPanel();
   $("dSteps").classList.toggle("live", playing);
 }
+// Co 100 ms: zapis tylko przy zmianie, bo każdy zapis do strony to nowe liczenie układu i rozmycia kart (Safari).
+function setText(id, v) { const el = $(id); if (el.textContent !== v) el.textContent = v; }
 function fmt(v, d = 0) { return Number.isFinite(v) ? v.toFixed(d).replace("-", "−") : "–"; }
 setInterval(() => {
   stepData();
   emitWave();
-  $("vWind").textContent = fmt(cur.wind);
+  setText("vWind", fmt(cur.wind));
   $("vWind").closest(".stat").classList.toggle("wide", cur.wind >= 999.5); // czterocyfrowy wiatr na telefonie bez jednostki
-  $("vDens").textContent = fmt(cur.dens, 1);
-  $("vBz").textContent = fmt(cur.bz, 1);
-  $("vKp").textContent = fmt(cur.kp, 1);
+  setText("vDens", fmt(cur.dens, 1));
+  setText("vBz", fmt(cur.bz, 1));
+  setText("vKp", fmt(cur.kp, 1));
   const bzWord = cur.bz < -2 || (cur.bz <= 0 && mood === "dark") ? "Dark" : "Bright";
   if ($("rBz").dataset.w !== bzWord) { $("rBz").dataset.w = bzWord; $("rBz").innerHTML = `<span class="long">${bzWord} scale</span><span class="short">Scale</span>`; } // na telefonie samo „Scale”, stan mówi kolor
   $("rKp").classList.toggle("off", !(cur.kp >= 4));
@@ -3359,7 +3369,7 @@ setInterval(() => {
   $("rKp").style.color = mix(BONE, [95, 211, 141], map(cur.kp, 3, 8, 0, 1) * 0.7);
   $("rX").style.color = mix([239, 230, 210], [255, 242, 196], vis.flareT);
   const xc = mode === "storm" ? { letter: "X2.1", level: 4 } : mode === "live" && target.xray ? xrayClass(target.xray) : { letter: "–", level: 0 };
-  $("vX").textContent = xc.letter;
+  setText("vX", xc.letter);
   updateDataPanel(xc);
   // Telefon: kolor pomiaru rośnie z siłą (spokojnie = biały).
   const heat = (t) => t <= 0 ? null : t < 0.5 ? mix([238, 240, 246], [255, 207, 110], t * 2) : mix([255, 207, 110], [255, 90, 78], t * 2 - 1);
